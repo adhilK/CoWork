@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Search, UserPlus } from "lucide-react";
+import { Plus, Search, UserPlus, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -90,8 +90,37 @@ export function MembersTable({ members, total, page, limit, currency, plans, org
         </Select>
       </div>
 
-      {/* Table */}
-      <div className="dashboard-card overflow-x-auto">
+      {/* Mobile: card list (< sm) */}
+      <div className="sm:hidden dashboard-card divide-y divide-gray-50 overflow-hidden">
+        {members.length === 0 ? (
+          <p className="text-center py-12 text-sm text-gray-400">No members found</p>
+        ) : members.map((m) => (
+          <div key={m.id} onClick={() => router.push(`/dashboard/members/${m.id}`)}
+            className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50/60 transition-colors active:bg-gray-100">
+            <Avatar className="w-9 h-9 flex-shrink-0">
+              <AvatarFallback className="text-xs font-bold bg-green-100 text-green-700">
+                {initials(m.user.name ?? "")}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-gray-900 truncate">{m.user.name ?? "—"}</p>
+                <Badge className={cn("text-[10px] font-semibold flex-shrink-0", STATUS_STYLES[m.status])}>
+                  {humanizeEnum(m.status)}
+                </Badge>
+              </div>
+              <p className="text-xs text-gray-400 truncate">{m.user.email}</p>
+              {m.membershipPlan && (
+                <p className="text-xs text-gray-500 mt-0.5">{m.membershipPlan.name} · {formatCurrency(Number(m.membershipPlan.price), currency)}/{m.membershipPlan.billingCycle.toLowerCase()}</p>
+              )}
+            </div>
+            <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop: table (sm+) */}
+      <div className="hidden sm:block dashboard-card overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50/50">

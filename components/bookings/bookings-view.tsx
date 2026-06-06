@@ -194,7 +194,7 @@ export function BookingsView({ resources, members, currency, timezone, upcomingB
           <h1 className="page-title">Bookings</h1>
           <p className="page-subtitle">Manage reservations and check-ins</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
           {/* Schedule / Calendar toggle */}
           <div className="flex rounded-xl border border-gray-200 bg-white overflow-hidden p-0.5">
             {([["schedule", "Schedule", List], ["calendar", "Calendar", CalendarDays]] as const).map(

@@ -102,21 +102,21 @@ export function ResourcesView({ resources, locations, currency, organizationId, 
 
       {/* Live summary bar */}
       {activeItems.length > 0 && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {([
             { key: "all", value: activeItems.length, label: "Total active", color: "#0F172A", icon: Building2, ring: "border-gray-900", bg: "#F1F5F9" },
-            { key: "available", value: availableCount, label: "Available now", color: "#16A34A", icon: CheckCircle2, ring: "border-emerald-500", bg: "#DCFCE7" },
-            { key: "occupied", value: occupiedCount, label: "In use now", color: "#EF4444", icon: Clock, ring: "border-red-400", bg: "#FEE2E2" },
+            { key: "available", value: availableCount, label: "Available", color: "#16A34A", icon: CheckCircle2, ring: "border-emerald-500", bg: "#DCFCE7" },
+            { key: "occupied", value: occupiedCount, label: "In use", color: "#EF4444", icon: Clock, ring: "border-red-400", bg: "#FEE2E2" },
           ] as const).map((s) => (
             <button key={s.key} onClick={() => setFilter(s.key)}
-              className={cn("dashboard-card p-4 flex items-center gap-3 text-left transition-all border-2",
+              className={cn("dashboard-card p-3 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left transition-all border-2",
                 filter === s.key ? s.ring : "border-transparent")}>
-              <span className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: s.bg }}>
-                <s.icon style={{ color: s.color, width: 18, height: 18 }} />
+              <span className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: s.bg }}>
+                <s.icon style={{ color: s.color, width: 16, height: 16 }} />
               </span>
               <div>
-                <p className="text-2xl font-bold leading-none" style={{ color: s.color }}>{s.value}</p>
-                <p className="text-xs text-gray-400 mt-1">{s.label}</p>
+                <p className="text-xl sm:text-2xl font-bold leading-none" style={{ color: s.color }}>{s.value}</p>
+                <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1 leading-tight">{s.label}</p>
               </div>
             </button>
           ))}

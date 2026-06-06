@@ -67,37 +67,35 @@ export function TodaySchedule({ bookings }: { bookings: Booking[] }) {
             const end = parseISO(b.endTime);
             const isBusy = busyId === b.id;
             return (
-              <div key={b.id} className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50/60 transition-colors">
-                <div className="w-12 flex-shrink-0 text-right">
-                  <p className="text-sm font-semibold text-gray-900 leading-tight">{format(start, "HH:mm")}</p>
-                  <p className="text-xs text-gray-400">{format(end, "HH:mm")}</p>
+              <div key={b.id} className="flex items-center gap-2 sm:gap-4 px-3 sm:px-5 py-3 hover:bg-gray-50/60 transition-colors">
+                <div className="w-10 sm:w-12 flex-shrink-0 text-right">
+                  <p className="text-xs sm:text-sm font-semibold text-gray-900 leading-tight">{format(start, "HH:mm")}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-400">{format(end, "HH:mm")}</p>
                 </div>
                 <div className="w-1 self-stretch rounded-full flex-shrink-0" style={{ background: s.solid }} />
-                <ResourceIcon type={b.resourceType} size="sm" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">
                     {b.resourceName}
-                    {b.title && <span className="text-gray-400 font-normal"> — {b.title}</span>}
+                    {b.title && <span className="text-gray-400 font-normal hidden sm:inline"> — {b.title}</span>}
                   </p>
-                  <p className="text-xs text-gray-400 truncate flex items-center gap-2 mt-0.5">
+                  <p className="text-xs text-gray-400 truncate mt-0.5">
                     {b.memberName ?? "Walk-in"}
-                    {b.attendees > 1 && <span className="flex items-center gap-0.5"><Users className="w-3 h-3" />{b.attendees}</span>}
                   </p>
                 </div>
-                <span className={cn("text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0", s.bg, s.text)}>
+                <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 hidden sm:inline-flex", s.bg, s.text)}>
                   {s.label}
                 </span>
-                <div className="w-24 flex justify-end flex-shrink-0">
+                <div className="flex-shrink-0">
                   {(b.status === "CONFIRMED" || b.status === "PENDING") && (
                     <button disabled={isBusy} onClick={() => quickAction(b.id, "check-in")}
-                      className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition-colors disabled:opacity-50">
-                      <LogIn className="w-3.5 h-3.5" /> In
+                      className="flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded-lg border border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition-colors disabled:opacity-50">
+                      <LogIn className="w-3.5 h-3.5" /> <span className="hidden sm:inline">In</span>
                     </button>
                   )}
                   {b.status === "CHECKED_IN" && (
                     <button disabled={isBusy} onClick={() => quickAction(b.id, "check-out")}
-                      className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors disabled:opacity-50">
-                      <LogOut className="w-3.5 h-3.5" /> Out
+                      className="flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors disabled:opacity-50">
+                      <LogOut className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Out</span>
                     </button>
                   )}
                 </div>

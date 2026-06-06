@@ -60,13 +60,13 @@ export function KPICards({ kpi, currency }: Props) {
   const revTrend = kpi.revenue.trend?.length ? kpi.revenue.trend : [0, 0, 0, 0, 0, 0, kpi.revenue.current];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
       {/* Revenue — dark card */}
-      <Link href="/dashboard/invoices" className="kpi-card kpi-card-dark rounded-2xl p-5 block hover:-translate-y-0.5 transition-transform">
+      <Link href="/dashboard/invoices" className="kpi-card kpi-card-dark rounded-2xl p-3 sm:p-5 block hover:-translate-y-0.5 transition-transform">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>Revenue this month</p>
-            <p className="text-2xl font-bold tracking-tight text-white mb-1.5">{formatCurrency(kpi.revenue.current, currency)}</p>
+            <p className="text-xl sm:text-2xl font-bold tracking-tight text-white mb-1.5">{formatCurrency(kpi.revenue.current, currency)}</p>
             <TrendLabel current={kpi.revenue.current} previous={kpi.revenue.previous} />
             {(kpi.revenue.unbilled ?? 0) > 0 && (
               <p className="text-[10px] mt-1.5 font-medium" style={{ color: "rgba(255,255,255,0.5)" }}>
@@ -79,11 +79,11 @@ export function KPICards({ kpi, currency }: Props) {
       </Link>
 
       {/* Members */}
-      <Link href="/dashboard/members" className="kpi-card rounded-2xl p-5 block hover:-translate-y-0.5 transition-transform">
+      <Link href="/dashboard/members" className="kpi-card rounded-2xl p-3 sm:p-5 block hover:-translate-y-0.5 transition-transform">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-gray-400 mb-2">Active members</p>
-            <p className="text-2xl font-bold tracking-tight text-gray-900 mb-1.5">{kpi.activeMembers.current}</p>
+            <p className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900 mb-1.5">{kpi.activeMembers.current}</p>
             <TrendLabel current={kpi.activeMembers.current} previous={kpi.activeMembers.previous} />
           </div>
           <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
@@ -93,11 +93,11 @@ export function KPICards({ kpi, currency }: Props) {
       </Link>
 
       {/* Today's bookings */}
-      <Link href="/dashboard/bookings" className="kpi-card rounded-2xl p-5 block hover:-translate-y-0.5 transition-transform">
+      <Link href="/dashboard/bookings" className="kpi-card rounded-2xl p-3 sm:p-5 block hover:-translate-y-0.5 transition-transform">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-gray-400 mb-2">Today&apos;s bookings</p>
-            <p className="text-2xl font-bold tracking-tight text-gray-900 mb-1.5">{kpi.todayBookings.total}</p>
+            <p className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900 mb-1.5">{kpi.todayBookings.total}</p>
             <span className={cn("inline-flex text-[11px] font-medium",
               kpi.todayBookings.pending > 0 ? "text-amber-600" : "text-emerald-600")}>
               {kpi.todayBookings.pending > 0 ? `${kpi.todayBookings.pending} pending approval` : "✓ All confirmed"}
@@ -110,11 +110,11 @@ export function KPICards({ kpi, currency }: Props) {
       </Link>
 
       {/* On-site now — accent green card */}
-      <Link href="/dashboard/bookings" className="kpi-card kpi-card-accent rounded-2xl p-5 block hover:-translate-y-0.5 transition-transform">
+      <Link href="/dashboard/bookings" className="kpi-card kpi-card-accent rounded-2xl p-3 sm:p-5 block hover:-translate-y-0.5 transition-transform">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium mb-2" style={{ color: "rgba(255,255,255,0.55)" }}>On-site now</p>
-            <p className="text-2xl font-bold tracking-tight text-white mb-1.5">{kpi.onSiteNow ?? 0}</p>
+            <p className="text-xl sm:text-2xl font-bold tracking-tight text-white mb-1.5">{kpi.onSiteNow ?? 0}</p>
             <span className="text-[11px] font-medium" style={{ color: "rgba(255,255,255,0.6)" }}>
               {kpi.occupancyRate != null ? `${kpi.occupancyRate}% occupancy this month` : "—"}
             </span>

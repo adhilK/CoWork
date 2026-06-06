@@ -303,69 +303,101 @@ export function InvoicesView({ invoices, total, page, limit, summary, currency, 
         <span className="text-sm text-gray-500">{total} result{total !== 1 ? "s" : ""}</span>
       </div>
 
-      {/* Invoice table */}
-      <div className="dashboard-card overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-gray-50/50">
-              <TableHead>Invoice</TableHead>
-              <TableHead>Member</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Due date</TableHead>
-              <TableHead />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {invoices.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-12 text-gray-400">
-                  No invoices yet
-                  {unbilledBookings.length > 0 && (
-                    <p className="text-xs mt-1 text-indigo-400">Use the panel above to generate invoices from unbilled bookings</p>
-                  )}
-                </TableCell>
-              </TableRow>
-            ) : invoices.map((inv) => (
-              <TableRow key={inv.id} className="hover:bg-gray-50/50">
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm font-mono font-medium text-gray-700">{inv.invoiceNumber}</span>
+      {/* Invoice list — card on mobile, table on sm+ */}
+      {invoices.length === 0 ? (
+        <div className="dashboard-card p-10 text-center text-gray-400 text-sm">
+          No invoices yet
+          {unbilledBookings.length > 0 && (
+            <p className="text-xs mt-1 text-indigo-400">Use the panel above to generate invoices from unbilled bookings</p>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Mobile cards */}
+          <div className="sm:hidden dashboard-card divide-y divide-gray-50 overflow-hidden">
+            {invoices.map((inv) => (
+              <div key={inv.id} className="flex items-center gap-3 px-4 py-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-mono text-gray-500">{inv.invoiceNumber}</span>
+                    <Badge className={cn("text-[10px]", STATUS_STYLES[inv.status])}>
+                      {inv.status.charAt(0) + inv.status.slice(1).toLowerCase()}
+                    </Badge>
                   </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Avatar className="w-7 h-7">
-                      <AvatarFallback className="text-xs font-bold bg-indigo-100 text-indigo-700">
-                        {initials(inv.member?.user?.name ?? "")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm">{inv.member?.user?.name ?? inv.member?.user?.email}</span>
+                  <p className="text-sm font-medium text-gray-900 mt-0.5 truncate">
+                    {inv.member?.user?.name ?? inv.member?.user?.email}
+                  </p>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-xs text-gray-400">Due {formatDate(inv.dueDate)}</span>
+                    <span className="text-sm font-bold text-gray-900">{formatCurrency(Number(inv.amount), currency)}</span>
                   </div>
-                </TableCell>
-                <TableCell>
-                  <span className="text-sm font-semibold text-gray-900">{formatCurrency(Number(inv.amount), currency)}</span>
-                </TableCell>
-                <TableCell>
-                  <Badge className={cn("text-xs", STATUS_STYLES[inv.status])}>
-                    {inv.status.charAt(0) + inv.status.slice(1).toLowerCase()}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-sm text-gray-500">{formatDate(inv.dueDate)}</TableCell>
-                <TableCell>
-                  {(inv.status === "PENDING" || inv.status === "OVERDUE") && (
-                    <Button variant="outline" size="sm" className="h-7 text-xs text-green-700 border-green-200 hover:bg-green-50"
-                      onClick={(e) => markPaid(inv.id, e)}>
-                      Mark paid
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
+                </div>
+                {(inv.status === "PENDING" || inv.status === "OVERDUE") && (
+                  <Button variant="outline" size="sm" className="h-7 text-xs text-green-700 border-green-200 hover:bg-green-50 flex-shrink-0"
+                    onClick={(e) => markPaid(inv.id, e)}>
+                    Paid
+                  </Button>
+                )}
+              </div>
             ))}
-          </TableBody>
-        </Table>
-      </div>
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden sm:block dashboard-card overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50/50">
+                  <TableHead>Invoice</TableHead>
+                  <TableHead>Member</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Due date</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {invoices.map((inv) => (
+                  <TableRow key={inv.id} className="hover:bg-gray-50/50">
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm font-mono font-medium text-gray-700">{inv.invoiceNumber}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="w-7 h-7">
+                          <AvatarFallback className="text-xs font-bold bg-indigo-100 text-indigo-700">
+                            {initials(inv.member?.user?.name ?? "")}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm">{inv.member?.user?.name ?? inv.member?.user?.email}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm font-semibold text-gray-900">{formatCurrency(Number(inv.amount), currency)}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={cn("text-xs", STATUS_STYLES[inv.status])}>
+                        {inv.status.charAt(0) + inv.status.slice(1).toLowerCase()}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-gray-500">{formatDate(inv.dueDate)}</TableCell>
+                    <TableCell>
+                      {(inv.status === "PENDING" || inv.status === "OVERDUE") && (
+                        <Button variant="outline" size="sm" className="h-7 text-xs text-green-700 border-green-200 hover:bg-green-50"
+                          onClick={(e) => markPaid(inv.id, e)}>
+                          Mark paid
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </>
+      )}
 
       {totalPages > 1 && (
         <div className="flex justify-end gap-2">

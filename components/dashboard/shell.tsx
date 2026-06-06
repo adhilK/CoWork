@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Calendar, Users, FileText, BarChart3,
   Settings, LogOut, Menu, Building2, Bell,
-  CreditCard, UserCheck, MessageSquare, Search, Tag,
+  CreditCard, UserCheck, MessageSquare, Search, Tag, X,
 } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -240,10 +240,40 @@ export function DashboardShell({ user, organization, role, children }: Props) {
           </header>
 
           {/* Content */}
-          <main className="flex-1 overflow-y-auto px-4 sm:px-5 lg:px-6 py-5 lg:py-6">
+          <main className="flex-1 overflow-y-auto px-4 sm:px-5 lg:px-6 py-5 lg:py-6 pb-24 lg:pb-6">
             {children}
           </main>
         </div>
+
+      {/* ── Mobile bottom navigation bar ───────────────────────────────── */}
+      <nav className="fixed bottom-0 left-0 right-0 lg:hidden z-40 bg-white border-t border-gray-100"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        <div className="flex items-center justify-around px-1 py-1.5">
+          {[
+            { href: "/dashboard", label: "Home", icon: LayoutDashboard, exact: true },
+            { href: "/dashboard/bookings", label: "Bookings", icon: Calendar },
+            { href: "/dashboard/resources", label: "Spaces", icon: Building2 },
+            { href: "/dashboard/members", label: "Members", icon: Users },
+          ].map((item) => {
+            const active = isActive(item.href, item.exact);
+            return (
+              <Link key={item.href} href={item.href}
+                className={cn(
+                  "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors",
+                  active ? "text-emerald-600" : "text-gray-400"
+                )}>
+                <item.icon className="w-5 h-5" />
+                <span className="text-[10px] font-semibold">{item.label}</span>
+              </Link>
+            );
+          })}
+          <button onClick={() => setMobileOpen(true)}
+            className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-gray-400">
+            <Menu className="w-5 h-5" />
+            <span className="text-[10px] font-semibold">More</span>
+          </button>
+        </div>
+      </nav>
 
       {/* Global command palette (⌘K / search box) */}
       <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />

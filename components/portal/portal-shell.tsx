@@ -216,10 +216,38 @@ export function PortalShell({ member, children }: Props) {
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto p-5 lg:p-6">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6 pb-24 lg:pb-6">
           {children}
         </main>
       </div>
+
+      {/* Mobile bottom navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 lg:hidden z-40 bg-white border-t border-gray-100"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        <div className="flex items-center justify-around px-1 py-1.5">
+          {NAV_ITEMS.slice(0, 4).map((item) => {
+            const active = isActive(item.href, item.exact);
+            return (
+              <Link key={item.href} href={item.href}
+                className={cn(
+                  "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors",
+                  active ? "text-emerald-600" : "text-gray-400"
+                )}>
+                <item.icon className="w-5 h-5" />
+                <span className="text-[10px] font-semibold">{item.label === "Book a space" ? "Book" : item.label}</span>
+              </Link>
+            );
+          })}
+          <Link href="/portal/profile"
+            className={cn(
+              "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors",
+              isActive("/portal/profile") ? "text-emerald-600" : "text-gray-400"
+            )}>
+            <User className="w-5 h-5" />
+            <span className="text-[10px] font-semibold">Profile</span>
+          </Link>
+        </div>
+      </nav>
     </div>
   );
 }
