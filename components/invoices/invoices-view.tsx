@@ -121,38 +121,42 @@ function GenerateInvoiceDialog({
         <DialogHeader>
           <DialogTitle className="truncate pr-8">Generate invoice — {group.name}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 pt-2">
+        <div className="space-y-4 pt-2 w-full min-w-0">
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <Label className="text-xs text-gray-500">Select bookings to invoice</Label>
-              <button className="text-xs text-indigo-600 hover:underline"
+              <button className="text-xs text-indigo-600 hover:underline flex-shrink-0"
                 onClick={() => setSelected(allSelected ? new Set() : new Set(group.bookings.map(b => b.id)))}>
                 {allSelected ? "Deselect all" : "Select all"}
               </button>
             </div>
-            <div className="space-y-1.5 max-h-52 overflow-y-auto">
+            <div className="space-y-1.5 max-h-52 overflow-y-auto overflow-x-hidden">
               {group.bookings.map((b) => (
                 <label key={b.id} className={cn(
-                  "flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors",
+                  "flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors w-full",
                   selected.has(b.id) ? "border-indigo-200 bg-indigo-50" : "border-gray-100 hover:bg-gray-50"
                 )}>
-                  <input type="checkbox" checked={selected.has(b.id)} onChange={() => toggle(b.id)} className="flex-shrink-0" />
+                  <input type="checkbox" checked={selected.has(b.id)} onChange={() => toggle(b.id)} className="flex-shrink-0 w-3.5 h-3.5 accent-indigo-600" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-800 truncate">
                       {b.resource.name}{b.title ? ` — ${b.title}` : ""}
                     </p>
-                    <p className="text-xs text-gray-400">{format(new Date(b.startTime), "d MMM, HH:mm")} – {format(new Date(b.endTime), "HH:mm")}</p>
+                    <div className="flex items-center justify-between gap-2 mt-0.5">
+                      <p className="text-xs text-gray-400 truncate">
+                        {format(new Date(b.startTime), "d MMM, HH:mm")} – {format(new Date(b.endTime), "HH:mm")}
+                      </p>
+                      <span className="text-xs font-semibold text-gray-900 flex-shrink-0 tabular-nums">
+                        {formatCurrency(Number(b.amountCharged), currency)}
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-sm font-semibold text-gray-900 flex-shrink-0">
-                    {formatCurrency(Number(b.amountCharged), currency)}
-                  </span>
                 </label>
               ))}
             </div>
           </div>
-          <div className="flex items-center justify-between text-sm font-semibold border-t pt-3">
-            <span className="text-gray-600">{selected.size} booking{selected.size !== 1 ? "s" : ""} selected</span>
-            <span className="text-gray-900">{formatCurrency(selectedTotal, currency)}</span>
+          <div className="flex items-center justify-between gap-3 text-sm font-semibold border-t pt-3">
+            <span className="text-gray-600 min-w-0 truncate">{selected.size} booking{selected.size !== 1 ? "s" : ""} selected</span>
+            <span className="text-gray-900 flex-shrink-0 tabular-nums">{formatCurrency(selectedTotal, currency)}</span>
           </div>
           <div className="space-y-1.5">
             <Label>Due date</Label>
