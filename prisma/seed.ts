@@ -381,7 +381,7 @@ async function main() {
   let bookingCount = 0;
 
   // Past bookings — 60 days back
-  const bookingData: Parameters<typeof prisma.booking.createMany>[0]["data"] = [];
+  const bookingData: NonNullable<Parameters<typeof prisma.booking.createMany>[0]>["data"] = [];
 
   for (let daysBack = 60; daysBack >= 1; daysBack--) {
     const date = subDays(today, daysBack);
@@ -497,7 +497,7 @@ async function main() {
     { status: "OVERDUE", count: 4 },
   ];
 
-  const invoiceData: Parameters<typeof prisma.invoice.createMany>[0]["data"] = [];
+  const invoiceData: NonNullable<Parameters<typeof prisma.invoice.createMany>[0]>["data"] = [];
   let invoiceNum = 1;
 
   for (const { status, count } of invoiceStatuses) {
