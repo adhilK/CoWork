@@ -1,0 +1,163 @@
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { getAuthContext } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { KPICards } from "@/components/dashboard/kpi-cards";
+import { RevenueChart } from "@/components/dashboard/revenue-chart";
+import { TodaySchedule } from "@/components/dashboard/today-schedule";
+import { OccupancyChart } from "@/components/dashboard/occupancy-chart";
+import { RecentInvoices } from "@/components/dashboard/recent-invoices";
+import { NeedsAttention } from "@/components/dashboard/needs-attention";
+import { startOfMonth, subMonths, startOfDay, endOfDay } from "date-fns";
+
+export const metadata: Metadata = { title: "Dashboard — CoWork Pro" };
+export const dynamic = "force-dynamic";
+
+async function getDashboardData(orgId: string) {
+  const now = new Date();
+  const thisMonthStart = startOfMonth(now);
+  const lastMonthStart = startOfMonth(subMonths(now, 1));
+  const todayStart = startOfDay(now);
+  const todayEnd = endOfDay(now);
+
+  const [
+    revenueThis, revenueLast, activeMembersNow, activeMembersLast,
+    todayBookings, allBookingsThisMonth, resources, revenueByDay,
+    recentInvoices, unbilledAgg, onSiteNow, pendingApprovals, overdueAgg,
+  ] = await Promise.all([
+    prisma.invoice.aggregate({
+      where: { organizationId: orgId, status: "PAID", paidAt: { gte: thisMonthStart } },
+      _sum: { amount: true },
+    }),
+    prisma.invoice.aggregate({
+      where: { organizationId: orgId, status: "PAID", paidAt: { gte: lastMonthStart, lt: thisMonthStart } },
+      _sum: { amount: true },
+    }),
+    prisma.member.count({ where: { organizationId: orgId, status: "ACTIVE", deletedAt: null } }),
+    prisma.member.count({ where: { organizationId: orgId, status: "ACTIVE", deletedAt: null, createdAt: { lt: lastMonthStart } } }),
+    prisma.booking.findMany({
+      where: { organizationId: orgId, startTime: { gte: todayStart, lte: todayEnd }, deletedAt: null },
+      include: { resource: { select: { name: true, type: true } }, member: { select: { user: { select: { name: true, email: true } } } } },
+      orderBy: { startTime: "asc" },
+      take: 10,
+    }),
+    prisma.booking.findMany({
+      where: { organizationId: orgId, startTime: { gte: thisMonthStart }, status: { in: ["CONFIRMED", "CHECKED_IN", "COMPLETED"] }, deletedAt: null },
+      select: { resourceId: true, startTime: true, endTime: true },
+    }),
+    prisma.resource.findMany({ where: { organizationId: orgId, isActive: true, deletedAt: null }, select: { id: true, name: true } }),
+    prisma.invoice.findMany({
+      where: { organizationId: orgId, status: "PAID", paidAt: { gte: subMonths(now, 1) } },
+      select: { amount: true, paidAt: true },
+      orderBy: { paidAt: "asc" },
+    }),
+    prisma.invoice.findMany({
+      where: { organizationId: orgId, deletedAt: null },
+      include: { member: { include: { user: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }),
+    prisma.booking.aggregate({
+      where: { organizationId: orgId, deletedAt: null, invoiceId: null, amountCharged: { gt: 0 }, status: { in: ["CONFIRMED", "CHECKED_IN", "COMPLETED"] } },
+      _sum: { amountCharged: true },
+    }),
+    prisma.booking.count({ where: { organizationId: orgId, deletedAt: null, status: "CHECKED_IN", startTime: { lte: now }, endTime: { gte: now } } }),
+    prisma.booking.count({ where: { organizationId: orgId, deletedAt: null, status: "PENDING" } }),
+    prisma.invoice.aggregate({
+      where: { organizationId: orgId, deletedAt: null, status: { in: ["PENDING", "OVERDUE"] }, dueDate: { lt: now } },
+      _sum: { amount: true }, _count: true,
+    }),
+  ]);
+
+  // Revenue-by-day for chart
+  const revenueMap: Record<string, number> = {};
+  revenueByDay.forEach((inv) => {
+    if (!inv.paidAt) return;
+    const day = inv.paidAt.toISOString().split("T")[0]!;
+    revenueMap[day] = (revenueMap[day] ?? 0) + Number(inv.amount);
+  });
+  const revenueChartData = Object.entries(revenueMap).map(([date, revenue]) => ({ date, revenue })).sort((a, b) => a.date.localeCompare(b.date));
+
+  // Occupancy by resource
+  const occupancyData = resources.map((r) => {
+    const forR = allBookingsThisMonth.filter((b) => b.resourceId === r.id);
+    const totalHours = forR.reduce((sum, b) => sum + (b.endTime.getTime() - b.startTime.getTime()) / 3600000, 0);
+    return { resourceName: r.name, occupancyRate: Math.min(100, Math.round((totalHours / (8 * 22)) * 100)), totalBookings: forR.length };
+  });
+  const avgOccupancy = occupancyData.length ? Math.round(occupancyData.reduce((s, r) => s + r.occupancyRate, 0) / occupancyData.length) : 0;
+
+  const last7 = revenueChartData.slice(-7).map((d) => d.revenue);
+  while (last7.length < 7) last7.unshift(0);
+
+  return {
+    kpi: {
+      revenue: { current: Number(revenueThis._sum.amount ?? 0), previous: Number(revenueLast._sum.amount ?? 0), trend: last7, unbilled: Number(unbilledAgg._sum.amountCharged ?? 0) },
+      activeMembers: { current: activeMembersNow, previous: activeMembersLast },
+      todayBookings: { total: todayBookings.length, pending: todayBookings.filter((b) => b.status === "PENDING").length },
+      occupancyRate: avgOccupancy,
+      onSiteNow,
+    },
+    attention: {
+      pendingApprovals,
+      overdueCount: overdueAgg._count,
+      overdueAmount: Number(overdueAgg._sum.amount ?? 0),
+      unbilled: Number(unbilledAgg._sum.amountCharged ?? 0),
+    },
+    todaySchedule: todayBookings.map((b) => ({
+      id: b.id, title: b.title, status: b.status,
+      startTime: b.startTime.toISOString(), endTime: b.endTime.toISOString(),
+      attendees: b.attendees,
+      resourceName: b.resource?.name ?? "Resource",
+      resourceType: b.resource?.type ?? ("OTHER" as const),
+      memberName: b.member?.user?.name ?? b.member?.user?.email ?? null,
+    })),
+    revenueChartData,
+    occupancyData,
+    recentInvoices: recentInvoices.map((inv) => ({ ...inv, amount: Number(inv.amount) })),
+  };
+}
+
+export default async function DashboardPage() {
+  const ctx = await getAuthContext();
+  if (!ctx) redirect("/login");
+
+  const data = await getDashboardData(ctx.organizationId);
+  const currency = ctx.organization.currency;
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const firstName = ctx.user.name?.split(" ")[0] ?? null;
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      {/* Greeting */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {greeting}{firstName ? `, ${firstName}` : ""} 👋
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">Here&apos;s what&apos;s happening at {ctx.organization.name} today.</p>
+      </div>
+
+      {/* Glanceable stats */}
+      <KPICards kpi={data.kpi} currency={currency} />
+
+      {/* Needs attention */}
+      <NeedsAttention {...data.attention} currency={currency} />
+
+      {/* Today + recent invoices */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        <div className="xl:col-span-2">
+          <TodaySchedule bookings={data.todaySchedule as any} />
+        </div>
+        <RecentInvoices invoices={data.recentInvoices as any} currency={currency} />
+      </div>
+
+      {/* Trends */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        <div className="xl:col-span-2">
+          <RevenueChart data={data.revenueChartData} currency={currency} />
+        </div>
+        <OccupancyChart data={data.occupancyData} />
+      </div>
+    </div>
+  );
+}

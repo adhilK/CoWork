@@ -1,0 +1,393 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── ENUMS ────────────────────────────────────────────────────────────────────
+
+enum Plan {
+  STARTER
+  GROWTH
+  PRO
+  ENTERPRISE
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum ResourceType {
+  HOT_DESK
+  DEDICATED_DESK
+  PRIVATE_OFFICE
+  MEETING_ROOM
+  EVENT_SPACE
+  PHONE_BOOTH
+  PODCAST_ROOM
+  OTHER
+}
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+}
+
+enum PlanType {
+  DAY_PASS
+  HOT_DESK
+  DEDICATED_DESK
+  PRIVATE_OFFICE
+  VIRTUAL_OFFICE
+  CUSTOM
+}
+
+enum BillingCycle {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum InvoiceStatus {
+  DRAFT
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+  REFUNDED
+}
+
+// ─── MULTI-TENANCY ────────────────────────────────────────────────────────────
+
+model Organization {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  logo          String?
+  address       String?
+  phone         String?
+  email         String?
+  website       String?
+  timezone      String   @default("UTC")
+  currency      String   @default("GBP")
+  plan          Plan     @default(STARTER)
+  trialEndsAt   DateTime?
+  // Stripe platform billing (not Connect — that's Phase 2)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  users         UserOrganization[]
+  locations     Location[]
+  resources     Resource[]
+  members       Member[]
+  bookings      Booking[]
+  invoices      Invoice[]
+  plans         MembershipPlan[]
+  visitors      Visitor[]
+  announcements Announcement[]
+  events        Event[]
+
+  @@index([slug])
+}
+
+// ─── USERS & AUTH ─────────────────────────────────────────────────────────────
+// Note: Supabase Auth manages authentication.
+// This User model mirrors the Supabase auth.users table for relational data.
+
+model User {
+  id           String   @id // matches Supabase auth.users.id (UUID)
+  email        String   @unique
+  name         String?
+  avatar       String?
+  isSuperAdmin Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  organizations UserOrganization[]
+  bookings      Booking[]
+  member        Member?
+
+  @@index([email])
+}
+
+model UserOrganization {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           UserRole     @default(MEMBER)
+  createdAt      DateTime     @default(now())
+
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([userId])
+  @@index([organizationId])
+}
+
+// ─── LOCATIONS ────────────────────────────────────────────────────────────────
+
+model Location {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  address        String?
+  floorPlanUrl   String?
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  resources      Resource[]
+
+  @@index([organizationId])
+}
+
+// ─── RESOURCES ────────────────────────────────────────────────────────────────
+
+model Resource {
+  id                  String       @id @default(cuid())
+  organizationId      String
+  locationId          String
+  name                String
+  type                ResourceType
+  description         String?
+  capacity            Int          @default(1)
+  hourlyRate          Decimal?     @db.Decimal(10, 2)
+  halfDayRate         Decimal?     @db.Decimal(10, 2)
+  fullDayRate         Decimal?     @db.Decimal(10, 2)
+  amenities           String[]
+  images              String[]
+  isActive            Boolean      @default(true)
+  requiresApproval    Boolean      @default(false)
+  advanceBookingDays  Int          @default(30)
+  minBookingMinutes   Int          @default(30)
+  maxBookingHours     Int          @default(8)
+  // Soft delete
+  deletedAt           DateTime?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  location       Location     @relation(fields: [locationId], references: [id])
+  bookings       Booking[]
+
+  @@index([organizationId])
+  @@index([locationId])
+  @@index([organizationId, deletedAt])
+}
+
+// ─── MEMBERSHIP PLANS ─────────────────────────────────────────────────────────
+
+model MembershipPlan {
+  id              String       @id @default(cuid())
+  organizationId  String
+  name            String
+  description     String?
+  type            PlanType
+  price           Decimal      @db.Decimal(10, 2)
+  billingCycle    BillingCycle @default(MONTHLY)
+  includedCredits Int          @default(0)
+  meetingRoomHours Int         @default(0)
+  features        String[]
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members        Member[]
+
+  @@index([organizationId])
+}
+
+// ─── MEMBERS ─────────────────────────────────────────────────────────────────
+
+model Member {
+  id               String         @id @default(cuid())
+  organizationId   String
+  userId           String         @unique
+  membershipPlanId String?
+  status           MemberStatus   @default(ACTIVE)
+  startDate        DateTime       @default(now())
+  endDate          DateTime?
+  credits          Int            @default(0)
+  notes            String?
+  company          String?
+  jobTitle         String?
+  bio              String?
+  phone            String?
+  // Soft delete
+  deletedAt        DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  organization     Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user             User            @relation(fields: [userId], references: [id])
+  membershipPlan   MembershipPlan? @relation(fields: [membershipPlanId], references: [id])
+  bookings         Booking[]
+  invoices         Invoice[]
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([organizationId, deletedAt])
+  @@index([organizationId, status])
+}
+
+// ─── BOOKINGS ────────────────────────────────────────────────────────────────
+
+model Booking {
+  id               String        @id @default(cuid())
+  organizationId   String
+  resourceId       String
+  memberId         String?
+  userId           String
+  title            String?
+  description      String?
+  startTime        DateTime
+  endTime          DateTime
+  status           BookingStatus @default(CONFIRMED)
+  creditsUsed      Int           @default(0)
+  amountCharged    Decimal       @default(0) @db.Decimal(10, 2)
+  invoiceId        String?       // set when booking is added to an invoice
+  attendees        Int           @default(1)
+  externalGuests   String[]
+  checkedInAt      DateTime?
+  checkedOutAt     DateTime?
+  cancelledAt      DateTime?
+  cancelReason     String?
+  isRecurring      Boolean       @default(false)
+  recurringGroupId String?
+  // Soft delete
+  deletedAt        DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  resource       Resource     @relation(fields: [resourceId], references: [id])
+  member         Member?      @relation(fields: [memberId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+  invoice        Invoice?     @relation(fields: [invoiceId], references: [id])
+
+  @@index([organizationId])
+  @@index([resourceId])
+  @@index([memberId])
+  @@index([organizationId, startTime, endTime])
+  @@index([resourceId, status])
+  @@index([organizationId, status])
+  @@index([organizationId, deletedAt])
+}
+
+// ─── INVOICES ────────────────────────────────────────────────────────────────
+
+model Invoice {
+  id              String        @id @default(cuid())
+  organizationId  String
+  memberId        String
+  invoiceNumber   String?       // e.g. INV-2024-001
+  stripeInvoiceId String?
+  stripePaymentLinkId String?
+  amount          Decimal       @db.Decimal(10, 2)
+  currency        String        @default("GBP")
+  status          InvoiceStatus @default(DRAFT)
+  dueDate         DateTime
+  paidAt          DateTime?
+  periodStart     DateTime?
+  periodEnd       DateTime?
+  lineItems       Json          // [{ description, quantity, unitPrice, total }]
+  notes           String?
+  // Soft delete
+  deletedAt       DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member         Member       @relation(fields: [memberId], references: [id])
+  bookings       Booking[]
+
+  @@index([organizationId])
+  @@index([memberId])
+  @@index([organizationId, status])
+  @@index([dueDate])
+  @@index([organizationId, deletedAt])
+}
+
+// ─── VISITORS ────────────────────────────────────────────────────────────────
+
+model Visitor {
+  id              String    @id @default(cuid())
+  organizationId  String
+  name            String
+  email           String?
+  phone           String?
+  company         String?
+  hostMemberId    String?
+  purpose         String?
+  expectedArrival DateTime?
+  checkedInAt     DateTime?
+  checkedOutAt    DateTime?
+  createdAt       DateTime  @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([organizationId, checkedInAt])
+}
+
+// ─── COMMUNITY ───────────────────────────────────────────────────────────────
+
+model Announcement {
+  id             String       @id @default(cuid())
+  organizationId String
+  title          String
+  body           String
+  isPinned       Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+model Event {
+  id             String       @id @default(cuid())
+  organizationId String
+  title          String
+  description    String?
+  startTime      DateTime
+  endTime        DateTime
+  location       String?
+  capacity       Int?
+  imageUrl       String?
+  isPublic       Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([organizationId, startTime])
+}

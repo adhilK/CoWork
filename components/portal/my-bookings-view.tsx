@@ -1,0 +1,272 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { toast } from "sonner";
+import { Calendar, Clock, X, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { formatDate, formatTime, humanizeEnum } from "@/lib/utils";
+
+type Booking = {
+  id: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+  title: string | null;
+  attendees: number;
+  resource: {
+    id: string;
+    name: string;
+    type: string;
+    location?: { name: string } | null;
+  } | null;
+};
+
+type Props = {
+  upcoming: Booking[];
+  past: Booking[];
+};
+
+const STATUS_STYLES: Record<string, string> = {
+  CONFIRMED: "bg-green-50 text-green-700 border-green-200/60",
+  PENDING: "bg-amber-50 text-amber-700 border-amber-200/60",
+  CHECKED_IN: "bg-blue-50 text-blue-700 border-blue-200/60",
+  COMPLETED: "bg-gray-50 text-gray-600 border-gray-200/60",
+  CANCELLED: "bg-red-50 text-red-700 border-red-200/60",
+  NO_SHOW: "bg-orange-50 text-orange-700 border-orange-200/60",
+};
+
+const RESOURCE_EMOJI: Record<string, string> = {
+  HOT_DESK: "🪑",
+  DEDICATED_DESK: "🖥️",
+  PRIVATE_OFFICE: "🚪",
+  MEETING_ROOM: "📅",
+  EVENT_SPACE: "🏛️",
+  PHONE_BOOTH: "📞",
+  PODCAST_ROOM: "🎙️",
+  OTHER: "📌",
+};
+
+function BookingRow({
+  booking,
+  canCancel,
+  onCancel,
+}: {
+  booking: Booking;
+  canCancel: boolean;
+  onCancel: (id: string) => void;
+}) {
+  const start = new Date(booking.startTime);
+  const end = new Date(booking.endTime);
+
+  return (
+    <div className="flex items-start gap-4 p-4 rounded-xl border border-gray-100 bg-white hover:border-gray-200 transition-colors">
+      <span className="text-2xl leading-none flex-shrink-0 mt-0.5">
+        {RESOURCE_EMOJI[booking.resource?.type ?? "OTHER"] ?? "📌"}
+      </span>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="font-semibold text-gray-900 text-sm truncate">
+              {booking.title ?? booking.resource?.name ?? "Booking"}
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {booking.resource?.name}
+              {booking.resource?.location?.name && (
+                <> · {booking.resource.location.name}</>
+              )}
+            </p>
+          </div>
+          <span
+            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border flex-shrink-0 ${
+              STATUS_STYLES[booking.status] ?? "bg-gray-50 text-gray-500 border-gray-200"
+            }`}
+          >
+            {humanizeEnum(booking.status)}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
+          <span className="flex items-center gap-1">
+            <Calendar className="w-3 h-3" />
+            {formatDate(start)}
+          </span>
+          <span className="flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            {formatTime(start)} – {formatTime(end)}
+          </span>
+          {booking.attendees > 1 && (
+            <span>{booking.attendees} people</span>
+          )}
+        </div>
+      </div>
+
+      {canCancel && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="flex-shrink-0 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 h-8 px-2.5"
+          onClick={() => onCancel(booking.id)}
+        >
+          <X className="w-3.5 h-3.5 mr-1" />
+          Cancel
+        </Button>
+      )}
+    </div>
+  );
+}
+
+export function MyBookingsView({ upcoming, past }: Props) {
+  const [bookings, setBookings] = useState({ upcoming, past });
+  const [cancelId, setCancelId] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+
+  async function confirmCancel() {
+    if (!cancelId) return;
+    setCancelling(true);
+    try {
+      const res = await fetch(`/api/bookings/${cancelId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "Failed to cancel booking");
+        return;
+      }
+      toast.success("Booking cancelled");
+      setBookings((prev) => ({
+        upcoming: prev.upcoming.filter((b) => b.id !== cancelId),
+        past: prev.past,
+      }));
+      setCancelId(null);
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setCancelling(false);
+    }
+  }
+
+  return (
+    <div className="space-y-6 animate-fade-in max-w-3xl">
+      <div>
+        <h1 className="text-xl font-bold text-gray-900">My bookings</h1>
+        <p className="text-sm text-gray-400 mt-0.5">
+          View and manage your upcoming and past reservations.
+        </p>
+      </div>
+
+      {/* Upcoming */}
+      <div className="dashboard-card p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-gray-900 text-sm">
+            Upcoming
+            {bookings.upcoming.length > 0 && (
+              <span className="ml-2 text-xs text-gray-400 font-normal">
+                ({bookings.upcoming.length})
+              </span>
+            )}
+          </h2>
+          <Link href="/portal/book">
+            <Button
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8"
+            >
+              <Calendar className="w-3.5 h-3.5 mr-1.5" />
+              New booking
+            </Button>
+          </Link>
+        </div>
+
+        {bookings.upcoming.length === 0 ? (
+          <div className="text-center py-10">
+            <Calendar className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+            <p className="text-sm text-gray-400">No upcoming bookings</p>
+            <Link href="/portal/book">
+              <Button variant="outline" size="sm" className="mt-3 text-xs">
+                Book a space
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {bookings.upcoming.map((b) => (
+              <BookingRow
+                key={b.id}
+                booking={b}
+                canCancel={b.status === "CONFIRMED" || b.status === "PENDING"}
+                onCancel={setCancelId}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Past */}
+      {bookings.past.length > 0 && (
+        <div className="dashboard-card p-5">
+          <h2 className="font-semibold text-gray-900 text-sm mb-4">
+            Past bookings
+            <span className="ml-2 text-xs text-gray-400 font-normal">
+              ({bookings.past.length})
+            </span>
+          </h2>
+          <div className="space-y-2">
+            {bookings.past.map((b) => (
+              <BookingRow
+                key={b.id}
+                booking={b}
+                canCancel={false}
+                onCancel={setCancelId}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Cancel confirmation dialog */}
+      <Dialog open={!!cancelId} onOpenChange={(open) => !open && setCancelId(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Cancel booking</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel this booking? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setCancelId(null)}
+              disabled={cancelling}
+              className="text-sm"
+            >
+              Keep it
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmCancel}
+              disabled={cancelling}
+              className="text-sm"
+            >
+              {cancelling ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
+                  Cancelling...
+                </>
+              ) : (
+                "Yes, cancel"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
