@@ -199,7 +199,7 @@ export function DashboardShell({ user, organization, role, children }: Props) {
         {/* Content — full screen */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden workspace-bg">
           {/* Header — transparent, sits on the content */}
-          <header className="flex items-center justify-between px-5 lg:px-6 flex-shrink-0 border-b border-black/5" style={{ height: 60 }}>
+          <header className="flex items-center justify-between px-4 sm:px-5 lg:px-6 flex-shrink-0 border-b border-black/5" style={{ height: 60 }}>
             <button className="lg:hidden p-1.5 rounded-lg hover:bg-black/5 transition-colors"
               onClick={() => setMobileOpen(true)}>
               <Menu className="w-5 h-5 text-gray-700" />
@@ -240,7 +240,7 @@ export function DashboardShell({ user, organization, role, children }: Props) {
           </header>
 
           {/* Content */}
-          <main className="flex-1 overflow-y-auto px-5 lg:px-6 py-5 lg:py-6">
+          <main className="flex-1 overflow-y-auto px-4 sm:px-5 lg:px-6 py-5 lg:py-6">
             {children}
           </main>
         </div>

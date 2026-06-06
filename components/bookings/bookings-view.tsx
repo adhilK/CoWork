@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
+import listPlugin from "@fullcalendar/list";
 import interactionPlugin from "@fullcalendar/interaction";
 import { Plus, CalendarDays, List, LogIn, LogOut, Users, ChevronRight, Loader2, CalendarCheck, Clock, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -67,8 +68,18 @@ export function BookingsView({ resources, members, currency, timezone, upcomingB
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [calLoading, setCalLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   // In-memory cache of fetched calendar windows: key = `${start}|${end}|${filter}`
   const eventCache = useRef<Map<string, any[]>>(new Map());
+
+  // Track viewport so the calendar can use a phone-friendly view on small screens
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
   // Filter + group the schedule by day
   const grouped = useMemo(() => {
@@ -183,7 +194,7 @@ export function BookingsView({ resources, members, currency, timezone, upcomingB
           <h1 className="page-title">Bookings</h1>
           <p className="page-subtitle">Manage reservations and check-ins</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Schedule / Calendar toggle */}
           <div className="flex rounded-xl border border-gray-200 bg-white overflow-hidden p-0.5">
             {([["schedule", "Schedule", List], ["calendar", "Calendar", CalendarDays]] as const).map(
@@ -271,9 +282,9 @@ export function BookingsView({ resources, members, currency, timezone, upcomingB
                     const isBusy = busyId === b.id;
                     return (
                       <div key={b.id} onClick={() => openEdit(b.id)}
-                        className="flex items-center gap-4 px-4 py-3 hover:bg-gray-50/70 cursor-pointer transition-colors group">
+                        className="flex items-center gap-3 sm:gap-4 px-3 sm:px-4 py-3 hover:bg-gray-50/70 cursor-pointer transition-colors group">
                         {/* Time */}
-                        <div className="w-16 flex-shrink-0 text-right">
+                        <div className="w-11 sm:w-16 flex-shrink-0 text-right">
                           <p className="text-sm font-semibold text-gray-900 leading-tight">{format(start, "HH:mm")}</p>
                           <p className="text-xs text-gray-400">{format(end, "HH:mm")}</p>
                         </div>
@@ -293,20 +304,22 @@ export function BookingsView({ resources, members, currency, timezone, upcomingB
                             {b.attendees > 1 && <span className="flex items-center gap-0.5"><Users className="w-3 h-3" />{b.attendees}</span>}
                           </p>
                         </div>
-                        {/* Status pill */}
-                        <StatusPill status={b.status} />
+                        {/* Status pill — hidden on small screens (accent bar shows status) */}
+                        <div className="hidden sm:block flex-shrink-0">
+                          <StatusPill status={b.status} />
+                        </div>
                         {/* Quick action */}
-                        <div className="flex-shrink-0 w-24 flex justify-end">
+                        <div className="flex-shrink-0 flex justify-end sm:w-24">
                           {(b.status === "CONFIRMED" || b.status === "PENDING") && (
                             <button disabled={isBusy} onClick={(e) => quickAction(b.id, "check-in", e)}
-                              className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition-colors disabled:opacity-50">
-                              <LogIn className="w-3.5 h-3.5" /> Check in
+                              className="flex items-center gap-1 text-xs font-medium p-2 sm:px-2.5 sm:py-1.5 rounded-lg border border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition-colors disabled:opacity-50">
+                              <LogIn className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Check in</span>
                             </button>
                           )}
                           {b.status === "CHECKED_IN" && (
                             <button disabled={isBusy} onClick={(e) => quickAction(b.id, "check-out", e)}
-                              className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors disabled:opacity-50">
-                              <LogOut className="w-3.5 h-3.5" /> Check out
+                              className="flex items-center gap-1 text-xs font-medium p-2 sm:px-2.5 sm:py-1.5 rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors disabled:opacity-50">
+                              <LogOut className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Check out</span>
                             </button>
                           )}
                           {b.status !== "CONFIRMED" && b.status !== "PENDING" && b.status !== "CHECKED_IN" && (
@@ -325,7 +338,7 @@ export function BookingsView({ resources, members, currency, timezone, upcomingB
 
       {/* ── CALENDAR VIEW (secondary) ───────────────────────────────────────── */}
       {tab === "calendar" && (
-        <div className="dashboard-card p-4 overflow-hidden relative">
+        <div className="dashboard-card p-2 sm:p-4 overflow-hidden relative">
           {calLoading && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-[1px]">
               <div className="flex items-center gap-2 text-sm font-medium text-gray-500 bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100">
@@ -343,18 +356,29 @@ export function BookingsView({ resources, members, currency, timezone, upcomingB
             .fc-event-title { font-weight: 500 !important; }
             .fc-timegrid-slot { height: 38px !important; }
             .fc-col-header-cell { font-size: 12px !important; font-weight: 600; }
+            @media (max-width: 640px) {
+              .fc .fc-toolbar.fc-header-toolbar { flex-direction: column; align-items: stretch; gap: 6px; margin-bottom: 10px; }
+              .fc-toolbar-chunk { display: flex; justify-content: center; }
+              .fc-toolbar-title { font-size: 0.9rem !important; }
+              .fc .fc-button { padding: 4px 8px !important; font-size: 12px !important; }
+              .fc-list-event-title { font-size: 13px; }
+            }
           `}</style>
           <FullCalendar
+            key={isMobile ? "m" : "d"}
             ref={calendarRef}
-            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-            initialView="timeGridWeek"
-            headerToolbar={{ left: "prev,next today", center: "title", right: "timeGridDay,timeGridWeek,dayGridMonth" }}
-            buttonText={{ today: "Today", day: "Day", week: "Week", month: "Month" }}
+            plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
+            initialView={isMobile ? "listWeek" : "timeGridWeek"}
+            headerToolbar={isMobile
+              ? { left: "prev,next", center: "title", right: "listWeek,timeGridDay" }
+              : { left: "prev,next today", center: "title", right: "timeGridDay,timeGridWeek,dayGridMonth" }}
+            buttonText={{ today: "Today", day: "Day", week: "Week", month: "Month", list: "List" }}
             events={fetchEvents}
             selectable selectMirror editable={false} nowIndicator
             slotMinTime="07:00:00" slotMaxTime="22:00:00" height="auto"
             timeZone="local"
             allDaySlot={false}
+            noEventsContent="No bookings in this range"
             eventClick={({ event }) => openEdit(event.id)}
             select={({ start }) => { setSelectedDate(start); setSelectedBookingId(null); setDialogOpen(true); }}
           />
