@@ -73,7 +73,7 @@ export function SettingsView({ organization }: Props) {
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="col-span-2 space-y-1.5">
+            <div className="col-span-full space-y-1.5">
               <Label>Space name *</Label>
               <Input {...register("name")} />
               {errors.name && <p className="text-xs text-danger">{errors.name.message}</p>}
@@ -86,11 +86,11 @@ export function SettingsView({ organization }: Props) {
               <Label>Phone</Label>
               <Input {...register("phone")} />
             </div>
-            <div className="col-span-2 space-y-1.5">
+            <div className="col-span-full space-y-1.5">
               <Label>Address</Label>
               <Input {...register("address")} />
             </div>
-            <div className="col-span-2 space-y-1.5">
+            <div className="col-span-full space-y-1.5">
               <Label>Website</Label>
               <Input placeholder="https://..." {...register("website")} />
             </div>

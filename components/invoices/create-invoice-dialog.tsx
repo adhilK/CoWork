@@ -88,19 +88,22 @@ export function CreateInvoiceDialog({ open, onClose, members, currency, onSucces
             {fields.map((field, i) => (
               <div key={field.id} className="rounded-xl border border-gray-100 p-3 space-y-2">
                 <Input placeholder="Description (e.g. Hot desk — June)" {...register(`lineItems.${i}.description`)} />
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <span className="text-xs text-gray-400">Qty</span>
-                    <Input className="w-14 text-center" type="number" min={1} placeholder="1"
-                      {...register(`lineItems.${i}.quantity`, { valueAsNumber: true })} />
-                  </div>
-                  <span className="text-gray-300 text-sm">×</span>
-                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                    <span className="text-xs text-gray-400 flex-shrink-0">Price</span>
-                    <Input type="number" min={0} step="0.01" placeholder="0.00" className="min-w-0"
-                      {...register(`lineItems.${i}.unitPrice`, { valueAsNumber: true })} />
-                  </div>
-                  <span className="text-sm font-semibold text-gray-700 flex-shrink-0 min-w-[52px] text-right">
+                <div className="flex items-center gap-1.5">
+                  {/* Qty */}
+                  <Input
+                    className="w-14 text-center flex-shrink-0 text-sm px-2"
+                    type="number" min={1} placeholder="Qty"
+                    {...register(`lineItems.${i}.quantity`, { valueAsNumber: true })}
+                  />
+                  <span className="text-gray-300 text-sm flex-shrink-0">×</span>
+                  {/* Unit price — flex-1 so it fills all remaining space */}
+                  <Input
+                    type="number" min={0} step="0.01" placeholder="Unit price"
+                    className="flex-1 min-w-0 text-sm"
+                    {...register(`lineItems.${i}.unitPrice`, { valueAsNumber: true })}
+                  />
+                  {/* Line total */}
+                  <span className="text-sm font-semibold text-gray-700 flex-shrink-0 w-16 text-right tabular-nums">
                     {formatCurrency((lineItems[i]?.quantity ?? 1) * (lineItems[i]?.unitPrice ?? 0), currency)}
                   </span>
                   <Button type="button" variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0 text-gray-300 hover:text-red-500"

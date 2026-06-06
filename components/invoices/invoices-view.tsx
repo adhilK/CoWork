@@ -117,7 +117,7 @@ function GenerateInvoiceDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="truncate pr-8">Generate invoice — {group.name}</DialogTitle>
         </DialogHeader>
@@ -254,37 +254,46 @@ export function InvoicesView({ invoices, total, page, limit, summary, currency, 
           <button
             onClick={() => setExpandedUnbilled(!expandedUnbilled)}
             className="w-full flex items-center justify-between px-4 py-3 bg-indigo-50/60 hover:bg-indigo-50 transition-colors">
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-indigo-500" />
-              <span className="font-semibold text-indigo-800 text-sm">
-                Unbilled bookings — {formatCurrency(totalUnbilled, currency)} across {memberGroups.length} member{memberGroups.length !== 1 ? "s" : ""}
-              </span>
+            <div className="flex items-center gap-2 min-w-0">
+              <Zap className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+              <div className="min-w-0">
+                <span className="font-semibold text-indigo-800 text-sm">Unbilled bookings</span>
+                <span className="text-indigo-500 text-xs ml-1.5 hidden sm:inline">
+                  {formatCurrency(totalUnbilled, currency)} · {memberGroups.length} member{memberGroups.length !== 1 ? "s" : ""}
+                </span>
+                <span className="text-indigo-500 text-xs ml-1.5 sm:hidden">
+                  {formatCurrency(totalUnbilled, currency)}
+                </span>
+              </div>
             </div>
-            {expandedUnbilled ? <ChevronUp className="w-4 h-4 text-indigo-400" /> : <ChevronDown className="w-4 h-4 text-indigo-400" />}
+            {expandedUnbilled ? <ChevronUp className="w-4 h-4 text-indigo-400 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-indigo-400 flex-shrink-0" />}
           </button>
 
           {expandedUnbilled && (
             <div className="divide-y divide-gray-50">
               {memberGroups.map((group) => (
-                <div key={group.memberId || "walkin"} className="flex items-center gap-4 px-4 py-3 hover:bg-gray-50/50">
+                <div key={group.memberId || "walkin"} className="flex items-center gap-2 sm:gap-4 px-4 py-3 hover:bg-gray-50/50">
                   <Avatar className="w-8 h-8 flex-shrink-0">
                     <AvatarFallback className="text-xs font-bold bg-indigo-100 text-indigo-700">
                       {initials(group.name)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{group.name}</p>
-                    <p className="text-xs text-gray-400">{group.bookings.length} booking{group.bookings.length !== 1 ? "s" : ""}</p>
+                    <p className="text-sm font-medium text-gray-900 truncate">{group.name}</p>
+                    <p className="text-xs text-gray-400">
+                      {group.bookings.length} booking{group.bookings.length !== 1 ? "s" : ""}
+                      <span className="sm:hidden font-semibold text-gray-700"> · {formatCurrency(group.total, currency)}</span>
+                    </p>
                   </div>
-                  <span className="text-sm font-semibold text-gray-900">{formatCurrency(group.total, currency)}</span>
+                  <span className="hidden sm:inline text-sm font-semibold text-gray-900 flex-shrink-0">{formatCurrency(group.total, currency)}</span>
                   {group.memberId ? (
                     <Button size="sm" variant="outline"
-                      className="h-7 text-xs border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                      className="h-7 text-xs border-indigo-200 text-indigo-700 hover:bg-indigo-50 flex-shrink-0"
                       onClick={() => setGenerateDialog(group)}>
                       Invoice
                     </Button>
                   ) : (
-                    <span className="text-xs text-gray-400 italic">Walk-in</span>
+                    <span className="text-xs text-gray-400 italic flex-shrink-0">Walk-in</span>
                   )}
                 </div>
               ))}
