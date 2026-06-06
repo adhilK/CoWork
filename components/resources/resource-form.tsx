@@ -97,7 +97,7 @@ export function ResourceForm({ locations, currency, resourceId, defaultValues }:
         {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Type */}
         <div className="space-y-1.5">
           <Label>Type *</Label>
@@ -155,7 +155,7 @@ export function ResourceForm({ locations, currency, resourceId, defaultValues }:
       {/* Rates */}
       <div>
         <Label className="mb-3 block">Pricing ({currency})</Label>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <Label className="text-xs text-gray-500">Hourly rate</Label>
             <Input type="number" step="0.01" min={0} placeholder="0.00"
@@ -205,7 +205,7 @@ export function ResourceForm({ locations, currency, resourceId, defaultValues }:
       {/* Booking settings */}
       <div>
         <Label className="mb-3 block">Booking settings</Label>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <Label className="text-xs text-gray-500">Advance booking (days)</Label>
             <Input type="number" min={1} max={365} {...register("advanceBookingDays", { valueAsNumber: true })} />

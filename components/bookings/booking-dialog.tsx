@@ -227,7 +227,7 @@ export function BookingDialog({ open, onClose, bookingId, defaultDate, resources
           </div>
 
           {/* Start / End */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Start time *</Label>
               <Controller control={control} name="startTime" render={({ field }) => (

@@ -79,7 +79,7 @@ function LogVisitorDialog({ open, onClose, members, onSuccess }: {
             <Label>Name *</Label>
             <Input placeholder="John Smith" value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Email</Label>
               <Input type="email" placeholder="john@company.com" value={form.email} onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))} />

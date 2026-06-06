@@ -150,7 +150,7 @@ function EventDialog({ open, onClose, onSuccess }: {
             <Textarea rows={2} placeholder="What's this event about?" value={form.description}
               onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Start *</Label>
               <Input type="datetime-local" value={form.startTime}
@@ -162,7 +162,7 @@ function EventDialog({ open, onClose, onSuccess }: {
                 onChange={(e) => setForm(f => ({ ...f, endTime: e.target.value }))} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Location</Label>
               <Input placeholder="Main hall, Room B…" value={form.location}

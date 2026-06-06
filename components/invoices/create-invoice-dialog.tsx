@@ -86,19 +86,28 @@ export function CreateInvoiceDialog({ open, onClose, members, currency, onSucces
           <div className="space-y-2">
             <Label>Line items *</Label>
             {fields.map((field, i) => (
-              <div key={field.id} className="grid grid-cols-12 gap-2 items-start">
-                <Input className="col-span-5" placeholder="Description" {...register(`lineItems.${i}.description`)} />
-                <Input className="col-span-2" type="number" min={1} placeholder="Qty"
-                  {...register(`lineItems.${i}.quantity`, { valueAsNumber: true })} />
-                <Input className="col-span-3" type="number" min={0} step="0.01" placeholder="Unit price"
-                  {...register(`lineItems.${i}.unitPrice`, { valueAsNumber: true })} />
-                <div className="col-span-1 pt-2 text-xs text-gray-500 text-right">
-                  {formatCurrency((lineItems[i]?.quantity ?? 1) * (lineItems[i]?.unitPrice ?? 0), currency)}
+              <div key={field.id} className="rounded-xl border border-gray-100 p-3 space-y-2">
+                <Input placeholder="Description (e.g. Hot desk — June)" {...register(`lineItems.${i}.description`)} />
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <span className="text-xs text-gray-400">Qty</span>
+                    <Input className="w-14 text-center" type="number" min={1} placeholder="1"
+                      {...register(`lineItems.${i}.quantity`, { valueAsNumber: true })} />
+                  </div>
+                  <span className="text-gray-300 text-sm">×</span>
+                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                    <span className="text-xs text-gray-400 flex-shrink-0">Price</span>
+                    <Input type="number" min={0} step="0.01" placeholder="0.00" className="min-w-0"
+                      {...register(`lineItems.${i}.unitPrice`, { valueAsNumber: true })} />
+                  </div>
+                  <span className="text-sm font-semibold text-gray-700 flex-shrink-0 min-w-[52px] text-right">
+                    {formatCurrency((lineItems[i]?.quantity ?? 1) * (lineItems[i]?.unitPrice ?? 0), currency)}
+                  </span>
+                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0 text-gray-300 hover:text-red-500"
+                    onClick={() => remove(i)} disabled={fields.length === 1}>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
                 </div>
-                <Button type="button" variant="ghost" size="icon" className="col-span-1 h-9 w-9 text-gray-400"
-                  onClick={() => remove(i)} disabled={fields.length === 1}>
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
               </div>
             ))}
             <Button type="button" variant="outline" size="sm" onClick={() => append({ description: "", quantity: 1, unitPrice: 0, total: 0 })}>

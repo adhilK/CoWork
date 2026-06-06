@@ -44,7 +44,7 @@ export function InviteMemberDialog({ open, onClose, plans, organizationId, onSuc
           <DialogTitle>Invite member</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="col-span-2 space-y-1.5">
               <Label>Full name *</Label>
               <Input placeholder="Sarah Mitchell" {...register("name")} />

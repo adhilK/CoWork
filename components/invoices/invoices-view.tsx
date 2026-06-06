@@ -119,7 +119,7 @@ function GenerateInvoiceDialog({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Generate invoice — {group.name}</DialogTitle>
+          <DialogTitle className="truncate pr-8">Generate invoice — {group.name}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 pt-2">
           <div className="space-y-2">
@@ -163,7 +163,12 @@ function GenerateInvoiceDialog({
           <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={handleGenerate} disabled={saving || selected.size === 0} className="text-white"
             style={{ background: "linear-gradient(135deg, #15803D, #22C55E)" }}>
-            {saving ? "Generating…" : `Generate invoice (${formatCurrency(selectedTotal, currency)})`}
+            {saving ? "Generating…" : (
+              <span className="flex flex-col items-center leading-tight">
+                <span>Generate invoice</span>
+                <span className="text-[10px] opacity-80">{formatCurrency(selectedTotal, currency)}</span>
+              </span>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

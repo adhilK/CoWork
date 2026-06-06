@@ -100,7 +100,7 @@ function CreatePlanDialog({ open, onClose, onSuccess, currency }: {
             <Label>Plan name *</Label>
             <Input placeholder="Hot Desk Monthly" value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Type</Label>
               <Select value={form.type} onValueChange={(v) => setForm(f => ({ ...f, type: v as PlanType }))}>
@@ -133,7 +133,7 @@ function CreatePlanDialog({ open, onClose, onSuccess, currency }: {
             <Input type="number" min="0" step="0.01" placeholder="99.00" value={form.price}
               onChange={(e) => setForm(f => ({ ...f, price: e.target.value }))} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Booking credits</Label>
               <Input type="number" min="0" value={form.includedCredits}
