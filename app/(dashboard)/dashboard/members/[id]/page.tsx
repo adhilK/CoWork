@@ -115,6 +115,7 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
           member={{
             id: member.id,
             name: member.user.name ?? "",
+            email: member.user.email,
             phone: member.phone ?? "",
             company: member.company ?? "",
             jobTitle: member.jobTitle ?? "",

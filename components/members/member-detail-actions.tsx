@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Edit, Trash2, Loader2, Plus, Minus } from "lucide-react";
+import { Edit, Trash2, Loader2, Plus, Minus, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,7 @@ type Plan = { id: string; name: string };
 type MemberData = {
   id: string;
   name: string;
+  email: string;
   phone: string;
   company: string;
   jobTitle: string;
@@ -35,6 +36,7 @@ export function MemberDetailActions({ member, plans }: { member: MemberData; pla
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [creditBusy, setCreditBusy] = useState(false);
+  const [resendBusy, setResendBusy] = useState(false);
   const [form, setForm] = useState({ ...member });
 
   async function save() {
@@ -84,6 +86,19 @@ export function MemberDetailActions({ member, plans }: { member: MemberData; pla
     }
   }
 
+  async function resendInvite() {
+    setResendBusy(true);
+    try {
+      const res = await fetch(`/api/members/${member.id}/resend-invite`, { method: "POST" });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
+      toast.success(`Invite resent to ${member.email}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to resend invite");
+    } finally {
+      setResendBusy(false);
+    }
+  }
+
   async function remove() {
     if (!confirm("Remove this member? They'll be marked inactive and hidden from the list.")) return;
     try {
@@ -113,6 +128,22 @@ export function MemberDetailActions({ member, plans }: { member: MemberData; pla
             <Plus className="w-3.5 h-3.5" />
           </button>
         </div>
+        {member.status === "PENDING" && (
+          <Button
+            variant="outline"
+            className="h-9 text-amber-600 hover:text-amber-700 hover:bg-amber-50 border-amber-200"
+            onClick={resendInvite}
+            disabled={resendBusy}
+            title={`Resend invite to ${member.email}`}
+          >
+            {resendBusy ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Mail className="w-3.5 h-3.5 mr-1.5" />
+            )}
+            Resend invite
+          </Button>
+        )}
         <Button variant="outline" className="h-9" onClick={() => { setForm({ ...member }); setOpen(true); }}>
           <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit
         </Button>
