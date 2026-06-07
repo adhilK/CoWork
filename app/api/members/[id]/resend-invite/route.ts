@@ -54,16 +54,23 @@ export async function POST(
 
   linkData = data;
 
-  if (error || !linkData?.properties?.action_link) {
+  const hashedToken = linkData?.properties?.hashed_token;
+  const verificationType = linkData?.properties?.verification_type ?? "invite";
+
+  if (error || !hashedToken) {
     console.error("[resend-invite] generateLink failed:", error?.message);
     return apiError("Failed to generate invite link. Please try again.", 500);
   }
+
+  // Build link directly to our /auth-callback page — no Supabase redirect
+  // config required, works without adding URLs to Supabase's allowed list.
+  const inviteLink = `${appUrl}/auth-callback?token_hash=${hashedToken}&type=${verificationType}`;
 
   await sendMemberInvite({
     to: member.user.email,
     memberName: member.user.name,
     orgName: member.organization.name,
-    inviteLink: linkData.properties.action_link,
+    inviteLink,
   });
 
   return apiSuccess({ message: "Invite resent" });

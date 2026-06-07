@@ -134,13 +134,19 @@ export async function POST(req: NextRequest) {
     });
   });
 
-  // Send branded invite email via Resend (fire-and-forget, never throws)
-  if (linkData?.properties?.action_link) {
+  // Build the invite link ourselves using hashed_token — this goes directly
+  // to our /auth-callback page without touching Supabase's redirect system,
+  // so no "allowed redirect URLs" config is needed in Supabase dashboard.
+  const hashedToken = linkData?.properties?.hashed_token;
+  const verificationType = linkData?.properties?.verification_type ?? "invite";
+
+  if (hashedToken) {
+    const inviteLink = `${appUrl}/auth-callback?token_hash=${hashedToken}&type=${verificationType}`;
     sendMemberInvite({
       to: email,
       memberName: name,
       orgName: member.organization.name,
-      inviteLink: linkData.properties.action_link,
+      inviteLink,
     });
   }
 

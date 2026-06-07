@@ -1,19 +1,20 @@
 "use client";
 
 /**
- * Client-side auth callback page.
+ * Client-side auth callback — handles invite and magic-link sign-ins.
  *
- * Admin-generated magic/invite links (via supabase.auth.admin.generateLink)
- * use the implicit flow: after Supabase verifies the token it redirects here
- * with the session in the URL hash (#access_token=...&refresh_token=...).
+ * Instead of relying on Supabase's redirect (which requires whitelisting
+ * URLs and uses an unreadable hash fragment), we build our own link:
  *
- * Server-side route handlers never see hash fragments, so we need this
- * client page. The Supabase JS SDK reads the hash automatically on load
- * and fires onAuthStateChange with event SIGNED_IN.
+ *   /auth-callback?token_hash=<hashed_token>&type=<verification_type>
  *
- * We then redirect:
- *   - Members (who have a /portal member record) → /portal
- *   - Admins / others → /dashboard
+ * The hashed_token comes from supabase.auth.admin.generateLink().
+ * We then call supabase.auth.verifyOtp() CLIENT-SIDE, which can set
+ * cookies correctly and doesn't need hash fragments.
+ *
+ * Routing after sign-in:
+ *   - User has a member record  → /portal
+ *   - User has no member record → /dashboard (admin/owner)
  */
 
 import { useEffect, useState } from "react";
@@ -23,58 +24,76 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [status, setStatus] = useState<"loading" | "error">("loading");
 
   useEffect(() => {
-    // The Supabase client SDK parses the hash fragment on initialisation.
-    // onAuthStateChange fires immediately if a session is detected.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === "SIGNED_IN" && session) {
-          // Check if this user has a member record — if yes, send to portal.
-          const res = await fetch("/api/portal/me");
-          if (res.ok) {
-            router.replace("/portal?welcome=1");
-          } else {
-            router.replace("/dashboard");
-          }
-          return;
-        }
-        if (event === "SIGNED_OUT" || (!session && event !== "INITIAL_SESSION")) {
-          setStatus("error");
-        }
+    const supabase = createClient();
+
+    async function handleCallback() {
+      // Read token_hash and type from our custom query params
+      const params = new URLSearchParams(window.location.search);
+      const token_hash = params.get("token_hash");
+      const type = params.get("type") as
+        | "invite"
+        | "magiclink"
+        | "signup"
+        | "recovery"
+        | "email_change"
+        | "email"
+        | null;
+
+      if (!token_hash || !type) {
+        setStatus("error");
+        return;
       }
-    );
 
-    // Fallback: if no auth event fires within 5 s, show error
-    const timeout = setTimeout(() => setStatus("error"), 5000);
+      // Verify the OTP client-side — Supabase sets session cookies here
+      const { error } = await supabase.auth.verifyOtp({ token_hash, type });
+      if (error) {
+        console.error("[auth-callback] verifyOtp failed:", error.message);
+        setStatus("error");
+        return;
+      }
 
-    return () => {
-      subscription.unsubscribe();
-      clearTimeout(timeout);
-    };
+      // Determine where to send the user
+      try {
+        const res = await fetch("/api/portal/me");
+        if (res.ok) {
+          router.replace("/portal?welcome=1");
+        } else {
+          router.replace("/dashboard");
+        }
+      } catch {
+        router.replace("/dashboard");
+      }
+    }
+
+    handleCallback();
   }, []);
 
   if (status === "error") {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <p className="text-gray-600 text-sm">
-          This link has expired or already been used.
-        </p>
-        <a
-          href="/forgot-password"
-          className="text-sm font-semibold underline"
-          style={{ color: "#15803D" }}
-        >
-          Request a new sign-in link →
-        </a>
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-gray-50">
+        <div className="text-center space-y-3">
+          <p className="text-2xl">🔗</p>
+          <p className="font-semibold text-gray-800">Link expired or already used</p>
+          <p className="text-sm text-gray-500">
+            Invite links are single-use and expire after 24 hours.
+          </p>
+          <a
+            href="/forgot-password"
+            className="inline-block text-sm font-semibold underline underline-offset-2"
+            style={{ color: "#15803D" }}
+          >
+            Get a new sign-in link →
+          </a>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-3">
+    <div className="flex flex-col items-center justify-center min-h-screen gap-3 bg-gray-50">
       <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
       <p className="text-gray-500 text-sm">Signing you in…</p>
     </div>
