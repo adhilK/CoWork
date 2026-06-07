@@ -14,6 +14,13 @@ export default async function DashboardLayout({
     redirect(user ? "/onboarding" : "/login");
   }
 
+  // ── ROLE GUARD ───────────────────────────────────────────────────────────
+  // The admin dashboard is for OWNER/ADMIN only. A MEMBER must never see org
+  // data, billing, other members, etc. Send them to their member portal.
+  if (ctx.role === "MEMBER") {
+    redirect("/portal");
+  }
+
   return (
     <DashboardShell
       user={{

@@ -39,8 +39,10 @@ export function LoginForm() {
       return;
     }
 
-    // Redirect handled by middleware
-    window.location.href = "/dashboard";
+    // Redirect to root — the server routes by role (MEMBER → /portal,
+    // OWNER/ADMIN → /dashboard). Never hardcode /dashboard here or members
+    // would briefly hit the admin shell.
+    window.location.href = "/";
   }
 
   async function signInWithGoogle() {

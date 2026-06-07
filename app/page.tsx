@@ -1,20 +1,20 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthContext, getCurrentUser } from "@/lib/auth";
 
 /**
- * Root page — redirect based on auth state.
- * Authenticated users → /dashboard
- * Unauthenticated users → /login
+ * Root page — route based on auth state AND role.
+ *   Unauthenticated         → /login
+ *   Authenticated, no org    → /onboarding
+ *   MEMBER                    → /portal   (member portal)
+ *   OWNER / ADMIN             → /dashboard (admin dashboard)
  */
 export default async function RootPage() {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const ctx = await getAuthContext();
 
-  if (user) {
-    redirect("/dashboard");
-  } else {
-    redirect("/login");
+  if (!ctx) {
+    const user = await getCurrentUser();
+    redirect(user ? "/onboarding" : "/login");
   }
+
+  redirect(ctx.role === "MEMBER" ? "/portal" : "/dashboard");
 }
