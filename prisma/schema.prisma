@@ -123,6 +123,8 @@ model User {
   name         String?
   avatar       String?
   isSuperAdmin Boolean  @default(false)
+  // Google Calendar integration
+  googleCalendarRefreshToken String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -280,6 +282,8 @@ model Booking {
   cancelReason     String?
   isRecurring      Boolean       @default(false)
   recurringGroupId String?
+  // Google Calendar
+  googleCalendarEventId String?
   // Soft delete
   deletedAt        DateTime?
   createdAt        DateTime      @default(now())

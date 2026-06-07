@@ -17,7 +17,10 @@ export default async function ProfilePage() {
   const member = await prisma.member.findFirst({
     where: { userId: user.id, deletedAt: null },
     include: {
-      user: true,
+      user: { select: {
+        name: true, email: true, avatar: true,
+        googleCalendarRefreshToken: true,
+      }},
       membershipPlan: { select: { name: true } },
     },
   });
@@ -37,6 +40,7 @@ export default async function ProfilePage() {
         planName: member.membershipPlan?.name ?? null,
         credits: member.credits,
         status: member.status,
+        googleCalendarConnected: !!member.user.googleCalendarRefreshToken,
       }}
     />
   );

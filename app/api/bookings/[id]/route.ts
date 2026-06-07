@@ -4,6 +4,7 @@ import { getApiAuth } from "@/lib/auth";
 import { updateBookingSchema } from "@/lib/validations";
 import { checkinUrl } from "@/lib/checkin-token";
 import { getBaseUrl, apiError, apiSuccess } from "@/lib/utils";
+import { deleteCalendarEvent } from "@/lib/google-calendar";
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const auth = await getApiAuth();
@@ -65,23 +66,57 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   const booking = await prisma.booking.findFirst({
     where: { id: params.id, organizationId: orgId, deletedAt: null },
+    select: {
+      id: true, recurringGroupId: true, startTime: true,
+      googleCalendarEventId: true, userId: true,
+    },
   });
   if (!booking) return apiError("Not found", 404);
+
+  // Helper: delete calendar event for a booking if the user has one connected
+  async function maybeDeleteCalendarEvent(bookingId: string, userId: string, eventId: string | null) {
+    if (!eventId) return;
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { googleCalendarRefreshToken: true },
+    });
+    if (user?.googleCalendarRefreshToken) {
+      void deleteCalendarEvent(user.googleCalendarRefreshToken, eventId);
+    }
+  }
 
   // ?series=true → cancel all future bookings in the same recurring group
   const cancelSeries = req.nextUrl.searchParams.get("series") === "true";
 
   if (cancelSeries && booking.recurringGroupId) {
+    // Fetch all future bookings in the series to delete their calendar events
+    const seriesBookings = await prisma.booking.findMany({
+      where: {
+        recurringGroupId: booking.recurringGroupId,
+        organizationId: orgId,
+        deletedAt: null,
+        startTime: { gte: booking.startTime },
+        status: { in: ["PENDING", "CONFIRMED"] },
+      },
+      select: { id: true, userId: true, googleCalendarEventId: true },
+    });
+
     await prisma.booking.updateMany({
       where: {
         recurringGroupId: booking.recurringGroupId,
         organizationId: orgId,
         deletedAt: null,
-        startTime: { gte: booking.startTime }, // only this + future
+        startTime: { gte: booking.startTime },
         status: { in: ["PENDING", "CONFIRMED"] },
       },
       data: { status: "CANCELLED", cancelledAt: new Date(), deletedAt: new Date() },
     });
+
+    // Delete calendar events for all cancelled bookings (fire-and-forget)
+    for (const b of seriesBookings) {
+      void maybeDeleteCalendarEvent(b.id, b.userId, b.googleCalendarEventId);
+    }
+
     return apiSuccess({ success: true, cancelled: "series" });
   }
 
@@ -90,6 +125,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     where: { id: params.id },
     data: { status: "CANCELLED", cancelledAt: new Date(), deletedAt: new Date() },
   });
+
+  // Delete calendar event (fire-and-forget)
+  void maybeDeleteCalendarEvent(params.id, booking.userId, booking.googleCalendarEventId);
 
   return apiSuccess({ success: true, cancelled: "single" });
 }

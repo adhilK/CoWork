@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { computeCharge, settleBooking } from "@/lib/booking-pricing";
 import { sendBookingConfirmation } from "@/lib/email";
 import { apiError, apiSuccess } from "@/lib/utils";
+import { createCalendarEvent } from "@/lib/google-calendar";
 
 async function getMember(userId: string) {
   return prisma.member.findFirst({
@@ -133,6 +134,12 @@ export async function POST(req: NextRequest) {
     amount, creditsNeeded, memberCredits: member.credits,
   });
 
+  // Fetch user's Google Calendar refresh token (if connected)
+  const userRow = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { googleCalendarRefreshToken: true },
+  });
+
   const booking = await prisma.$transaction(async (tx) => {
     if (creditsUsed > 0) {
       await tx.member.update({ where: { id: member.id }, data: { credits: { decrement: creditsUsed } } });
@@ -154,16 +161,33 @@ export async function POST(req: NextRequest) {
       include: {
         resource: {
           select: {
-            id: true,
-            name: true,
-            type: true,
+            id: true, name: true, type: true,
             location: { select: { id: true, name: true } },
           },
         },
-        organization: { select: { name: true, currency: true } },
+        organization: { select: { name: true, currency: true, timezone: true } },
       },
     });
   });
+
+  // Google Calendar event (fire-and-forget, only for CONFIRMED bookings)
+  if (userRow?.googleCalendarRefreshToken && booking.status === "CONFIRMED") {
+    void createCalendarEvent(userRow.googleCalendarRefreshToken, {
+      title: booking.title ?? booking.resource.name,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      timezone: booking.organization.timezone,
+      resourceName: booking.resource.name,
+      orgName: booking.organization.name,
+    }).then((eventId) => {
+      if (eventId) {
+        return prisma.booking.update({
+          where: { id: booking.id },
+          data: { googleCalendarEventId: eventId },
+        });
+      }
+    });
+  }
 
   // Confirmation email to the member (fire-and-forget)
   if (user.email) {

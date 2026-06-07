@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Save, Loader2, User } from "lucide-react";
+import { Save, Loader2, User, Calendar, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +23,7 @@ type ProfileData = {
   planName: string | null;
   credits: number;
   status: string;
+  googleCalendarConnected: boolean;
 };
 
 type Props = {
@@ -37,6 +39,39 @@ export function ProfileView({ profile }: Props) {
     jobTitle: profile.jobTitle,
   });
   const [saving, setSaving] = useState(false);
+  const [calendarConnected, setCalendarConnected] = useState(profile.googleCalendarConnected);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Handle callback redirects from Google OAuth
+  useEffect(() => {
+    const cal = searchParams.get("calendar");
+    if (cal === "connected") {
+      setCalendarConnected(true);
+      toast.success("Google Calendar connected! Your bookings will now appear there automatically.");
+      router.replace("/portal/profile");
+    } else if (cal === "denied") {
+      toast.error("Google Calendar access was denied.");
+      router.replace("/portal/profile");
+    } else if (cal === "error") {
+      toast.error("Something went wrong connecting Google Calendar. Try again.");
+      router.replace("/portal/profile");
+    }
+  }, [searchParams, router]);
+
+  async function handleDisconnectCalendar() {
+    setDisconnecting(true);
+    try {
+      await fetch("/api/auth/google-calendar/disconnect", { method: "POST" });
+      setCalendarConnected(false);
+      toast.success("Google Calendar disconnected.");
+    } catch {
+      toast.error("Failed to disconnect. Try again.");
+    } finally {
+      setDisconnecting(false);
+    }
+  }
 
   function handleChange(field: keyof typeof form, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -121,6 +156,54 @@ export function ProfileView({ profile }: Props) {
             <p className="text-sm font-medium text-gray-700 mt-0.5">
               {formatDate(profile.memberSince)}
             </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Google Calendar integration */}
+      <div className="dashboard-card p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+              <Calendar className="w-4.5 h-4.5 text-blue-500" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-gray-900 text-sm">Google Calendar</h2>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {calendarConnected
+                  ? "Your bookings automatically appear in Google Calendar."
+                  : "Connect to sync your bookings to Google Calendar."}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {calendarConnected ? (
+              <>
+                <span className="flex items-center gap-1 text-xs font-medium text-emerald-600">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Connected
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                  disabled={disconnecting}
+                  onClick={handleDisconnectCalendar}
+                >
+                  {disconnecting ? <Loader2 className="w-3 h-3 animate-spin" /> : "Disconnect"}
+                </Button>
+              </>
+            ) : (
+              <Button
+                type="button"
+                size="sm"
+                className="h-8 text-xs text-white"
+                style={{ background: "linear-gradient(135deg, #1a73e8, #4285f4)" }}
+                onClick={() => { window.location.href = "/api/auth/google-calendar/connect"; }}
+              >
+                <Calendar className="w-3.5 h-3.5 mr-1.5" /> Connect
+              </Button>
+            )}
           </div>
         </div>
       </div>
