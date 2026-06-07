@@ -38,12 +38,20 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     async function exchangeCode() {
-      const code = new URLSearchParams(window.location.search).get("code");
-      if (!code) { setStatus("error"); return; }
+      const params = new URLSearchParams(window.location.search);
+      const token_hash = params.get("token_hash");
+      const type = params.get("type") ?? "recovery";
 
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      if (!token_hash) { setStatus("error"); return; }
+
+      // Use verifyOtp with hashed_token — no PKCE verifier needed, works
+      // across any browser / email client.
+      const { error } = await supabase.auth.verifyOtp({
+        token_hash,
+        type: type as "recovery",
+      });
       if (error) {
-        console.error("[reset-password] exchangeCodeForSession:", error.message);
+        console.error("[reset-password] verifyOtp:", error.message);
         setStatus("error");
         return;
       }

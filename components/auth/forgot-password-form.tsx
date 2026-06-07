@@ -9,20 +9,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { forgotPasswordSchema, type ForgotPasswordInput } from "@/lib/validations";
-import { createClient } from "@/lib/supabase/client";
-
 export function ForgotPasswordForm() {
   const [sent, setSent] = useState(false);
-  const supabase = createClient();
 
   const { register, handleSubmit, watch, formState: { errors, isSubmitting } } =
     useForm<ForgotPasswordInput>({ resolver: zodResolver(forgotPasswordSchema) });
 
   async function onSubmit(data: ForgotPasswordInput) {
-    const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+    // Use our server endpoint which builds the link with hashed_token —
+    // avoids PKCE verifier issues that break links opened from email clients.
+    const res = await fetch("/api/auth/request-password-reset", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: data.email }),
     });
-    if (error) { toast.error(error.message); return; }
+    if (!res.ok) { toast.error("Something went wrong. Please try again."); return; }
     setSent(true);
   }
 
