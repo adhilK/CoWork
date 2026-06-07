@@ -69,7 +69,7 @@ function BookingRow({
   const end = new Date(booking.endTime);
 
   return (
-    <div className="flex items-start gap-4 p-4 rounded-xl border border-gray-100 bg-white hover:border-gray-200 transition-colors">
+    <div className="flex items-start gap-4 p-4 rounded-2xl border border-gray-100 bg-white hover:border-gray-200 transition-colors">
       <span className="text-2xl leading-none flex-shrink-0 mt-0.5">
         {RESOURCE_EMOJI[booking.resource?.type ?? "OTHER"] ?? "📌"}
       </span>
@@ -157,16 +157,14 @@ export function MyBookingsView({ upcoming, past }: Props) {
   return (
     <div className="space-y-6 animate-fade-in max-w-3xl">
       <div>
-        <h1 className="text-xl font-bold text-gray-900">My bookings</h1>
-        <p className="text-sm text-gray-400 mt-0.5">
-          View and manage your upcoming and past reservations.
-        </p>
+        <h1 className="page-title">My bookings</h1>
+        <p className="page-subtitle">View and manage your upcoming and past reservations.</p>
       </div>
 
       {/* Upcoming */}
       <div className="dashboard-card p-5">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-gray-900 text-sm">
+          <h2 className="section-title">
             Upcoming
             {bookings.upcoming.length > 0 && (
               <span className="ml-2 text-xs text-gray-400 font-normal">
@@ -177,7 +175,8 @@ export function MyBookingsView({ upcoming, past }: Props) {
           <Link href="/portal/book">
             <Button
               size="sm"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8"
+              className="text-white text-xs h-8"
+              style={{ background: "linear-gradient(135deg, #16A34A, #15803D)" }}
             >
               <Calendar className="w-3.5 h-3.5 mr-1.5" />
               New booking
@@ -212,7 +211,7 @@ export function MyBookingsView({ upcoming, past }: Props) {
       {/* Past */}
       {bookings.past.length > 0 && (
         <div className="dashboard-card p-5">
-          <h2 className="font-semibold text-gray-900 text-sm mb-4">
+          <h2 className="section-title mb-4">
             Past bookings
             <span className="ml-2 text-xs text-gray-400 font-normal">
               ({bookings.past.length})

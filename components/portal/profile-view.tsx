@@ -112,10 +112,8 @@ export function ProfileView({ profile }: Props) {
   return (
     <div className="space-y-6 animate-fade-in max-w-2xl">
       <div>
-        <h1 className="text-xl font-bold text-gray-900">Profile</h1>
-        <p className="text-sm text-gray-400 mt-0.5">
-          Update your personal information and preferences.
-        </p>
+        <h1 className="page-title">Profile</h1>
+        <p className="page-subtitle">Update your personal information and preferences.</p>
       </div>
 
       {/* Profile header card */}
@@ -168,7 +166,7 @@ export function ProfileView({ profile }: Props) {
               <Calendar className="w-4.5 h-4.5 text-blue-500" />
             </div>
             <div>
-              <h2 className="font-semibold text-gray-900 text-sm">Google Calendar</h2>
+              <h2 className="section-title">Google Calendar</h2>
               <p className="text-xs text-gray-400 mt-0.5">
                 {calendarConnected
                   ? "Your bookings automatically appear in Google Calendar."
@@ -210,7 +208,7 @@ export function ProfileView({ profile }: Props) {
 
       {/* Edit form */}
       <div className="dashboard-card p-5">
-        <h2 className="font-semibold text-gray-900 text-sm mb-5">Personal information</h2>
+        <h2 className="section-title mb-5">Personal information</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -305,7 +303,8 @@ export function ProfileView({ profile }: Props) {
             <Button
               type="submit"
               disabled={saving}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
+              className="text-white text-sm"
+              style={{ background: "linear-gradient(135deg, #16A34A, #15803D)" }}
             >
               {saving ? (
                 <>

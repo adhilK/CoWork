@@ -38,10 +38,8 @@ export function MyInvoicesView({ invoices }: Props) {
   return (
     <div className="space-y-5 animate-fade-in max-w-3xl">
       <div>
-        <h1 className="text-xl font-bold text-gray-900">Invoices</h1>
-        <p className="text-sm text-gray-400 mt-0.5">
-          Your billing history and outstanding invoices.
-        </p>
+        <h1 className="page-title">Invoices</h1>
+        <p className="page-subtitle">Your billing history and outstanding invoices.</p>
       </div>
 
       {/* Summary cards */}

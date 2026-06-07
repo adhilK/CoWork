@@ -182,10 +182,8 @@ export function ResourceBrowser({ currency }: { currency: string }) {
   return (
     <div className="space-y-5 animate-fade-in max-w-5xl">
       <div>
-        <h1 className="text-xl font-bold text-gray-900">Book a space</h1>
-        <p className="text-sm text-gray-400 mt-0.5">
-          Browse available desks, rooms, and offices.
-        </p>
+        <h1 className="page-title">Book a space</h1>
+        <p className="page-subtitle">Browse available desks, rooms, and offices.</p>
       </div>
 
       {/* Filters */}
@@ -248,7 +246,7 @@ export function ResourceBrowser({ currency }: { currency: string }) {
           {filtered.map((resource) => (
             <div
               key={resource.id}
-              className="dashboard-card p-5 flex flex-col hover:shadow-md transition-shadow"
+              className="dashboard-card p-5 flex flex-col hover:-translate-y-0.5 transition-transform"
             >
               <div className="flex items-start gap-3 mb-3">
                 <span className="text-2xl leading-none flex-shrink-0">
@@ -330,7 +328,8 @@ export function ResourceBrowser({ currency }: { currency: string }) {
               )}
 
               <Button
-                className="mt-auto w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
+                className="mt-auto w-full text-white text-sm"
+                style={{ background: "linear-gradient(135deg, #16A34A, #15803D)" }}
                 onClick={() => setSelectedResource(resource)}
               >
                 <Calendar className="w-3.5 h-3.5 mr-2" />
@@ -450,7 +449,8 @@ export function ResourceBrowser({ currency }: { currency: string }) {
             <Button
               onClick={handleSubmit}
               disabled={submitting}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
+              className="text-white text-sm"
+              style={{ background: "linear-gradient(135deg, #16A34A, #15803D)" }}
             >
               {submitting ? (
                 <>
