@@ -79,15 +79,24 @@ export async function POST(req: NextRequest) {
 
   // Generate a Supabase invite link — this creates the auth account without
   // sending Supabase's default email. We send our own branded email via Resend.
+  // For users already in Supabase auth (e.g. re-inviting an owner as a member)
+  // fall back to a magic link.
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
+  const redirectTo = `${appUrl}/api/auth/confirm?next=/portal`;
+
+  let { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
     type: "invite",
     email,
-    options: {
-      data: { name },
-      redirectTo: `${appUrl}/api/auth/confirm?next=/portal`,
-    },
+    options: { data: { name }, redirectTo },
   });
+
+  if (linkErr && linkErr.message.includes("already been registered")) {
+    ({ data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+      options: { redirectTo },
+    }));
+  }
 
   if (linkErr) {
     console.error("[invite] generateLink failed:", linkErr.message);

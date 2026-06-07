@@ -32,18 +32,30 @@ export async function POST(
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const supabaseAdmin = createAdminClient();
 
-  // Generate a fresh invite link
-  const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
+  const redirectTo = `${appUrl}/api/auth/confirm?next=/portal`;
+
+  // Try invite link first (for new users). If the user already has a Supabase
+  // auth account, fall back to a magic link so they can still log in.
+  let linkData = null;
+  let { data, error } = await supabaseAdmin.auth.admin.generateLink({
     type: "invite",
     email: member.user.email,
-    options: {
-      data: { name: member.user.name },
-      redirectTo: `${appUrl}/api/auth/confirm?next=/portal`,
-    },
+    options: { data: { name: member.user.name }, redirectTo },
   });
 
-  if (linkErr || !linkData?.properties?.action_link) {
-    console.error("[resend-invite] generateLink failed:", linkErr?.message);
+  if (error && error.message.includes("already been registered")) {
+    // Existing Supabase user — send a one-click magic link instead
+    ({ data, error } = await supabaseAdmin.auth.admin.generateLink({
+      type: "magiclink",
+      email: member.user.email,
+      options: { redirectTo },
+    }));
+  }
+
+  linkData = data;
+
+  if (error || !linkData?.properties?.action_link) {
+    console.error("[resend-invite] generateLink failed:", error?.message);
     return apiError("Failed to generate invite link. Please try again.", 500);
   }
 
