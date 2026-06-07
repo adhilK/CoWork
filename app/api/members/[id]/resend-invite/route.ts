@@ -32,7 +32,7 @@ export async function POST(
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const supabaseAdmin = createAdminClient();
 
-  const redirectTo = `${appUrl}/api/auth/confirm?next=/portal`;
+  const redirectTo = `${appUrl}/auth-callback`;
 
   // Try invite link first (for new users). If the user already has a Supabase
   // auth account, fall back to a magic link so they can still log in.

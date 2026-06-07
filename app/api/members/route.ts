@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
   // For users already in Supabase auth (e.g. re-inviting an owner as a member)
   // fall back to a magic link.
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const redirectTo = `${appUrl}/api/auth/confirm?next=/portal`;
+  const redirectTo = `${appUrl}/auth-callback`;
 
   let { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
     type: "invite",

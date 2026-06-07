@@ -39,11 +39,11 @@ export async function middleware(request: NextRequest) {
     "/onboarding",
     "/forgot-password",
     "/reset-password",
+    "/auth-callback",  // client-side handler for magic/invite link hash fragments
     "/api/webhooks",
     "/api/auth",
     "/api/cron",   // protected by CRON_SECRET, not session
     "/checkin",    // QR check-in, protected by a per-booking token
-    // /api/auth/confirm is already covered by /api/auth above
   ];
   const isPublicRoute = publicRoutes.some((route) =>
     pathname.startsWith(route)
