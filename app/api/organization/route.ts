@@ -9,11 +9,12 @@ export async function GET(_req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return apiError("Unauthorized", 401);
 
+  // Admin-only: org settings include address, contact + billing identifiers.
   const userOrg = await prisma.userOrganization.findFirst({
-    where: { userId: user.id },
+    where: { userId: user.id, role: { in: ["OWNER", "ADMIN"] } },
     include: { organization: true },
   });
-  if (!userOrg) return apiError("No organization", 404);
+  if (!userOrg) return apiError("Permission denied", 403);
   return apiSuccess(userOrg.organization);
 }
 

@@ -11,7 +11,13 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   if (!auth) return apiError("Unauthorized", 401);
 
   const booking = await prisma.booking.findFirst({
-    where: { id: params.id, organizationId: auth.organizationId, deletedAt: null },
+    where: {
+      id: params.id,
+      organizationId: auth.organizationId,
+      deletedAt: null,
+      // Members may only read their own bookings; admins/owners read any.
+      ...(auth.role === "MEMBER" && { userId: auth.userId }),
+    },
     include: { resource: true, member: { include: { user: true } } },
   });
   if (!booking) return apiError("Not found", 404);
@@ -23,6 +29,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const auth = await getApiAuth();
   if (!auth) return apiError("Unauthorized", 401);
+  // Editing booking details (time, resource, status) is an admin action.
+  if (auth.role === "MEMBER") return apiError("Forbidden", 403);
   const orgId = auth.organizationId;
 
   const booking = await prisma.booking.findFirst({
@@ -65,13 +73,22 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const orgId = auth.organizationId;
 
   const booking = await prisma.booking.findFirst({
-    where: { id: params.id, organizationId: orgId, deletedAt: null },
+    where: {
+      id: params.id,
+      organizationId: orgId,
+      deletedAt: null,
+      // Members may only cancel their own bookings; admins/owners cancel any.
+      ...(auth.role === "MEMBER" && { userId: auth.userId }),
+    },
     select: {
       id: true, recurringGroupId: true, startTime: true,
       googleCalendarEventId: true, userId: true,
     },
   });
   if (!booking) return apiError("Not found", 404);
+
+  // For series cancellation, members are scoped to their own bookings only.
+  const memberScope = auth.role === "MEMBER" ? { userId: auth.userId } : {};
 
   // Helper: delete calendar event for a booking if the user has one connected
   async function maybeDeleteCalendarEvent(bookingId: string, userId: string, eventId: string | null) {
@@ -97,6 +114,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         deletedAt: null,
         startTime: { gte: booking.startTime },
         status: { in: ["PENDING", "CONFIRMED"] },
+        ...memberScope,
       },
       select: { id: true, userId: true, googleCalendarEventId: true },
     });
@@ -108,6 +126,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         deletedAt: null,
         startTime: { gte: booking.startTime },
         status: { in: ["PENDING", "CONFIRMED"] },
+        ...memberScope,
       },
       data: { status: "CANCELLED", cancelledAt: new Date(), deletedAt: new Date() },
     });

@@ -1,11 +1,11 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getApiAuth } from "@/lib/auth";
+import { requireAdminApi } from "@/lib/auth";
 import { apiError, apiSuccess } from "@/lib/utils";
 
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
-  const auth = await getApiAuth();
-  if (!auth) return apiError("Unauthorized", 401);
+  const auth = await requireAdminApi();
+  if (!auth) return apiError("Forbidden", 403);
   const orgId = auth.organizationId;
 
   const booking = await prisma.booking.findFirst({

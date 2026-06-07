@@ -3,9 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { apiError, apiSuccess } from "@/lib/utils";
 
+// Admin-only endpoint: members view their invoices via the portal, not here.
 async function getOrgId(userId: string) {
-  const uo = await prisma.userOrganization.findFirst({ where: { userId }, select: { organizationId: true } });
-  return uo?.organizationId ?? null;
+  const uo = await prisma.userOrganization.findFirst({ where: { userId }, select: { organizationId: true, role: true } });
+  if (!uo || uo.role === "MEMBER") return null;
+  return uo.organizationId;
 }
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {

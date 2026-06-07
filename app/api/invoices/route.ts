@@ -1,22 +1,14 @@
 import { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { requireAdminApi } from "@/lib/auth";
 import { createInvoiceSchema } from "@/lib/validations";
 import { apiError, apiSuccess, buildPaginationMeta, getPaginationParams } from "@/lib/utils";
 import { nanoid } from "nanoid";
 
-async function getOrgId(userId: string) {
-  const uo = await prisma.userOrganization.findFirst({ where: { userId }, select: { organizationId: true } });
-  return uo?.organizationId ?? null;
-}
-
 export async function GET(req: NextRequest) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return apiError("Unauthorized", 401);
-
-  const orgId = await getOrgId(user.id);
-  if (!orgId) return apiError("No organization", 403);
+  const auth = await requireAdminApi();
+  if (!auth) return apiError("Forbidden", 403);
+  const orgId = auth.organizationId;
 
   const sp = req.nextUrl.searchParams;
   const status = sp.get("status");
@@ -44,12 +36,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return apiError("Unauthorized", 401);
-
-  const orgId = await getOrgId(user.id);
-  if (!orgId) return apiError("No organization", 403);
+  const auth = await requireAdminApi();
+  if (!auth) return apiError("Forbidden", 403);
+  const orgId = auth.organizationId;
 
   const body = await req.json();
   const parsed = createInvoiceSchema.safeParse(body);

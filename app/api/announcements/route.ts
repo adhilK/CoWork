@@ -4,9 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { apiError, apiSuccess } from "@/lib/utils";
 import { z } from "zod";
 
+// Admin-only endpoint: members read announcements via the portal dashboard.
 async function getOrgId(userId: string) {
-  const uo = await prisma.userOrganization.findFirst({ where: { userId }, select: { organizationId: true } });
-  return uo?.organizationId ?? null;
+  const uo = await prisma.userOrganization.findFirst({ where: { userId }, select: { organizationId: true, role: true } });
+  if (!uo || uo.role === "MEMBER") return null;
+  return uo.organizationId;
 }
 
 const schema = z.object({

@@ -6,9 +6,11 @@ import { sendInvoiceEmail } from "@/lib/email";
 import { z } from "zod";
 import { format } from "date-fns";
 
+// Admin-only endpoint: generating invoices is an operator action.
 async function getOrgId(userId: string) {
-  const uo = await prisma.userOrganization.findFirst({ where: { userId }, select: { organizationId: true } });
-  return uo?.organizationId ?? null;
+  const uo = await prisma.userOrganization.findFirst({ where: { userId }, select: { organizationId: true, role: true } });
+  if (!uo || uo.role === "MEMBER") return null;
+  return uo.organizationId;
 }
 
 const schema = z.object({

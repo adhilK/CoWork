@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getApiAuth } from "@/lib/auth";
+import { requireAdminApi } from "@/lib/auth";
 import { createBookingSchema } from "@/lib/validations";
 import { computeCharge, settleBooking } from "@/lib/booking-pricing";
 import { sendBookingConfirmation } from "@/lib/email";
@@ -27,8 +27,8 @@ function buildRecurringSlots(
 }
 
 export async function GET(req: NextRequest) {
-  const auth = await getApiAuth();
-  if (!auth) return apiError("Unauthorized", 401);
+  const auth = await requireAdminApi();
+  if (!auth) return apiError("Forbidden", 403);
   const orgId = auth.organizationId;
 
   const sp = req.nextUrl.searchParams;
@@ -89,8 +89,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await getApiAuth();
-  if (!auth) return apiError("Unauthorized", 401);
+  const auth = await requireAdminApi();
+  if (!auth) return apiError("Forbidden", 403);
   const orgId = auth.organizationId;
   const userId = auth.userId;
 

@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
 
   const ctx = await getOrgContext(user.id);
   if (!ctx) return apiError("No organization", 403);
+  if (ctx.role === "MEMBER") return apiError("Forbidden", 403);
 
   const sp = req.nextUrl.searchParams;
   const search = sp.get("search")?.trim();
@@ -60,6 +61,7 @@ export async function POST(req: NextRequest) {
 
   const ctx = await getOrgContext(user.id);
   if (!ctx) return apiError("No organization", 403);
+  if (ctx.role === "MEMBER") return apiError("Forbidden", 403);
 
   const body = await req.json();
   const parsed = inviteMemberSchema.safeParse(body);

@@ -96,20 +96,30 @@ export const getAuthContext = cache(async (): Promise<AuthContext | null> => {
  * This removes a ~1s round-trip from every authenticated API request
  * after the first. Wrapped in React `cache()` for per-request dedupe too.
  */
-const _orgIdCache = new Map<string, { orgId: string | null; exp: number }>();
+type CachedOrg = { orgId: string | null; role: "OWNER" | "ADMIN" | "MEMBER" | null; exp: number };
+const _orgIdCache = new Map<string, CachedOrg>();
 const ORG_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-export const getOrgIdForUser = cache(async (userId: string) => {
+const _resolveOrg = cache(async (userId: string): Promise<CachedOrg> => {
   const hit = _orgIdCache.get(userId);
-  if (hit && hit.exp > Date.now()) return hit.orgId;
+  if (hit && hit.exp > Date.now()) return hit;
 
   const uo = await prisma.userOrganization.findFirst({
     where: { userId },
-    select: { organizationId: true },
+    orderBy: { createdAt: "asc" },
+    select: { organizationId: true, role: true },
   });
-  const orgId = uo?.organizationId ?? null;
-  _orgIdCache.set(userId, { orgId, exp: Date.now() + ORG_CACHE_TTL });
-  return orgId;
+  const entry: CachedOrg = {
+    orgId: uo?.organizationId ?? null,
+    role: uo?.role ?? null,
+    exp: Date.now() + ORG_CACHE_TTL,
+  };
+  _orgIdCache.set(userId, entry);
+  return entry;
+});
+
+export const getOrgIdForUser = cache(async (userId: string) => {
+  return (await _resolveOrg(userId)).orgId;
 });
 
 /**
@@ -126,12 +136,31 @@ export const getOrgIdForUser = cache(async (userId: string) => {
  * Returns `{ userId, organizationId }` or `null` if unauthenticated /
  * not in an org.
  */
-export const getApiAuth = cache(async (): Promise<{ userId: string; organizationId: string } | null> => {
+export type ApiAuth = {
+  userId: string;
+  organizationId: string;
+  role: "OWNER" | "ADMIN" | "MEMBER";
+};
+
+export const getApiAuth = cache(async (): Promise<ApiAuth | null> => {
   const supabase = createClient();
   const { data: { session } } = await supabase.auth.getSession();
   const userId = session?.user?.id;
   if (!userId) return null;
-  const organizationId = await getOrgIdForUser(userId);
-  if (!organizationId) return null;
-  return { userId, organizationId };
+  const { orgId, role } = await _resolveOrg(userId);
+  if (!orgId || !role) return null;
+  return { userId, organizationId: orgId, role };
+});
+
+/**
+ * Admin-only API guard. Returns the auth context for OWNER/ADMIN, or `null`
+ * for unauthenticated users AND for MEMBERs. Admin API routes must call this
+ * and return 403/401 on null so a member can never read or mutate org-wide
+ * data (other members, invoices, analytics, settings) by hitting the API
+ * directly — the UI guard alone is not enough.
+ */
+export const requireAdminApi = cache(async (): Promise<ApiAuth | null> => {
+  const auth = await getApiAuth();
+  if (!auth || auth.role === "MEMBER") return null;
+  return auth;
 });
