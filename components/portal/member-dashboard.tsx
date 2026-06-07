@@ -28,6 +28,7 @@ type Props = {
   upcomingBookings: Booking[];
   announcements: Announcement[];
   bookingsThisMonth: number;
+  isNewMember?: boolean;
 };
 
 const STATUS_STYLES: Record<string, string> = {
@@ -91,11 +92,31 @@ export function MemberDashboard({
   upcomingBookings,
   announcements,
   bookingsThisMonth,
+  isNewMember,
 }: Props) {
   const nextBooking = upcomingBookings[0];
 
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl">
+      {/* Welcome banner for first-time invited members */}
+      {isNewMember && (
+        <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3.5">
+          <span className="text-xl leading-none">🎉</span>
+          <div className="flex-1">
+            <p className="font-semibold text-emerald-900 text-sm">
+              Welcome to your member portal!
+            </p>
+            <p className="text-sm text-emerald-700 mt-0.5">
+              You&apos;re logged in. To set a password for future logins, use{" "}
+              <Link href="/forgot-password" className="underline underline-offset-2 font-medium">
+                Forgot password
+              </Link>{" "}
+              with your email address — it takes 30 seconds.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

@@ -1,8 +1,9 @@
 import { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { inviteMemberSchema } from "@/lib/validations";
 import { apiError, apiSuccess, buildPaginationMeta, getPaginationParams } from "@/lib/utils";
+import { sendMemberInvite } from "@/lib/email";
 import { addDays } from "date-fns";
 
 async function getOrgContext(userId: string) {
@@ -73,13 +74,28 @@ export async function POST(req: NextRequest) {
   });
   if (existing?.organizations?.length) return apiError("Member with this email already exists", 409);
 
-  // Send Supabase invite
-  const { data: inviteData, error: inviteErr } = await supabase.auth.admin?.inviteUserByEmail?.(email, {
-    data: { name, organizationId: ctx.organizationId },
-  }) ?? {};
+  // Use the admin client (service role key) so auth.admin methods are available
+  const supabaseAdmin = createAdminClient();
 
-  // Create User + Member record (works even if invite API not available)
-  const userId = inviteData?.user?.id ?? crypto.randomUUID();
+  // Generate a Supabase invite link — this creates the auth account without
+  // sending Supabase's default email. We send our own branded email via Resend.
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
+    type: "invite",
+    email,
+    options: {
+      data: { name },
+      redirectTo: `${appUrl}/api/auth/confirm?next=/portal`,
+    },
+  });
+
+  if (linkErr) {
+    console.error("[invite] generateLink failed:", linkErr.message);
+    // Fall through — still create the DB record; member can use "Forgot password" to access.
+  }
+
+  // Create User + Member record in our DB, using the Supabase-generated user id
+  const userId = linkData?.user?.id ?? crypto.randomUUID();
 
   const member = await prisma.$transaction(async (tx) => {
     const dbUser = await tx.user.upsert({
@@ -102,12 +118,22 @@ export async function POST(req: NextRequest) {
         company: company ?? null,
         jobTitle: jobTitle ?? null,
         phone: phone ?? null,
-        status: "PENDING",
+        status: "ACTIVE",
         startDate: new Date(),
       },
-      include: { user: true, membershipPlan: true },
+      include: { user: true, membershipPlan: true, organization: { select: { name: true } } },
     });
   });
+
+  // Send branded invite email via Resend (fire-and-forget, never throws)
+  if (linkData?.properties?.action_link) {
+    sendMemberInvite({
+      to: email,
+      memberName: name,
+      orgName: member.organization.name,
+      inviteLink: linkData.properties.action_link,
+    });
+  }
 
   return apiSuccess(member, 201);
 }

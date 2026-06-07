@@ -65,6 +65,30 @@ export function sendBookingConfirmation(o: {
   return safeSend({ to: o.to, subject: `Booking ${o.status === "PENDING" ? "received" : "confirmed"} — ${o.resourceName}`, html: shell(o.orgName, "Booking confirmation", body) });
 }
 
+export function sendMemberInvite(o: {
+  to: string; memberName: string | null; orgName: string; inviteLink: string;
+}) {
+  const body = `
+    <p style="color:#475569;font-size:14px;margin:0 0 18px;">
+      Hi ${o.memberName ?? "there"} 👋 — you've been invited to join <strong>${o.orgName}</strong> on CoWork Pro.
+    </p>
+    <p style="color:#475569;font-size:14px;margin:0 0 24px;">
+      Click the button below to accept your invitation and access your member portal — book desks, view invoices, and more.
+    </p>
+    <a href="${o.inviteLink}"
+       style="display:inline-block;background:#15803D;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:14px;margin-bottom:24px;">
+      Accept invitation →
+    </a>
+    <p style="color:#94a3b8;font-size:12px;margin:0;">
+      This link expires in 24 hours. If you didn't expect this, you can ignore this email.
+    </p>`;
+  return safeSend({
+    to: o.to,
+    subject: `You've been invited to ${o.orgName} on CoWork Pro`,
+    html: shell(o.orgName, `Welcome to ${o.orgName}!`, body),
+  });
+}
+
 export function sendInvoiceEmail(o: {
   to: string; memberName: string | null; orgName: string;
   invoiceNumber: string; amount: number; currency: string; dueDate: Date;

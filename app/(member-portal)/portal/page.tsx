@@ -8,7 +8,11 @@ import { MemberDashboard } from "@/components/portal/member-dashboard";
 export const metadata: Metadata = { title: "My Dashboard — CoWork Pro" };
 export const dynamic = "force-dynamic";
 
-export default async function PortalHomePage() {
+export default async function PortalHomePage({
+  searchParams,
+}: {
+  searchParams: { welcome?: string };
+}) {
   const supabase = createClient();
   const {
     data: { user },
@@ -75,6 +79,7 @@ export default async function PortalHomePage() {
       upcomingBookings={upcomingBookings as any}
       bookingsThisMonth={bookingsThisMonth}
       announcements={announcements}
+      isNewMember={searchParams.welcome === "1"}
     />
   );
 }

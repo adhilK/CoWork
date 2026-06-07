@@ -43,6 +43,7 @@ export async function middleware(request: NextRequest) {
     "/api/auth",
     "/api/cron",   // protected by CRON_SECRET, not session
     "/checkin",    // QR check-in, protected by a per-booking token
+    // /api/auth/confirm is already covered by /api/auth above
   ];
   const isPublicRoute = publicRoutes.some((route) =>
     pathname.startsWith(route)
