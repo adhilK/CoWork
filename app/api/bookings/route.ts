@@ -5,6 +5,26 @@ import { createBookingSchema } from "@/lib/validations";
 import { computeCharge, settleBooking } from "@/lib/booking-pricing";
 import { sendBookingConfirmation } from "@/lib/email";
 import { apiError, apiSuccess, buildPaginationMeta, getPaginationParams } from "@/lib/utils";
+import { addDays, addWeeks, addMonths } from "date-fns";
+import { nanoid } from "nanoid";
+
+/** Generate all (start, end) pairs for a recurring series (max 104 = 2 years weekly). */
+function buildRecurringSlots(
+  start: Date, end: Date,
+  pattern: "DAILY" | "WEEKLY" | "MONTHLY",
+  until: Date
+): Array<{ start: Date; end: Date }> {
+  const duration = end.getTime() - start.getTime();
+  const slots: Array<{ start: Date; end: Date }> = [];
+  let cur = start;
+  while (cur <= until && slots.length < 104) {
+    slots.push({ start: cur, end: new Date(cur.getTime() + duration) });
+    if (pattern === "DAILY") cur = addDays(cur, 1);
+    else if (pattern === "WEEKLY") cur = addWeeks(cur, 1);
+    else cur = addMonths(cur, 1);
+  }
+  return slots;
+}
 
 export async function GET(req: NextRequest) {
   const auth = await getApiAuth();
@@ -78,7 +98,7 @@ export async function POST(req: NextRequest) {
   const parsed = createBookingSchema.safeParse(body);
   if (!parsed.success) return apiError(parsed.error.issues[0]?.message ?? "Invalid input");
 
-  const { resourceId, memberId, startTime, endTime, title, description, attendees } = parsed.data;
+  const { resourceId, memberId, startTime, endTime, title, description, attendees, recurring, recurringUntil } = parsed.data;
 
   // Verify resource belongs to org
   const resource = await prisma.resource.findFirst({
@@ -86,18 +106,32 @@ export async function POST(req: NextRequest) {
   });
   if (!resource) return apiError("Resource not found", 404);
 
-  // Overlap check
-  const conflict = await prisma.booking.findFirst({
-    where: {
-      resourceId,
-      deletedAt: null,
-      status: { in: ["PENDING", "CONFIRMED", "CHECKED_IN"] },
-      AND: [{ startTime: { lt: endTime } }, { endTime: { gt: startTime } }],
-    },
-  });
-  if (conflict) return apiError("This resource is already booked for that time slot", 409);
+  // Build the full list of slots (1 for one-off, N for recurring)
+  const isRecurring = recurring !== "NONE" && !!recurringUntil;
+  const slots = isRecurring
+    ? buildRecurringSlots(startTime, endTime, recurring as "DAILY" | "WEEKLY" | "MONTHLY", recurringUntil!)
+    : [{ start: startTime, end: endTime }];
 
-  // Pricing + credit settlement
+  // Conflict check for ALL slots before creating any
+  for (const slot of slots) {
+    const conflict = await prisma.booking.findFirst({
+      where: {
+        resourceId,
+        deletedAt: null,
+        status: { in: ["PENDING", "CONFIRMED", "CHECKED_IN"] },
+        AND: [{ startTime: { lt: slot.end } }, { endTime: { gt: slot.start } }],
+      },
+      select: { startTime: true },
+    });
+    if (conflict) {
+      return apiError(
+        `Resource already booked on ${conflict.startTime.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} at that time`,
+        409
+      );
+    }
+  }
+
+  // Pricing + credit settlement (based on first slot — all slots same duration)
   const { amount, creditsNeeded } = computeCharge(resource, startTime, endTime);
   const member = memberId
     ? await prisma.member.findFirst({ where: { id: memberId, organizationId: orgId, deletedAt: null }, select: { id: true, credits: true } })
@@ -106,48 +140,63 @@ export async function POST(req: NextRequest) {
     amount, creditsNeeded, memberCredits: member ? member.credits : null,
   });
 
-  const booking = await prisma.$transaction(async (tx) => {
+  const recurringGroupId = isRecurring ? nanoid() : null;
+  const status = resource.requiresApproval ? "PENDING" as const : "CONFIRMED" as const;
+
+  const bookings = await prisma.$transaction(async (tx) => {
+    // Deduct credits once (for the first occurrence)
     if (creditsUsed > 0 && member) {
       await tx.member.update({ where: { id: member.id }, data: { credits: { decrement: creditsUsed } } });
     }
-    return tx.booking.create({
-      data: {
-        organizationId: orgId,
-        resourceId,
-        memberId: memberId ?? null,
-        userId: userId,
-        title: title ?? null,
-        description: description ?? null,
-        startTime,
-        endTime,
-        attendees: attendees ?? 1,
-        status: resource.requiresApproval ? "PENDING" : "CONFIRMED",
-        amountCharged,
-        creditsUsed,
-      },
-      include: {
-        resource: true,
-        member: { include: { user: true } },
-        organization: { select: { name: true, currency: true } },
-      },
-    });
+    return Promise.all(
+      slots.map((slot) =>
+        tx.booking.create({
+          data: {
+            organizationId: orgId,
+            resourceId,
+            memberId: memberId ?? null,
+            userId,
+            title: title ?? null,
+            description: description ?? null,
+            startTime: slot.start,
+            endTime: slot.end,
+            attendees: attendees ?? 1,
+            status,
+            amountCharged: amountCharged,
+            creditsUsed: creditsUsed,
+            isRecurring: isRecurring,
+            recurringGroupId,
+          },
+          include: {
+            resource: true,
+            member: { include: { user: true } },
+            organization: { select: { name: true, currency: true } },
+          },
+        })
+      )
+    );
   });
 
-  // Booking confirmation email (fire-and-forget — never blocks the response)
-  if (booking.member?.user?.email) {
+  const first = bookings[0]!;
+
+  // Booking confirmation email (fire-and-forget)
+  if (first.member?.user?.email) {
     void sendBookingConfirmation({
-      to: booking.member.user.email,
-      memberName: booking.member.user.name,
-      orgName: booking.organization.name,
-      resourceName: booking.resource.name,
-      start: booking.startTime,
-      end: booking.endTime,
-      amountCharged: Number(booking.amountCharged),
-      creditsUsed: booking.creditsUsed,
-      currency: booking.organization.currency,
-      status: booking.status,
+      to: first.member.user.email,
+      memberName: first.member.user.name,
+      orgName: first.organization.name,
+      resourceName: first.resource.name,
+      start: first.startTime,
+      end: first.endTime,
+      amountCharged: Number(first.amountCharged),
+      creditsUsed: first.creditsUsed,
+      currency: first.organization.currency,
+      status: first.status,
     });
   }
 
-  return apiSuccess(booking, 201);
+  return apiSuccess(
+    isRecurring ? { bookings, count: bookings.length, recurringGroupId } : first,
+    201
+  );
 }

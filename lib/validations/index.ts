@@ -11,6 +11,9 @@ const createBookingBaseSchema = z.object({
   endTime: z.coerce.date(),
   attendees: z.number().int().min(1).max(500).default(1),
   externalGuests: z.array(z.string().email()).optional().default([]),
+  // Recurring support
+  recurring: z.enum(["NONE", "DAILY", "WEEKLY", "MONTHLY"]).default("NONE"),
+  recurringUntil: z.coerce.date().optional(),
 });
 
 export const createBookingSchema = createBookingBaseSchema
@@ -25,6 +28,14 @@ export const createBookingSchema = createBookingBaseSchema
       return diffMins >= 30;
     },
     { message: "Minimum booking duration is 30 minutes", path: ["endTime"] }
+  )
+  .refine(
+    (data) => data.recurring === "NONE" || !!data.recurringUntil,
+    { message: "Please set an end date for recurring bookings", path: ["recurringUntil"] }
+  )
+  .refine(
+    (data) => !data.recurringUntil || data.recurringUntil > data.startTime,
+    { message: "Repeat until must be after the start time", path: ["recurringUntil"] }
   );
 
 export const updateBookingSchema = createBookingBaseSchema.partial().extend({

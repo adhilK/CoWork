@@ -58,7 +58,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   return apiSuccess(updated);
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const auth = await getApiAuth();
   if (!auth) return apiError("Unauthorized", 401);
   const orgId = auth.organizationId;
@@ -68,11 +68,28 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   });
   if (!booking) return apiError("Not found", 404);
 
-  // Soft delete / cancel
+  // ?series=true → cancel all future bookings in the same recurring group
+  const cancelSeries = req.nextUrl.searchParams.get("series") === "true";
+
+  if (cancelSeries && booking.recurringGroupId) {
+    await prisma.booking.updateMany({
+      where: {
+        recurringGroupId: booking.recurringGroupId,
+        organizationId: orgId,
+        deletedAt: null,
+        startTime: { gte: booking.startTime }, // only this + future
+        status: { in: ["PENDING", "CONFIRMED"] },
+      },
+      data: { status: "CANCELLED", cancelledAt: new Date(), deletedAt: new Date() },
+    });
+    return apiSuccess({ success: true, cancelled: "series" });
+  }
+
+  // Single cancellation
   await prisma.booking.update({
     where: { id: params.id },
-    data: { status: "CANCELLED", deletedAt: new Date() },
+    data: { status: "CANCELLED", cancelledAt: new Date(), deletedAt: new Date() },
   });
 
-  return apiSuccess({ success: true });
+  return apiSuccess({ success: true, cancelled: "single" });
 }

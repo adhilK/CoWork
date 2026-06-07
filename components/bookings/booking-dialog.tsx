@@ -1,19 +1,20 @@
 "use client";
 
+"use client";
+
 import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format, addHours } from "date-fns";
-import { Loader2, Trash2, LogIn, LogOut, Clock, QrCode } from "lucide-react";
+import { format, addHours, addDays } from "date-fns";
+import { Loader2, Trash2, LogIn, LogOut, QrCode, RefreshCw, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createBookingSchema, type CreateBookingInput } from "@/lib/validations";
-import { humanizeEnum, formatDateTime, formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { ResourceType, BookingStatus } from "@prisma/client";
 
@@ -51,20 +52,26 @@ export function BookingDialog({ open, onClose, bookingId, defaultDate, resources
   const [amountCharged, setAmountCharged] = useState<number | null>(null);
   const [checkinLink, setCheckinLink] = useState<string | null>(null);
   const [showQr, setShowQr] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [cancelMode, setCancelMode] = useState<"single" | "series" | null>(null);
 
-  const { register, handleSubmit, control, reset, formState: { errors, isSubmitting } } =
+  const { register, handleSubmit, control, reset, watch, formState: { errors, isSubmitting } } =
     useForm<CreateBookingInput>({
       resolver: zodResolver(createBookingSchema) as any,
-      defaultValues: { attendees: 1, externalGuests: [] },
+      defaultValues: { attendees: 1, externalGuests: [], recurring: "NONE" },
     });
+
+  const recurringValue = watch("recurring");
 
   useEffect(() => {
     if (open && !isEdit && defaultDate) {
       const start = defaultDate;
       const end = addHours(start, 1);
-      reset({ startTime: start, endTime: end, attendees: 1, externalGuests: [] });
+      reset({ startTime: start, endTime: end, attendees: 1, externalGuests: [], recurring: "NONE" });
       setBookingStatus(null);
       setAmountCharged(null);
+      setIsRecurring(false);
+      setCancelMode(null);
     }
   }, [open, isEdit, defaultDate, reset]);
 
@@ -82,11 +89,14 @@ export function BookingDialog({ open, onClose, bookingId, defaultDate, resources
               startTime: new Date(b.startTime),
               endTime: new Date(b.endTime),
               attendees: b.attendees ?? 1,
+              recurring: "NONE",
             });
             setBookingStatus(b.status as BookingStatus);
             setAmountCharged(Number(b.amountCharged) || null);
             setCheckinLink(b.checkinUrl ?? null);
+            setIsRecurring(!!b.recurringGroupId);
             setShowQr(false);
+            setCancelMode(null);
           }
         })
         .catch(() => toast.error("Failed to load booking"));
@@ -112,12 +122,15 @@ export function BookingDialog({ open, onClose, bookingId, defaultDate, resources
     }
   }
 
-  async function handleDelete() {
+  async function handleDelete(cancelSeries = false) {
     if (!bookingId) return;
-    if (!confirm("Cancel this booking?")) return;
     try {
-      await fetch(`/api/bookings/${bookingId}`, { method: "DELETE" });
-      toast.success("Booking cancelled");
+      const url = cancelSeries
+        ? `/api/bookings/${bookingId}?series=true`
+        : `/api/bookings/${bookingId}`;
+      await fetch(url, { method: "DELETE" });
+      toast.success(cancelSeries ? "All future bookings in this series cancelled" : "Booking cancelled");
+      setCancelMode(null);
       onSuccess();
     } catch {
       toast.error("Failed to cancel booking");
@@ -258,6 +271,49 @@ export function BookingDialog({ open, onClose, bookingId, defaultDate, resources
             <Input type="number" min={1} {...register("attendees", { valueAsNumber: true })} className="w-28" disabled={isReadOnly} />
           </div>
 
+          {/* Recurring — only shown on new bookings */}
+          {!isEdit && (
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5">
+                  <RefreshCw className="w-3.5 h-3.5 text-gray-400" /> Repeat
+                </Label>
+                <Controller control={control} name="recurring" render={({ field }) => (
+                  <Select value={field.value ?? "NONE"} onValueChange={field.onChange}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="NONE">Does not repeat</SelectItem>
+                      <SelectItem value="DAILY">Daily</SelectItem>
+                      <SelectItem value="WEEKLY">Weekly</SelectItem>
+                      <SelectItem value="MONTHLY">Monthly on same date</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )} />
+              </div>
+              {recurringValue && recurringValue !== "NONE" && (
+                <div className="space-y-1.5">
+                  <Label>Repeat until *</Label>
+                  <Controller control={control} name="recurringUntil" render={({ field }) => (
+                    <Input type="date"
+                      value={field.value ? format(new Date(field.value), "yyyy-MM-dd") : ""}
+                      onChange={(e) => field.onChange(new Date(e.target.value + "T12:00:00"))}
+                      min={format(addDays(new Date(), 1), "yyyy-MM-dd")}
+                    />
+                  )} />
+                  {errors.recurringUntil && <p className="text-xs text-red-500">{errors.recurringUntil.message as string}</p>}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Recurring badge on existing bookings */}
+          {isEdit && isRecurring && (
+            <div className="flex items-center gap-2 rounded-xl bg-indigo-50 border border-indigo-100 px-3 py-2.5">
+              <RefreshCw className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
+              <p className="text-xs text-indigo-700 font-medium">This is a recurring booking</p>
+            </div>
+          )}
+
           {/* Charge summary */}
           {amountCharged !== null && amountCharged > 0 && (
             <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 border border-gray-100">
@@ -305,12 +361,47 @@ export function BookingDialog({ open, onClose, bookingId, defaultDate, resources
             </div>
           )}
 
+          {/* Series cancel confirmation inline */}
+          {cancelMode && (
+            <div className="rounded-xl border border-red-100 bg-red-50 p-3 space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-red-800">Cancel {cancelMode === "series" ? "all future bookings" : "this booking"}?</p>
+                  <p className="text-xs text-red-600 mt-0.5">
+                    {cancelMode === "series" ? "This will cancel this and all future recurring bookings in the series." : "Only this occurrence will be cancelled."}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => setCancelMode(null)}>Keep</Button>
+                <Button type="button" size="sm" className="h-7 text-xs bg-red-600 hover:bg-red-700 text-white border-0"
+                  onClick={() => handleDelete(cancelMode === "series")}>
+                  Confirm cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
           <DialogFooter className="gap-2 flex-wrap">
-            {isEdit && !isReadOnly && (
-              <Button type="button" variant="outline" className="text-red-600 hover:text-red-700 mr-auto"
-                onClick={handleDelete}>
-                <Trash2 className="w-4 h-4 mr-1.5" /> Cancel booking
-              </Button>
+            {isEdit && !isReadOnly && !cancelMode && (
+              isRecurring ? (
+                <div className="flex gap-1.5 mr-auto flex-wrap">
+                  <Button type="button" variant="outline" size="sm" className="text-red-600 hover:text-red-700 h-8 text-xs"
+                    onClick={() => setCancelMode("single")}>
+                    <Trash2 className="w-3.5 h-3.5 mr-1" /> This booking
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" className="text-red-600 hover:text-red-700 h-8 text-xs"
+                    onClick={() => setCancelMode("series")}>
+                    <Trash2 className="w-3.5 h-3.5 mr-1" /> All future
+                  </Button>
+                </div>
+              ) : (
+                <Button type="button" variant="outline" className="text-red-600 hover:text-red-700 mr-auto"
+                  onClick={() => setCancelMode("single")}>
+                  <Trash2 className="w-4 h-4 mr-1.5" /> Cancel booking
+                </Button>
+              )
             )}
 
             {/* Check-in / Check-out */}
