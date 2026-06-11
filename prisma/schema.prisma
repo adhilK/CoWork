@@ -114,6 +114,59 @@ enum MailType {
   OTHER
 }
 
+enum MessageDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum WhatsAppMessageType {
+  BOOKING_CONFIRMATION
+  BOOKING_REMINDER
+  INVOICE_ISSUED
+  INVOICE_PAID
+  VISITOR_ARRIVAL
+  DOCUMENT_EXPIRY
+  BUSINESS_SETUP_UPDATE
+  PRO_SERVICE_UPDATE
+  MAIL_RECEIVED
+  RENEWAL_REMINDER
+  ANNOUNCEMENT
+  SUPPORT_MESSAGE
+  CUSTOM
+}
+
+enum WhatsAppStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+// Maps to Meta's template category taxonomy.
+enum WhatsAppTemplateCategory {
+  UTILITY
+  MARKETING
+  AUTHENTICATION
+}
+
+// Local approval-tracking mirror of Meta's template review state.
+enum WhatsAppTemplateStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BroadcastStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  FAILED
+  CANCELLED
+}
+
 // ─── MULTI-TENANCY ────────────────────────────────────────────────────────────
 
 model Organization {
@@ -156,6 +209,10 @@ model Organization {
   virtualOfficeAddresses    VirtualOfficeAddress[]
   virtualOfficeSubscriptions VirtualOfficeSubscription[]
   mailItems                 MailItem[]
+  whatsAppConfig            WhatsAppConfig?
+  whatsAppMessages          WhatsAppMessage[]
+  whatsAppTemplates         WhatsAppTemplate[]
+  whatsAppBroadcasts        WhatsAppBroadcast[]
 
   @@index([slug])
 }
@@ -353,6 +410,7 @@ model Member {
   bookings                  Booking[]
   invoices                  Invoice[]
   virtualOfficeSubscriptions VirtualOfficeSubscription[]
+  whatsAppMessages          WhatsAppMessage[]
 
   @@index([organizationId])
   @@index([userId])
@@ -603,4 +661,109 @@ model MailItem {
   @@index([subscriptionId])
   @@index([organizationId, deletedAt])
   @@index([organizationId, receivedAt])
+}
+
+// ─── WHATSAPP BUSINESS API ────────────────────────────────────────────────────
+// Per-org WhatsApp Business API credentials. accessToken is encrypted at rest via
+// lib/encryption.ts. Falls back to platform-level env vars when no row exists.
+
+model WhatsAppConfig {
+  id                String   @id @default(cuid())
+  organizationId    String   @unique
+  phoneNumberId     String
+  accessToken       String   // encrypted at rest (lib/encryption.ts)
+  businessAccountId String
+  verifyToken       String   // webhook verification challenge token
+  displayNumber     String?  // human-readable sender number, e.g. +971 50 000 0000
+  isActive          Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model WhatsAppMessage {
+  id                String              @id @default(cuid())
+  organizationId    String
+  memberId          String?
+  broadcastId       String?
+  phone             String              // E.164, no + (Meta format)
+  direction         MessageDirection
+  messageType       WhatsAppMessageType @default(CUSTOM)
+  templateName      String?
+  content           String
+  mediaUrl          String?
+  waMessageId       String?             // Meta message ID (wamid.*)
+  status            WhatsAppStatus      @default(SENT)
+  sentAt            DateTime            @default(now())
+  deliveredAt       DateTime?
+  readAt            DateTime?
+  failedReason      String?
+  relatedEntityType String?             // "booking" | "invoice" | "proservice" ...
+  relatedEntityId   String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  organization      Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member            Member?             @relation(fields: [memberId], references: [id])
+  broadcast         WhatsAppBroadcast?  @relation(fields: [broadcastId], references: [id])
+
+  @@index([organizationId])
+  @@index([memberId])
+  @@index([organizationId, status])
+  @@index([organizationId, phone])
+  @@index([organizationId, sentAt])
+  @@index([broadcastId])
+  @@index([waMessageId])
+}
+
+// Reusable message templates. Mirrors Meta-approved templates plus locally-drafted
+// quick replies. Body uses {{1}}, {{2}} positional placeholders (Meta convention).
+model WhatsAppTemplate {
+  id             String                   @id @default(cuid())
+  organizationId String
+  name           String                   // Meta template name (snake_case)
+  category       WhatsAppTemplateCategory @default(UTILITY)
+  language       String                   @default("en")
+  body           String
+  variables      String[]                 @default([])  // labels for {{1}}, {{2}} ...
+  status         WhatsAppTemplateStatus   @default(DRAFT)
+  isActive       Boolean                  @default(true)
+  deletedAt      DateTime?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([organizationId, deletedAt])
+}
+
+// A one-to-many broadcast campaign. Each broadcast fans out into WhatsAppMessage
+// rows (one per recipient) linked via broadcastId.
+model WhatsAppBroadcast {
+  id             String          @id @default(cuid())
+  organizationId String
+  name           String
+  templateName   String?         // template used, if any
+  content        String          // resolved/preview body
+  audienceFilter Json?           // { status?, membershipPlanId?, hasWhatsApp? }
+  status         BroadcastStatus @default(DRAFT)
+  recipientCount Int             @default(0)
+  sentCount      Int             @default(0)
+  failedCount    Int             @default(0)
+  scheduledAt    DateTime?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  deletedAt      DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  messages       WhatsAppMessage[]
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, deletedAt])
 }
