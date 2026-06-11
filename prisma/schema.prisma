@@ -91,6 +91,29 @@ enum PlatformSubscriptionStatus {
   EXPIRED
 }
 
+enum VirtualAddressType {
+  MAINLAND
+  FREEZONE
+  OFFSHORE
+  PREMIUM_BUSINESS_DISTRICT
+}
+
+enum VirtualOfficeStatus {
+  ACTIVE
+  PENDING_RENEWAL
+  EXPIRED
+  CANCELLED
+}
+
+enum MailType {
+  LETTER
+  PACKAGE
+  LEGAL_DOCUMENT
+  GOVERNMENT_CORRESPONDENCE
+  COURIER
+  OTHER
+}
+
 // ─── MULTI-TENANCY ────────────────────────────────────────────────────────────
 
 model Organization {
@@ -128,8 +151,11 @@ model Organization {
   visitors             Visitor[]
   announcements        Announcement[]
   events               Event[]
-  jurisdictionConfig   JurisdictionConfig?
-  platformSubscription PlatformSubscription?
+  jurisdictionConfig        JurisdictionConfig?
+  platformSubscription      PlatformSubscription?
+  virtualOfficeAddresses    VirtualOfficeAddress[]
+  virtualOfficeSubscriptions VirtualOfficeSubscription[]
+  mailItems                 MailItem[]
 
   @@index([slug])
 }
@@ -321,11 +347,12 @@ model Member {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
-  organization     Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user             User            @relation(fields: [userId], references: [id])
-  membershipPlan   MembershipPlan? @relation(fields: [membershipPlanId], references: [id])
-  bookings         Booking[]
-  invoices         Invoice[]
+  organization              Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user                      User            @relation(fields: [userId], references: [id])
+  membershipPlan            MembershipPlan? @relation(fields: [membershipPlanId], references: [id])
+  bookings                  Booking[]
+  invoices                  Invoice[]
+  virtualOfficeSubscriptions VirtualOfficeSubscription[]
 
   @@index([organizationId])
   @@index([userId])
@@ -409,14 +436,16 @@ model Invoice {
   periodEnd       DateTime?
   lineItems       Json          // [{ description, quantity, unitPrice, total }]
   notes           String?
+  virtualOfficeSubscriptionId String?
   // Soft delete
   deletedAt       DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  member         Member       @relation(fields: [memberId], references: [id])
-  bookings       Booking[]
+  organization              Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member                    Member                     @relation(fields: [memberId], references: [id])
+  bookings                  Booking[]
+  virtualOfficeSubscription VirtualOfficeSubscription? @relation(fields: [virtualOfficeSubscriptionId], references: [id])
 
   @@index([organizationId])
   @@index([memberId])
@@ -481,4 +510,97 @@ model Event {
 
   @@index([organizationId])
   @@index([organizationId, startTime])
+}
+
+// ─── VIRTUAL OFFICE ───────────────────────────────────────────────────────────
+
+model VirtualOfficeAddress {
+  id             String             @id @default(cuid())
+  organizationId String
+  jurisdiction   Jurisdiction       @default(UAE)
+  addressLine    String
+  addressType    VirtualAddressType @default(MAINLAND)
+  freezoneName   String?            // e.g. "DMCC", "DIFC", "ADGM"
+  ejariNumber    String?            // UAE: Ejari contract reference
+  maxClients     Int                @default(50)
+  isActive       Boolean            @default(true)
+  monthlyFee     Decimal            @db.Decimal(10, 2)
+  // Soft delete
+  deletedAt      DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  organization   Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  subscriptions  VirtualOfficeSubscription[]
+  mailItems      MailItem[]
+
+  @@index([organizationId])
+  @@index([organizationId, deletedAt])
+  @@index([organizationId, isActive])
+}
+
+model VirtualOfficeSubscription {
+  id             String              @id @default(cuid())
+  organizationId String
+  memberId       String
+  addressId      String
+  companyName    String
+  licenseNumber  String?
+  licenseExpiry  DateTime?
+  startDate      DateTime            @default(now())
+  endDate        DateTime?
+  renewalDate    DateTime?
+  status         VirtualOfficeStatus @default(ACTIVE)
+  monthlyFee     Decimal             @db.Decimal(10, 2)
+  currency       String              @default("AED")
+  notes          String?
+  // Soft delete — KSA ZATCA mandates 5-year retention; never hard delete
+  deletedAt      DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member         Member               @relation(fields: [memberId], references: [id])
+  address        VirtualOfficeAddress @relation(fields: [addressId], references: [id])
+  invoices       Invoice[]
+  mailItems      MailItem[]
+
+  @@index([organizationId])
+  @@index([memberId])
+  @@index([addressId])
+  @@index([organizationId, deletedAt])
+  @@index([organizationId, status])
+}
+
+model MailItem {
+  id             String                     @id @default(cuid())
+  organizationId String
+  addressId      String
+  subscriptionId String?
+  senderName     String?
+  senderAddress  String?
+  receivedAt     DateTime                   @default(now())
+  mailType       MailType                   @default(OTHER)
+  description    String?
+  trackingNumber String?
+  // scanUrl: Supabase Storage object path (not a URL); signed URL generated on read
+  scanPath       String?
+  forwardedAt    DateTime?
+  forwardedTo    String?
+  notifiedAt     DateTime?
+  collectedAt    DateTime?
+  // Soft delete
+  deletedAt      DateTime?
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+
+  organization   Organization                @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  address        VirtualOfficeAddress        @relation(fields: [addressId], references: [id])
+  subscription   VirtualOfficeSubscription?  @relation(fields: [subscriptionId], references: [id])
+
+  @@index([organizationId])
+  @@index([addressId])
+  @@index([subscriptionId])
+  @@index([organizationId, deletedAt])
+  @@index([organizationId, receivedAt])
 }

@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Calendar, Users, FileText, BarChart3,
   Settings, LogOut, Menu, Building2, Bell,
-  CreditCard, UserCheck, MessageSquare, Search, Tag, X,
+  CreditCard, UserCheck, MessageSquare, Search, Tag, X, Mailbox,
 } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -35,8 +35,9 @@ const NAV_ITEMS: { href: string; label: string; icon: any; exact?: boolean; badg
   { href: "/dashboard/plans", label: "Plans", icon: Tag },
   { href: "/dashboard/visitors", label: "Visitors", icon: UserCheck },
   { href: "/dashboard/invoices", label: "Invoices", icon: FileText },
+  { href: "/dashboard/virtual-office", label: "Virtual Office", icon: Mailbox, badge: "NEW" },
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/dashboard/community", label: "Community", icon: MessageSquare, badge: "NEW" },
+  { href: "/dashboard/community", label: "Community", icon: MessageSquare },
 ];
 
 const PLAN_COLORS: Record<Plan, string> = {
