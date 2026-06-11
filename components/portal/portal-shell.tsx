@@ -8,6 +8,7 @@ import {
   CalendarPlus,
   Clock,
   FileText,
+  FolderLock,
   User,
   LogOut,
   Menu,
@@ -38,6 +39,7 @@ const NAV_ITEMS = [
   { href: "/portal/book", label: "Book a space", icon: CalendarPlus },
   { href: "/portal/my-bookings", label: "My bookings", icon: Clock },
   { href: "/portal/invoices", label: "Invoices", icon: FileText },
+  { href: "/portal/documents", label: "Documents", icon: FolderLock },
   { href: "/portal/profile", label: "Profile", icon: User },
 ];
 

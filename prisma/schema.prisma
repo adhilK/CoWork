@@ -167,6 +167,34 @@ enum BroadcastStatus {
   CANCELLED
 }
 
+enum DocumentType {
+  PASSPORT
+  EMIRATES_ID
+  IQAMA
+  VISA
+  TRADE_LICENSE
+  EJARI
+  ESTABLISHMENT_CARD
+  SHARE_CERTIFICATE
+  MOA
+  AOA
+  BANK_STATEMENT
+  INSURANCE_CERTIFICATE
+  POWER_OF_ATTORNEY
+  TENANCY_CONTRACT
+  MEDICAL_FITNESS
+  POLICE_CLEARANCE
+  DEGREE_CERTIFICATE
+  OTHER
+}
+
+enum DocumentRequestStatus {
+  PENDING
+  FULFILLED
+  OVERDUE
+  CANCELLED
+}
+
 // ─── MULTI-TENANCY ────────────────────────────────────────────────────────────
 
 model Organization {
@@ -213,6 +241,8 @@ model Organization {
   whatsAppMessages          WhatsAppMessage[]
   whatsAppTemplates         WhatsAppTemplate[]
   whatsAppBroadcasts        WhatsAppBroadcast[]
+  documents                 Document[]
+  documentRequests          DocumentRequest[]
 
   @@index([slug])
 }
@@ -411,6 +441,8 @@ model Member {
   invoices                  Invoice[]
   virtualOfficeSubscriptions VirtualOfficeSubscription[]
   whatsAppMessages          WhatsAppMessage[]
+  documents                 Document[]
+  documentRequests          DocumentRequest[]
 
   @@index([organizationId])
   @@index([userId])
@@ -766,4 +798,68 @@ model WhatsAppBroadcast {
   @@index([organizationId])
   @@index([organizationId, status])
   @@index([organizationId, deletedAt])
+}
+
+// ─── DOCUMENT VAULT ───────────────────────────────────────────────────────────
+// Per-member document storage. Files live in a PRIVATE Supabase bucket; fileUrl
+// holds the storage object PATH, never a public URL. Served only via short-lived
+// (15-min) signed URLs generated on demand. documentNumber is encrypted at rest.
+
+model Document {
+  id                String       @id @default(cuid())
+  organizationId    String
+  memberId          String
+  documentType      DocumentType
+  label             String?      // free-text label, esp. for OTHER
+  fileUrl           String       // private bucket object path (NOT a public URL)
+  fileName          String
+  fileSize          Int
+  mimeType          String
+  expiryDate        DateTime?
+  issueDate         DateTime?
+  issueCountry      String?
+  documentNumber    String?      // encrypted at rest (lib/encryption.ts)
+  isVerified        Boolean      @default(false)
+  verifiedAt        DateTime?
+  verifiedBy        String?      // operator userId who verified
+  notes             String?
+  version           Int          @default(1)
+  previousVersionId String?      // chain to the prior version of this document
+  uploadedBy        String?      // userId who uploaded (member or operator)
+  uploadedAt        DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  deletedAt         DateTime?    // soft delete (also used to retire old versions)
+
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member            Member       @relation(fields: [memberId], references: [id])
+
+  @@index([organizationId])
+  @@index([memberId])
+  @@index([organizationId, expiryDate])
+  @@index([organizationId, deletedAt])
+  @@index([memberId, deletedAt])
+}
+
+model DocumentRequest {
+  id             String                @id @default(cuid())
+  organizationId String
+  memberId       String
+  requestedBy    String                // operator userId
+  documentType   DocumentType
+  message        String?
+  dueDate        DateTime?
+  status         DocumentRequestStatus @default(PENDING)
+  fulfilledAt    DateTime?
+  fulfilledDocId String?               // Document.id that fulfilled the request
+  deletedAt      DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member         Member       @relation(fields: [memberId], references: [id])
+
+  @@index([organizationId])
+  @@index([memberId])
+  @@index([organizationId, status])
+  @@index([memberId, status])
 }
