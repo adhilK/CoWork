@@ -7,6 +7,7 @@
 
 import { PrismaClient, BookingStatus, InvoiceStatus, MemberStatus } from "@prisma/client";
 import { addDays, addHours, addMonths, subDays, subMonths, startOfDay, setHours, setMinutes } from "date-fns";
+import { computeInvoiceTotals } from "../lib/jurisdiction";
 
 const prisma = new PrismaClient();
 
@@ -98,14 +99,21 @@ async function main() {
     data: {
       name: "LaunchHub Coworking",
       slug: "launchhub",
-      email: "hello@launchhub.co.uk",
-      phone: "+44 20 7123 4567",
-      address: "14 Shoreditch High St, London, E1 6JE",
-      website: "https://launchhub.co.uk",
-      timezone: "Europe/London",
-      currency: "GBP",
+      email: "hello@launchhub.ae",
+      phone: "+971 4 123 4567",
+      address: "Office 1402, Business Bay, Dubai, UAE",
+      website: "https://launchhub.ae",
+      timezone: "Asia/Dubai",
+      currency: "AED",
+      jurisdiction: "UAE",
       plan: "PRO",
       trialEndsAt: addDays(new Date(), 10), // 10 days remaining
+      jurisdictionConfig: {
+        create: { jurisdictions: ["UAE"], primaryJurisdiction: "UAE" },
+      },
+      platformSubscription: {
+        create: { status: "TRIAL", plan: "PRO", trialEndsAt: addDays(new Date(), 10) },
+      },
     },
   });
 
@@ -511,14 +519,20 @@ async function main() {
       const periodStart = subMonths(today, monthsAgo + 1);
       const periodEnd = subMonths(today, monthsAgo);
       const dueDate = addDays(periodEnd, 7);
-      const amount = plan?.price.toNumber() ?? 250;
+      const planPrice = plan?.price.toNumber() ?? 250;
+      // VAT-exclusive plan price → add UAE VAT (demo org is UAE/AED).
+      const totals = computeInvoiceTotals(planPrice, "UAE");
 
       invoiceData.push({
         organizationId: org.id,
         memberId: memberData!.member.id,
         invoiceNumber: `INV-${new Date().getFullYear()}-${String(invoiceNum++).padStart(3, "0")}`,
-        amount,
-        currency: "GBP",
+        amount: totals.totalAmount,
+        subtotal: totals.subtotal,
+        vatRate: totals.vatRate,
+        vatAmount: totals.vatAmount,
+        totalAmount: totals.totalAmount,
+        currency: "AED",
         status,
         dueDate,
         paidAt: status === "PAID" ? addDays(periodEnd, randomBetween(1, 6)) : null,
@@ -528,8 +542,8 @@ async function main() {
           {
             description: `${plan?.name ?? "Hot Desk Monthly"} — ${format(periodStart, "MMM yyyy")}`,
             quantity: 1,
-            unitPrice: amount,
-            total: amount,
+            unitPrice: planPrice,
+            total: planPrice,
           },
         ],
       });

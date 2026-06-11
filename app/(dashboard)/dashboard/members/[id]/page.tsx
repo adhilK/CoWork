@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
-import { ChevronLeft, Mail, Phone, Building, Briefcase, CreditCard, CalendarDays, Banknote, Receipt } from "lucide-react";
+import { ChevronLeft, Mail, Phone, Building, Briefcase, CreditCard, CalendarDays, Banknote, Receipt, MessageCircle, Globe, IdCard } from "lucide-react";
 import { getAuthContext } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency, formatDate, initials, humanizeEnum, cn } from "@/lib/utils";
+import { decryptField } from "@/lib/encryption";
 import { MemberDetailActions } from "@/components/members/member-detail-actions";
 import { format } from "date-fns";
 
@@ -124,6 +125,12 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
             status: member.status,
             membershipPlanId: member.membershipPlanId ?? "",
             credits: member.credits,
+            whatsAppNumber: member.whatsAppNumber ?? "",
+            nationality: member.nationality ?? "",
+            passportNumber: decryptField(member.passportNumber) ?? "",
+            emiratesId: decryptField(member.emiratesId) ?? "",
+            iqamaNumber: decryptField(member.iqamaNumber) ?? "",
+            visaExpiry: member.visaExpiry ? member.visaExpiry.toISOString().slice(0, 10) : "",
           }}
           plans={plans}
         />
@@ -218,8 +225,11 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
           <div className="dashboard-card p-4 space-y-3 text-sm">
             <Detail icon={Mail} label="Email" value={member.user.email} />
             {member.phone && <Detail icon={Phone} label="Phone" value={member.phone} />}
+            {member.whatsAppNumber && <Detail icon={MessageCircle} label="WhatsApp" value={member.whatsAppNumber} />}
             {member.company && <Detail icon={Building} label="Company" value={member.company} />}
             {member.jobTitle && <Detail icon={Briefcase} label="Job title" value={member.jobTitle} />}
+            {member.nationality && <Detail icon={Globe} label="Nationality" value={member.nationality} />}
+            {member.visaExpiry && <Detail icon={IdCard} label="Visa expiry" value={formatDate(member.visaExpiry)} />}
             <Detail icon={CalendarDays} label="Joined" value={formatDate(member.createdAt)} />
             {member.membershipPlan && <Detail icon={CreditCard} label="Plan" value={member.membershipPlan.name} />}
           </div>

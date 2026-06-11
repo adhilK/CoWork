@@ -17,15 +17,16 @@ import type { Organization } from "@prisma/client";
 type Props = { organization: Organization };
 
 const TIMEZONES = [
-  "Europe/London", "Europe/Paris", "America/New_York",
-  "America/Los_Angeles", "Asia/Dubai", "Asia/Singapore", "Australia/Sydney",
+  "Asia/Dubai", "Asia/Riyadh", "Asia/Bahrain", "Asia/Qatar", "Asia/Kuwait",
+  "Europe/London", "Asia/Singapore",
 ];
 
 const CURRENCIES = [
-  { value: "GBP", label: "£ GBP" },
+  { value: "AED", label: "AED — UAE Dirham" },
+  { value: "SAR", label: "SAR — Saudi Riyal" },
   { value: "USD", label: "$ USD" },
   { value: "EUR", label: "€ EUR" },
-  { value: "AED", label: "AED" },
+  { value: "GBP", label: "£ GBP" },
 ];
 
 export function SettingsView({ organization }: Props) {
@@ -40,6 +41,7 @@ export function SettingsView({ organization }: Props) {
         website: organization.website ?? "",
         timezone: organization.timezone,
         currency: organization.currency,
+        taxRegistrationNumber: organization.taxRegistrationNumber ?? "",
       },
     });
 
@@ -97,7 +99,7 @@ export function SettingsView({ organization }: Props) {
             <div className="space-y-1.5">
               <Label>Timezone</Label>
               <Controller control={control} name="timezone" render={({ field }) => (
-                <Select value={field.value ?? "Europe/London"} onValueChange={field.onChange}>
+                <Select value={field.value ?? "Asia/Dubai"} onValueChange={field.onChange}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {TIMEZONES.map((tz) => <SelectItem key={tz} value={tz}>{tz}</SelectItem>)}
@@ -108,13 +110,21 @@ export function SettingsView({ organization }: Props) {
             <div className="space-y-1.5">
               <Label>Currency</Label>
               <Controller control={control} name="currency" render={({ field }) => (
-                <Select value={field.value ?? "GBP"} onValueChange={field.onChange}>
+                <Select value={field.value ?? "AED"} onValueChange={field.onChange}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {CURRENCIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               )} />
+            </div>
+            <div className="col-span-full space-y-1.5">
+              <Label>
+                Tax registration number
+                <span className="ml-2 text-xs font-normal text-gray-400">UAE TRN / KSA VAT number — printed on invoices</span>
+              </Label>
+              <Input placeholder="e.g. 100123456700003" {...register("taxRegistrationNumber")} />
+              {errors.taxRegistrationNumber && <p className="text-xs text-danger">{errors.taxRegistrationNumber.message}</p>}
             </div>
           </div>
 

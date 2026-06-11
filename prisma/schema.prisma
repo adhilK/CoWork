@@ -13,6 +13,11 @@ datasource db {
 
 // ─── ENUMS ────────────────────────────────────────────────────────────────────
 
+enum Jurisdiction {
+  UAE
+  KSA
+}
+
 enum Plan {
   STARTER
   GROWTH
@@ -78,6 +83,14 @@ enum InvoiceStatus {
   REFUNDED
 }
 
+enum PlatformSubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
 // ─── MULTI-TENANCY ────────────────────────────────────────────────────────────
 
 model Organization {
@@ -90,27 +103,82 @@ model Organization {
   email         String?
   website       String?
   timezone      String   @default("UTC")
-  currency      String   @default("GBP")
+  currency      String   @default("AED")
+  // UAE TRN / KSA VAT number — printed on tax invoices (mandatory for VAT-registered entities)
+  taxRegistrationNumber String?
+  // GCC primary jurisdiction — drives VAT rate, license catalogs, gov bodies.
+  // Fuller multi-jurisdiction config lives in JurisdictionConfig.
+  jurisdiction  Jurisdiction @default(UAE)
   plan          Plan     @default(STARTER)
   trialEndsAt   DateTime?
-  // Stripe platform billing (not Connect — that's Phase 2)
+  // @deprecated — superseded by PlatformSubscription.stripeCustomerId
   stripeCustomerId     String?
+  // @deprecated — superseded by PlatformSubscription.stripeSubscriptionId
   stripeSubscriptionId String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  users         UserOrganization[]
-  locations     Location[]
-  resources     Resource[]
-  members       Member[]
-  bookings      Booking[]
-  invoices      Invoice[]
-  plans         MembershipPlan[]
-  visitors      Visitor[]
-  announcements Announcement[]
-  events        Event[]
+  users                UserOrganization[]
+  locations            Location[]
+  resources            Resource[]
+  members              Member[]
+  bookings             Booking[]
+  invoices             Invoice[]
+  plans                MembershipPlan[]
+  visitors             Visitor[]
+  announcements        Announcement[]
+  events               Event[]
+  jurisdictionConfig   JurisdictionConfig?
+  platformSubscription PlatformSubscription?
 
   @@index([slug])
+}
+
+// ─── JURISDICTION CONFIG (GCC) ────────────────────────────────────────────────
+// Per-organization jurisdiction settings. Drives VAT rates, currencies, and
+// jurisdiction-specific toggles (ZATCA, Arabic invoices, WhatsApp). Always read
+// jurisdiction-derived values via lib/jurisdiction.ts — never hardcode inline.
+
+model JurisdictionConfig {
+  id                  String         @id @default(cuid())
+  organizationId      String         @unique
+  jurisdictions       Jurisdiction[] @default([])   // ['UAE'], ['KSA'], or both
+  primaryJurisdiction Jurisdiction   @default(UAE)
+  vatRateUAE          Decimal        @default(0.05) @db.Decimal(5, 4)  // 5%
+  vatRateKSA          Decimal        @default(0.15) @db.Decimal(5, 4)  // 15%
+  currencyUAE         String         @default("AED")
+  currencyKSA         String         @default("SAR")
+  zatcaEnabled        Boolean        @default(false)  // KSA only
+  arabicInvoices      Boolean        @default(false)
+  whatsappEnabled     Boolean        @default(false)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  organization        Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+// Tracks the operator's CoWork Pro platform subscription (not member billing).
+// Manual billing only — no payment gateway. Created at TRIAL on org registration.
+model PlatformSubscription {
+  id                   String                     @id @default(cuid())
+  organizationId       String                     @unique
+  status               PlatformSubscriptionStatus @default(TRIAL)
+  plan                 Plan
+  // Billing currency derived from org jurisdiction (UAE → AED, KSA → SAR).
+  currency             String                     @default("AED")
+  // Monthly fee in local currency — null until operator upgrades from trial.
+  monthlyFee           Decimal?                   @db.Decimal(10, 2)
+  // Stripe Atlas fields — reserved for future use
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  trialEndsAt          DateTime?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelledAt          DateTime?
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+
+  organization         Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
 // ─── USERS & AUTH ─────────────────────────────────────────────────────────────
@@ -241,6 +309,13 @@ model Member {
   jobTitle         String?
   bio              String?
   phone            String?
+  // GCC fields
+  whatsAppNumber   String?        // WhatsApp number for automated messaging
+  nationality      String?        // ISO country code or name
+  passportNumber   String?        // Encrypted at rest via lib/encryption.ts
+  emiratesId       String?        // UAE Emirates ID — encrypted at rest
+  iqamaNumber      String?        // KSA Iqama number — encrypted at rest
+  visaExpiry       DateTime?      // Visa/residency expiry — drives renewal reminders
   // Soft delete
   deletedAt        DateTime?
   createdAt        DateTime       @default(now())
@@ -311,10 +386,22 @@ model Invoice {
   organizationId  String
   memberId        String
   invoiceNumber   String?       // e.g. INV-2024-001
+  // @deprecated — Stripe no longer used for member billing (use tapChargeId)
   stripeInvoiceId String?
+  // @deprecated — Stripe no longer used for member billing
   stripePaymentLinkId String?
+  tapChargeId     String?       // Tap payment gateway charge ID (GCC primary)
+  // @deprecated — superseded by the subtotal/vatAmount/totalAmount breakdown
+  // below. Retained for transition + backfill; kept equal to `totalAmount`.
+  // Do not read for new code — use `totalAmount`.
   amount          Decimal       @db.Decimal(10, 2)
-  currency        String        @default("GBP")
+  // VAT-compliant money breakdown (GCC). subtotal is VAT-exclusive; VAT is
+  // applied on top per the org's jurisdiction; totalAmount = subtotal + vatAmount.
+  subtotal        Decimal       @default(0) @db.Decimal(10, 2)
+  vatRate         Decimal       @default(0) @db.Decimal(5, 4)  // e.g. 0.05 UAE, 0.15 KSA
+  vatAmount       Decimal       @default(0) @db.Decimal(10, 2)
+  totalAmount     Decimal       @default(0) @db.Decimal(10, 2)
+  currency        String        @default("AED")
   status          InvoiceStatus @default(DRAFT)
   dueDate         DateTime
   paidAt          DateTime?

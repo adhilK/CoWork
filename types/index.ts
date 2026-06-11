@@ -85,8 +85,9 @@ export type SessionContext = {
     plan: Plan;
     currency: string;
     timezone: string;
+    jurisdiction: "UAE" | "KSA";
     trialEndsAt: Date | null;
-    stripeSubscriptionId: string | null;
+    platformSubscriptionStatus: "TRIAL" | "ACTIVE" | "PAST_DUE" | "CANCELLED" | "EXPIRED" | null;
   };
 };
 

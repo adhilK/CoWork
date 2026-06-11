@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, FileText, AlertCircle, ChevronDown, ChevronUp, Zap } from "lucide-react";
+import { Plus, FileText, AlertCircle, ChevronDown, ChevronUp, Zap, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,7 +27,7 @@ const STATUS_STYLES: Record<InvoiceStatus, string> = {
 };
 
 type Invoice = {
-  id: string; invoiceNumber: string; amount: any; status: InvoiceStatus;
+  id: string; invoiceNumber: string; amount: any; totalAmount: any; status: InvoiceStatus;
   dueDate: Date; createdAt: Date; paidAt: Date | null;
   member: { user: { name: string | null; email: string } };
 };
@@ -44,7 +44,7 @@ type Member = { id: string; user: { name: string | null; email: string } };
 
 type Props = {
   invoices: Invoice[]; total: number; page: number; limit: number;
-  summary: Summary[]; currency: string; members: Member[];
+  summary: Summary[]; currency: string; vatRate: number; members: Member[];
   organizationId: string; unbilledBookings: UnbilledBooking[];
 };
 
@@ -62,11 +62,11 @@ function groupByMember(bookings: UnbilledBooking[]) {
 }
 
 function GenerateInvoiceDialog({
-  open, onClose, memberGroup, currency, members, onSuccess,
+  open, onClose, memberGroup, currency, vatRate, members, onSuccess,
 }: {
   open: boolean; onClose: () => void;
   memberGroup: { memberId: string; name: string; bookings: UnbilledBooking[]; total: number } | null;
-  currency: string; members: Member[];
+  currency: string; vatRate: number; members: Member[];
   onSuccess: () => void;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -85,6 +85,9 @@ function GenerateInvoiceDialog({
   const selectedTotal = group.bookings
     .filter(b => selected.has(b.id))
     .reduce((s, b) => s + Number(b.amountCharged), 0);
+  const vatAmount = Math.round(selectedTotal * vatRate * 100) / 100;
+  const grandTotal = Math.round((selectedTotal + vatAmount) * 100) / 100;
+  const vatPct = `${(vatRate * 100).toFixed(vatRate * 100 % 1 === 0 ? 0 : 2)}%`;
 
   function toggle(id: string) {
     setSelected(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
@@ -154,9 +157,19 @@ function GenerateInvoiceDialog({
               ))}
             </div>
           </div>
-          <div className="flex items-center justify-between gap-3 text-sm font-semibold border-t pt-3">
-            <span className="text-gray-600 min-w-0 truncate">{selected.size} booking{selected.size !== 1 ? "s" : ""} selected</span>
-            <span className="text-gray-900 flex-shrink-0 tabular-nums">{formatCurrency(selectedTotal, currency)}</span>
+          <div className="space-y-1.5 border-t pt-3">
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="text-gray-500 min-w-0 truncate">Subtotal · {selected.size} booking{selected.size !== 1 ? "s" : ""}</span>
+              <span className="text-gray-700 flex-shrink-0 tabular-nums">{formatCurrency(selectedTotal, currency)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="text-gray-500">VAT ({vatPct})</span>
+              <span className="text-gray-700 flex-shrink-0 tabular-nums">{formatCurrency(vatAmount, currency)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3 text-sm font-semibold border-t pt-1.5">
+              <span className="text-gray-900">Total</span>
+              <span className="text-gray-900 flex-shrink-0 tabular-nums">{formatCurrency(grandTotal, currency)}</span>
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label>Due date</Label>
@@ -170,7 +183,7 @@ function GenerateInvoiceDialog({
             {saving ? "Generating…" : (
               <span className="flex flex-col items-center leading-tight">
                 <span>Generate invoice</span>
-                <span className="text-[10px] opacity-80">{formatCurrency(selectedTotal, currency)}</span>
+                <span className="text-[10px] opacity-80">{formatCurrency(grandTotal, currency)} incl. VAT</span>
               </span>
             )}
           </Button>
@@ -180,7 +193,7 @@ function GenerateInvoiceDialog({
   );
 }
 
-export function InvoicesView({ invoices, total, page, limit, summary, currency, members, organizationId, unbilledBookings }: Props) {
+export function InvoicesView({ invoices, total, page, limit, summary, currency, vatRate, members, organizationId, unbilledBookings }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -347,15 +360,22 @@ export function InvoicesView({ invoices, total, page, limit, summary, currency, 
                   </p>
                   <div className="flex items-center justify-between mt-1">
                     <span className="text-xs text-gray-400">Due {formatDate(inv.dueDate)}</span>
-                    <span className="text-sm font-bold text-gray-900">{formatCurrency(Number(inv.amount), currency)}</span>
+                    <span className="text-sm font-bold text-gray-900">{formatCurrency(Number(inv.totalAmount), currency)}</span>
                   </div>
                 </div>
-                {(inv.status === "PENDING" || inv.status === "OVERDUE") && (
-                  <Button variant="outline" size="sm" className="h-7 text-xs text-green-700 border-green-200 hover:bg-green-50 flex-shrink-0"
-                    onClick={(e) => markPaid(inv.id, e)}>
-                    Paid
-                  </Button>
-                )}
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {(inv.status === "PENDING" || inv.status === "OVERDUE") && (
+                    <Button variant="outline" size="sm" className="h-7 text-xs text-green-700 border-green-200 hover:bg-green-50"
+                      onClick={(e) => markPaid(inv.id, e)}>
+                      Paid
+                    </Button>
+                  )}
+                  <a href={`/api/invoices/${inv.id}/pdf`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-gray-400 hover:text-gray-700">
+                      <Download className="w-3.5 h-3.5" />
+                    </Button>
+                  </a>
+                </div>
               </div>
             ))}
           </div>
@@ -393,7 +413,7 @@ export function InvoicesView({ invoices, total, page, limit, summary, currency, 
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm font-semibold text-gray-900">{formatCurrency(Number(inv.amount), currency)}</span>
+                      <span className="text-sm font-semibold text-gray-900">{formatCurrency(Number(inv.totalAmount), currency)}</span>
                     </TableCell>
                     <TableCell>
                       <Badge className={cn("text-xs", STATUS_STYLES[inv.status])}>
@@ -402,12 +422,19 @@ export function InvoicesView({ invoices, total, page, limit, summary, currency, 
                     </TableCell>
                     <TableCell className="text-sm text-gray-500">{formatDate(inv.dueDate)}</TableCell>
                     <TableCell>
-                      {(inv.status === "PENDING" || inv.status === "OVERDUE") && (
-                        <Button variant="outline" size="sm" className="h-7 text-xs text-green-700 border-green-200 hover:bg-green-50"
-                          onClick={(e) => markPaid(inv.id, e)}>
-                          Mark paid
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {(inv.status === "PENDING" || inv.status === "OVERDUE") && (
+                          <Button variant="outline" size="sm" className="h-7 text-xs text-green-700 border-green-200 hover:bg-green-50"
+                            onClick={(e) => markPaid(inv.id, e)}>
+                            Mark paid
+                          </Button>
+                        )}
+                        <a href={`/api/invoices/${inv.id}/pdf`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-gray-400 hover:text-gray-700" title="Download PDF">
+                            <Download className="w-3.5 h-3.5" />
+                          </Button>
+                        </a>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -429,6 +456,7 @@ export function InvoicesView({ invoices, total, page, limit, summary, currency, 
         onClose={() => setCreateOpen(false)}
         members={members}
         currency={currency}
+        vatRate={vatRate}
         onSuccess={() => { setCreateOpen(false); router.refresh(); }}
       />
 
@@ -437,6 +465,7 @@ export function InvoicesView({ invoices, total, page, limit, summary, currency, 
         onClose={() => setGenerateDialog(null)}
         memberGroup={generateDialog}
         currency={currency}
+        vatRate={vatRate}
         members={members}
         onSuccess={() => router.refresh()}
       />

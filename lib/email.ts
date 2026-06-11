@@ -93,18 +93,27 @@ export function sendInvoiceEmail(o: {
   to: string; memberName: string | null; orgName: string;
   invoiceNumber: string; amount: number; currency: string; dueDate: Date;
   lineItems: { description: string; total: number }[];
+  // VAT breakdown (optional — omitted for legacy/zero-VAT invoices)
+  subtotal?: number; vatAmount?: number; vatRate?: number;
 }) {
   const items = o.lineItems.map((li) =>
     `<tr>
       <td style="padding:6px 0;color:#475569;font-size:13px;">${li.description}</td>
       <td style="padding:6px 0;color:#0f172a;font-size:13px;text-align:right;">${formatCurrency(li.total, o.currency)}</td>
     </tr>`).join("");
+  // Show a Subtotal + VAT breakdown when VAT applies, otherwise just the total.
+  const vatPct = o.vatRate ? `${(o.vatRate * 100).toFixed(o.vatRate * 100 % 1 === 0 ? 0 : 2)}%` : "";
+  const breakdown = o.vatAmount && o.vatAmount > 0
+    ? `${row("Subtotal", formatCurrency(o.subtotal ?? o.amount - o.vatAmount, o.currency))}
+       ${row(`VAT (${vatPct})`, formatCurrency(o.vatAmount, o.currency))}`
+    : "";
   const body = `
     <p style="color:#475569;font-size:14px;margin:0 0 18px;">
       Hi ${o.memberName ?? "there"}, here's invoice <strong>${o.invoiceNumber}</strong> from ${o.orgName}.
     </p>
     <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">${items}</table>
     <table style="width:100%;border-collapse:collapse;border-top:1px solid #e2e8f0;">
+      ${breakdown}
       ${row("Total due", formatCurrency(o.amount, o.currency))}
       ${row("Due date", format(o.dueDate, "d MMM yyyy"))}
     </table>`;

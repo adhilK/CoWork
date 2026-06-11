@@ -15,9 +15,9 @@ import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 
 type Member = { id: string; user: { name: string | null; email: string } };
-type Props = { open: boolean; onClose: () => void; members: Member[]; currency: string; onSuccess: () => void };
+type Props = { open: boolean; onClose: () => void; members: Member[]; currency: string; vatRate: number; onSuccess: () => void };
 
-export function CreateInvoiceDialog({ open, onClose, members, currency, onSuccess }: Props) {
+export function CreateInvoiceDialog({ open, onClose, members, currency, vatRate, onSuccess }: Props) {
   const defaultDueDate = format(addDays(new Date(), 14), "yyyy-MM-dd");
 
   const { register, handleSubmit, control, watch, setValue, formState: { errors, isSubmitting } } =
@@ -33,7 +33,10 @@ export function CreateInvoiceDialog({ open, onClose, members, currency, onSucces
 
   const { fields, append, remove } = useFieldArray({ control, name: "lineItems" });
   const lineItems = watch("lineItems");
-  const grandTotal = lineItems?.reduce((s, li) => s + (li.quantity * li.unitPrice || 0), 0) ?? 0;
+  const subtotal = lineItems?.reduce((s, li) => s + (li.quantity * li.unitPrice || 0), 0) ?? 0;
+  const vatAmount = Math.round(subtotal * vatRate * 100) / 100;
+  const grandTotal = Math.round((subtotal + vatAmount) * 100) / 100;
+  const vatPct = `${(vatRate * 100).toFixed(vatRate * 100 % 1 === 0 ? 0 : 2)}%`;
 
   async function onSubmit(data: CreateInvoiceInput) {
     // Recalculate totals
@@ -118,11 +121,21 @@ export function CreateInvoiceDialog({ open, onClose, members, currency, onSucces
             </Button>
           </div>
 
-          {/* Total */}
+          {/* Totals — subtotal + VAT + total */}
           <div className="flex justify-end">
-            <div className="text-right">
-              <p className="text-sm text-gray-500">Total</p>
-              <p className="text-2xl font-bold text-gray-900">{formatCurrency(grandTotal, currency)}</p>
+            <div className="w-full sm:w-64 space-y-1.5 border-t pt-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500">Subtotal</span>
+                <span className="font-medium text-gray-700 tabular-nums">{formatCurrency(subtotal, currency)}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500">VAT ({vatPct})</span>
+                <span className="font-medium text-gray-700 tabular-nums">{formatCurrency(vatAmount, currency)}</span>
+              </div>
+              <div className="flex items-center justify-between border-t pt-1.5">
+                <span className="text-sm font-semibold text-gray-900">Total</span>
+                <span className="text-lg font-bold text-gray-900 tabular-nums">{formatCurrency(grandTotal, currency)}</span>
+              </div>
             </div>
           </div>
 

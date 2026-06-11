@@ -19,7 +19,11 @@ export default async function BillingPage() {
     <BillingView
       currentPlan={ctx.organization.plan}
       trialDaysLeft={trialDaysLeft}
-      hasSubscription={!!ctx.organization.stripeSubscriptionId}
+      hasSubscription={
+        ctx.organization.platformSubscriptionStatus === "ACTIVE" ||
+        ctx.organization.platformSubscriptionStatus === "PAST_DUE"
+      }
+      jurisdiction={ctx.organization.jurisdiction}
     />
   );
 }

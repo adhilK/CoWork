@@ -27,6 +27,13 @@ type MemberData = {
   status: MemberStatus;
   membershipPlanId: string;
   credits: number;
+  // GCC fields
+  whatsAppNumber: string;
+  nationality: string;
+  passportNumber: string;
+  emiratesId: string;
+  iqamaNumber: string;
+  visaExpiry: string; // ISO date string "YYYY-MM-DD"
 };
 
 const STATUSES: MemberStatus[] = ["ACTIVE", "PENDING", "INACTIVE", "SUSPENDED"];
@@ -55,6 +62,12 @@ export function MemberDetailActions({ member, plans }: { member: MemberData; pla
           notes: form.notes || null,
           status: form.status,
           membershipPlanId: form.membershipPlanId || null,
+          whatsAppNumber: form.whatsAppNumber || null,
+          nationality: form.nationality || null,
+          passportNumber: form.passportNumber || null,
+          emiratesId: form.emiratesId || null,
+          iqamaNumber: form.iqamaNumber || null,
+          visaExpiry: form.visaExpiry || null,
         }),
       });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
@@ -207,6 +220,41 @@ export function MemberDetailActions({ member, plans }: { member: MemberData; pla
             <div className="space-y-1.5">
               <Label>Staff notes <span className="text-gray-400 font-normal">(internal)</span></Label>
               <Textarea rows={2} value={form.notes} onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))} />
+            </div>
+
+            {/* GCC fields */}
+            <div className="pt-1 pb-0.5">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">GCC / Identity</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>WhatsApp number</Label>
+                <Input placeholder="+971 50 000 0000" value={form.whatsAppNumber} onChange={(e) => setForm(f => ({ ...f, whatsAppNumber: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Nationality</Label>
+                <Input placeholder="e.g. Emirati" value={form.nationality} onChange={(e) => setForm(f => ({ ...f, nationality: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Passport number <span className="text-gray-400 font-normal text-[11px]">encrypted</span></Label>
+                <Input placeholder="A12345678" value={form.passportNumber} onChange={(e) => setForm(f => ({ ...f, passportNumber: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Emirates ID <span className="text-gray-400 font-normal text-[11px]">UAE · encrypted</span></Label>
+                <Input placeholder="784-XXXX-XXXXXXX-X" value={form.emiratesId} onChange={(e) => setForm(f => ({ ...f, emiratesId: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Iqama number <span className="text-gray-400 font-normal text-[11px]">KSA · encrypted</span></Label>
+                <Input placeholder="2XXXXXXXXX" value={form.iqamaNumber} onChange={(e) => setForm(f => ({ ...f, iqamaNumber: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Visa / residency expiry</Label>
+                <Input type="date" value={form.visaExpiry} onChange={(e) => setForm(f => ({ ...f, visaExpiry: e.target.value }))} />
+              </div>
             </div>
           </div>
           <DialogFooter>

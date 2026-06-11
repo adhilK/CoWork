@@ -10,9 +10,11 @@ import { Loader2, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const schema = z.object({
   orgName: z.string().min(2, "Space name must be at least 2 characters").max(100),
+  orgJurisdiction: z.enum(["UAE", "KSA"]),
 });
 
 type FormInput = z.infer<typeof schema>;
@@ -25,8 +27,9 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<FormInput>({
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormInput>({
     resolver: zodResolver(schema),
+    defaultValues: { orgJurisdiction: "UAE" },
   });
 
   async function onSubmit(data: FormInput) {
@@ -38,6 +41,7 @@ export default function OnboardingPage() {
         body: JSON.stringify({
           orgName: data.orgName,
           orgSlug: slugify(data.orgName),
+          orgJurisdiction: data.orgJurisdiction,
         }),
       });
 
@@ -92,6 +96,26 @@ export default function OnboardingPage() {
                   URL slug: <strong>{slugify(watch("orgName") ?? "")}</strong>
                 </p>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-gray-700 font-medium">Jurisdiction</Label>
+              <Select
+                defaultValue="UAE"
+                onValueChange={(v) => setValue("orgJurisdiction", (v as "UAE" | "KSA") ?? "UAE")}
+              >
+                <SelectTrigger className="h-11 border-gray-200">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="UAE">🇦🇪 United Arab Emirates</SelectItem>
+                  <SelectItem value="KSA">🇸🇦 Saudi Arabia</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-400">
+                Sets your VAT rate ({watch("orgJurisdiction") === "KSA" ? "15%" : "5%"}) and currency
+                ({watch("orgJurisdiction") === "KSA" ? "SAR" : "AED"}).
+              </p>
             </div>
 
             <Button

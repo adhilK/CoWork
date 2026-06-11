@@ -39,7 +39,6 @@ export async function GET(req: NextRequest) {
   const data = invoices.map((inv) => ({
     id: inv.id,
     invoiceNumber: inv.invoiceNumber,
-    stripeInvoiceId: inv.stripeInvoiceId,
     amount: Number(inv.amount),
     currency: inv.currency,
     status: inv.status,

@@ -10,12 +10,22 @@ export function cn(...inputs: ClassValue[]) {
 
 // ── Currency formatting ───────────────────────────────────────────────────────
 
+// Symbols/prefixes for compact display. GCC currencies first; falls back to the
+// ISO code for anything not listed.
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  AED: "AED ",
+  SAR: "SAR ",
+  USD: "$",
+  GBP: "£",
+  EUR: "€",
+};
+
 export function formatCurrency(
   amount: number | string | null | undefined,
-  currency = "GBP"
+  currency = "AED"
 ): string {
   const value = Number(amount ?? 0);
-  return new Intl.NumberFormat("en-GB", {
+  return new Intl.NumberFormat("en-AE", {
     style: "currency",
     currency,
     minimumFractionDigits: 2,
@@ -24,10 +34,10 @@ export function formatCurrency(
 
 export function formatCurrencyCompact(
   amount: number | string | null | undefined,
-  currency = "GBP"
+  currency = "AED"
 ): string {
   const value = Number(amount ?? 0);
-  const symbol = currency === "GBP" ? "£" : "$";
+  const symbol = CURRENCY_SYMBOLS[currency] ?? `${currency} `;
   if (value >= 1_000_000) return `${symbol}${(value / 1_000_000).toFixed(1)}M`;
   if (value >= 1_000) return `${symbol}${(value / 1_000).toFixed(1)}K`;
   return formatCurrency(value, currency);

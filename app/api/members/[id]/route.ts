@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/auth";
 import { apiError, apiSuccess } from "@/lib/utils";
+import { encryptField } from "@/lib/encryption";
 import { z } from "zod";
 
 const updateSchema = z.object({
@@ -13,6 +14,13 @@ const updateSchema = z.object({
   notes: z.string().optional().nullable(),
   status: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED", "PENDING"]).optional(),
   membershipPlanId: z.string().optional().nullable(),
+  // GCC fields
+  whatsAppNumber: z.string().max(20).optional().nullable(),
+  nationality: z.string().max(100).optional().nullable(),
+  passportNumber: z.string().max(50).optional().nullable(),
+  emiratesId: z.string().max(20).optional().nullable(),
+  iqamaNumber: z.string().max(10).optional().nullable(),
+  visaExpiry: z.coerce.date().optional().nullable(),
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -53,6 +61,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         ...(d.notes !== undefined && { notes: d.notes }),
         ...(d.status !== undefined && { status: d.status }),
         ...(d.membershipPlanId !== undefined && { membershipPlanId: d.membershipPlanId }),
+        // GCC fields — sensitive ones encrypted at rest
+        ...(d.whatsAppNumber !== undefined && { whatsAppNumber: d.whatsAppNumber }),
+        ...(d.nationality !== undefined && { nationality: d.nationality }),
+        ...(d.passportNumber !== undefined && { passportNumber: encryptField(d.passportNumber) }),
+        ...(d.emiratesId !== undefined && { emiratesId: encryptField(d.emiratesId) }),
+        ...(d.iqamaNumber !== undefined && { iqamaNumber: encryptField(d.iqamaNumber) }),
+        ...(d.visaExpiry !== undefined && { visaExpiry: d.visaExpiry }),
       },
       include: { user: true, membershipPlan: true },
     });

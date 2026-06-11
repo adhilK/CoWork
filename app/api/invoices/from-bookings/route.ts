@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { apiError, apiSuccess } from "@/lib/utils";
+import { computeInvoiceTotals } from "@/lib/jurisdiction";
 import { sendInvoiceEmail } from "@/lib/email";
 import { z } from "zod";
 import { format } from "date-fns";
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
   // Verify member belongs to org
   const member = await prisma.member.findFirst({
     where: { id: memberId, organizationId: orgId },
-    include: { organization: { select: { name: true, currency: true } } },
+    include: { organization: { select: { name: true, currency: true, jurisdiction: true } } },
   });
   if (!member) return apiError("Member not found", 404);
 
@@ -70,7 +71,9 @@ export async function POST(req: NextRequest) {
     };
   });
 
-  const total = lineItems.reduce((s, li) => s + li.total, 0);
+  // Booking charges are VAT-exclusive → add VAT on top per the org's jurisdiction.
+  const subtotal = lineItems.reduce((s, li) => s + li.total, 0);
+  const totals = computeInvoiceTotals(subtotal, member.organization.jurisdiction);
 
   // Generate invoice number
   const count = await prisma.invoice.count({ where: { organizationId: orgId } });
@@ -83,8 +86,12 @@ export async function POST(req: NextRequest) {
         organizationId: orgId,
         memberId,
         invoiceNumber,
-        amount: Math.round(total * 100) / 100,
-        currency: member.organization.currency ?? "GBP",
+        amount: totals.totalAmount, // deprecated alias, kept == totalAmount
+        subtotal: totals.subtotal,
+        vatRate: totals.vatRate,
+        vatAmount: totals.vatAmount,
+        totalAmount: totals.totalAmount,
+        currency: member.organization.currency ?? "AED",
         status: "PENDING",
         dueDate: new Date(dueDate),
         notes: notes ?? null,
@@ -109,8 +116,11 @@ export async function POST(req: NextRequest) {
       memberName: invoice.member.user.name,
       orgName: member.organization.name,
       invoiceNumber,
-      amount: Number(invoice.amount),
+      amount: totals.totalAmount,
       currency: invoice.currency,
+      subtotal: totals.subtotal,
+      vatAmount: totals.vatAmount,
+      vatRate: totals.vatRate,
       dueDate: invoice.dueDate,
       lineItems: lineItems.map((li) => ({ description: li.description, total: li.total })),
     });

@@ -29,9 +29,10 @@ export type AuthContext = {
     slug: string;
     plan: "STARTER" | "GROWTH" | "PRO" | "ENTERPRISE";
     currency: string;
+    jurisdiction: "UAE" | "KSA";
     timezone: string;
     trialEndsAt: Date | null;
-    stripeSubscriptionId: string | null;
+    platformSubscriptionStatus: "TRIAL" | "ACTIVE" | "PAST_DUE" | "CANCELLED" | "EXPIRED" | null;
   };
 };
 
@@ -63,9 +64,10 @@ export const getAuthContext = cache(async (): Promise<AuthContext | null> => {
           slug: true,
           plan: true,
           currency: true,
+          jurisdiction: true,
           timezone: true,
           trialEndsAt: true,
-          stripeSubscriptionId: true,
+          platformSubscription: { select: { status: true } },
         },
       },
     },
@@ -82,7 +84,10 @@ export const getAuthContext = cache(async (): Promise<AuthContext | null> => {
     },
     organizationId: userOrg.organizationId,
     role: userOrg.role,
-    organization: userOrg.organization,
+    organization: {
+      ...userOrg.organization,
+      platformSubscriptionStatus: userOrg.organization.platformSubscription?.status ?? null,
+    },
   };
 });
 

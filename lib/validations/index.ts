@@ -102,6 +102,13 @@ export const updateMemberSchema = inviteMemberSchema.partial().extend({
   bio: z.string().max(500).optional(),
   status: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED", "PENDING"]).optional(),
   endDate: z.coerce.date().optional(),
+  // GCC fields
+  whatsAppNumber: z.string().max(20).optional().nullable(),
+  nationality: z.string().max(100).optional().nullable(),
+  passportNumber: z.string().max(50).optional().nullable(),
+  emiratesId: z.string().max(20).optional().nullable(),
+  iqamaNumber: z.string().max(10).optional().nullable(),
+  visaExpiry: z.coerce.date().optional().nullable(),
 });
 
 export const adjustCreditsSchema = z.object({
@@ -129,7 +136,7 @@ export const createInvoiceSchema = z.object({
     .min(1, "At least one line item is required"),
   dueDate: z.coerce.date(),
   notes: z.string().max(1000).optional(),
-  currency: z.string().length(3).default("GBP"),
+  currency: z.string().length(3).default("AED"),
   sendImmediately: z.boolean().default(false),
   periodStart: z.coerce.date().optional(),
   periodEnd: z.coerce.date().optional(),
@@ -151,6 +158,8 @@ export const updateOrganizationSchema = z.object({
   timezone: z.string().optional(),
   currency: z.string().length(3).optional(),
   logo: z.string().url().optional(),
+  // GCC — UAE TRN (15 digits) or KSA VAT number (15 digits); nullable to clear
+  taxRegistrationNumber: z.string().max(30).optional().nullable(),
 });
 
 export type UpdateOrganizationInput = z.infer<typeof updateOrganizationSchema>;
@@ -191,8 +200,10 @@ export const registerSchema = z.object({
       "Password must contain uppercase, lowercase, and a number"
     ),
   orgName: z.string().min(2, "Space name must be at least 2 characters").max(100),
-  orgTimezone: z.string().default("Europe/London"),
-  orgCurrency: z.string().length(3).default("GBP"),
+  orgTimezone: z.string().default("Asia/Dubai"),
+  orgCurrency: z.string().length(3).default("AED"),
+  // GCC jurisdiction — drives VAT rate, currency, license catalogs, gov bodies
+  orgJurisdiction: z.enum(["UAE", "KSA"]).default("UAE"),
 });
 
 export const forgotPasswordSchema = z.object({

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/auth";
 import { createInvoiceSchema } from "@/lib/validations";
 import { apiError, apiSuccess, buildPaginationMeta, getPaginationParams } from "@/lib/utils";
+import { computeInvoiceTotals } from "@/lib/jurisdiction";
 import { nanoid } from "nanoid";
 
 export async function GET(req: NextRequest) {
@@ -47,10 +48,15 @@ export async function POST(req: NextRequest) {
   const { memberId, lineItems, dueDate, notes, currency, sendImmediately } = parsed.data;
 
   // Verify member belongs to org
-  const member = await prisma.member.findFirst({ where: { id: memberId, organizationId: orgId } });
+  const member = await prisma.member.findFirst({
+    where: { id: memberId, organizationId: orgId },
+    include: { organization: { select: { jurisdiction: true } } },
+  });
   if (!member) return apiError("Member not found", 404);
 
-  const total = lineItems.reduce((s, li) => s + li.total, 0);
+  // Line-item totals are VAT-exclusive → add VAT on top per the org's jurisdiction.
+  const subtotal = lineItems.reduce((s, li) => s + li.total, 0);
+  const totals = computeInvoiceTotals(subtotal, member.organization.jurisdiction);
   const year = new Date().getFullYear();
 
   // Generate invoice number
@@ -62,8 +68,12 @@ export async function POST(req: NextRequest) {
       organizationId: orgId,
       memberId,
       invoiceNumber,
-      amount: total,
-      currency: currency ?? "GBP",
+      amount: totals.totalAmount, // deprecated alias, kept == totalAmount
+      subtotal: totals.subtotal,
+      vatRate: totals.vatRate,
+      vatAmount: totals.vatAmount,
+      totalAmount: totals.totalAmount,
+      currency: currency ?? "AED",
       status: "PENDING",
       dueDate,
       notes: notes ?? null,

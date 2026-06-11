@@ -4,8 +4,11 @@ import { addDays } from "date-fns";
 
 export async function POST(request: Request) {
   try {
-    const { userId, name, email, orgName, orgSlug, orgTimezone, orgCurrency } =
+    const { userId, name, email, orgName, orgSlug, orgTimezone, orgCurrency, orgJurisdiction } =
       await request.json();
+
+    // GCC jurisdiction — default UAE (Phase 1 primary market)
+    const jurisdiction = orgJurisdiction === "KSA" ? "KSA" : "UAE";
 
     // Unique slug
     const existing = await prisma.organization.findUnique({ where: { slug: orgSlug } });
@@ -23,12 +26,35 @@ export async function POST(request: Request) {
         name: orgName,
         slug: finalSlug,
         email,
-        timezone: orgTimezone ?? "Europe/London",
-        currency: orgCurrency ?? "GBP",
+        timezone: orgTimezone ?? "Asia/Dubai",
+        currency: orgCurrency ?? "AED",
+        jurisdiction,
         plan: "STARTER",
         trialEndsAt: addDays(new Date(), 14),
       },
     });
+
+    // Platform subscription — start every new org on a 14-day trial.
+    await prisma.platformSubscription.create({
+      data: {
+        organizationId: org.id,
+        status: "TRIAL",
+        plan: "STARTER",
+        currency: jurisdiction === "KSA" ? "SAR" : "AED",
+        trialEndsAt: addDays(new Date(), 14),
+      },
+    }).catch((e) => console.warn("[register] platformSubscription create skipped:", e.message));
+
+    // Jurisdiction config (VAT rates, currencies, toggles). Non-critical —
+    // a failure here must not block onboarding; the org.jurisdiction field
+    // alone is enough for VAT until the operator opens jurisdiction settings.
+    await prisma.jurisdictionConfig.create({
+      data: {
+        organizationId: org.id,
+        jurisdictions: [jurisdiction],
+        primaryJurisdiction: jurisdiction,
+      },
+    }).catch((e) => console.warn("[register] jurisdictionConfig create skipped:", e.message));
 
     await prisma.userOrganization.create({
       data: { userId, organizationId: org.id, role: "OWNER" },

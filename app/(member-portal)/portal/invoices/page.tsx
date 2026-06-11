@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
@@ -29,6 +30,10 @@ export default async function InvoicesPage() {
     id: inv.id,
     invoiceNumber: inv.invoiceNumber,
     amount: Number(inv.amount),
+    subtotal: Number(inv.subtotal),
+    vatRate: Number(inv.vatRate),
+    vatAmount: Number(inv.vatAmount),
+    totalAmount: Number(inv.totalAmount),
     currency: inv.currency,
     status: inv.status,
     dueDate: inv.dueDate.toISOString(),
@@ -38,5 +43,9 @@ export default async function InvoicesPage() {
     createdAt: inv.createdAt.toISOString(),
   }));
 
-  return <MyInvoicesView invoices={serialized} />;
+  return (
+    <Suspense>
+      <MyInvoicesView invoices={serialized} />
+    </Suspense>
+  );
 }

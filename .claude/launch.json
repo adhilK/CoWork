@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "coworkpro-dev",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd coworkpro && npm run dev"],
+      "port": 3000
+    }
+  ]
+}

@@ -12,10 +12,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { orgName, orgSlug } = await request.json();
+    const { orgName, orgSlug, orgJurisdiction } = await request.json();
     if (!orgName || !orgSlug) {
       return NextResponse.json({ error: "orgName and orgSlug are required" }, { status: 400 });
     }
+
+    // GCC jurisdiction — default UAE (Phase 1 primary market)
+    const jurisdiction = orgJurisdiction === "KSA" ? "KSA" : "UAE";
 
     const email = user.email ?? "";
     const name = user.user_metadata?.name ?? email.split("@")[0] ?? "User";
@@ -54,12 +57,33 @@ export async function POST(request: Request) {
         name: orgName,
         slug: finalSlug,
         email,
-        timezone: "Europe/London",
-        currency: "GBP",
+        timezone: jurisdiction === "KSA" ? "Asia/Riyadh" : "Asia/Dubai",
+        currency: jurisdiction === "KSA" ? "SAR" : "AED",
+        jurisdiction,
         plan: "STARTER",
         trialEndsAt: addDays(new Date(), 14),
       },
     });
+
+    // Platform subscription — start every new org on a 14-day trial.
+    await prisma.platformSubscription.create({
+      data: {
+        organizationId: org.id,
+        status: "TRIAL",
+        plan: "STARTER",
+        currency: jurisdiction === "KSA" ? "SAR" : "AED",
+        trialEndsAt: addDays(new Date(), 14),
+      },
+    }).catch((e) => console.warn("[onboarding] platformSubscription create skipped:", e.message));
+
+    // Jurisdiction config — non-critical (org.jurisdiction covers VAT regardless)
+    await prisma.jurisdictionConfig.create({
+      data: {
+        organizationId: org.id,
+        jurisdictions: [jurisdiction],
+        primaryJurisdiction: jurisdiction,
+      },
+    }).catch((e) => console.warn("[onboarding] jurisdictionConfig create skipped:", e.message));
 
     // Link as OWNER
     await prisma.userOrganization.create({

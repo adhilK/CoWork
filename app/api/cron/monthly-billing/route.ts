@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { apiError, apiSuccess } from "@/lib/utils";
+import { computeInvoiceTotals } from "@/lib/jurisdiction";
 import { sendInvoiceEmail } from "@/lib/email";
 import { startOfMonth, endOfMonth, addDays } from "date-fns";
 
@@ -40,7 +41,7 @@ async function runBilling() {
     include: {
       user: { select: { email: true, name: true } },
       membershipPlan: true,
-      organization: { select: { name: true, currency: true } },
+      organization: { select: { name: true, currency: true, jurisdiction: true } },
     },
   });
 
@@ -58,17 +59,22 @@ async function runBilling() {
 
     const count = await prisma.invoice.count({ where: { organizationId: m.organizationId } });
     const invoiceNumber = `INV-${year}-${String(count + 1).padStart(4, "0")}`;
-    const amount = Number(m.membershipPlan.price);
+    const planPrice = Number(m.membershipPlan.price);
+    // Plan price is VAT-exclusive → add VAT per the org's jurisdiction.
+    const totals = computeInvoiceTotals(planPrice, m.organization.jurisdiction);
     const lineItems = [{
       description: `${m.membershipPlan.name} membership — ${periodStart.toLocaleDateString("en-GB", { month: "long", year: "numeric" })}`,
-      quantity: 1, unitPrice: amount, total: amount,
+      quantity: 1, unitPrice: planPrice, total: planPrice,
     }];
 
     const invoice = await prisma.$transaction(async (tx) => {
       const inv = await tx.invoice.create({
         data: {
           organizationId: m.organizationId, memberId: m.id, invoiceNumber,
-          amount, currency: m.organization.currency ?? "GBP", status: "PENDING",
+          amount: totals.totalAmount, // deprecated alias, kept == totalAmount
+          subtotal: totals.subtotal, vatRate: totals.vatRate,
+          vatAmount: totals.vatAmount, totalAmount: totals.totalAmount,
+          currency: m.organization.currency ?? "AED", status: "PENDING",
           dueDate, periodStart, periodEnd, lineItems,
         },
       });
@@ -84,7 +90,8 @@ async function runBilling() {
     if (m.user.email) {
       void sendInvoiceEmail({
         to: m.user.email, memberName: m.user.name, orgName: m.organization.name,
-        invoiceNumber, amount, currency: m.organization.currency ?? "GBP",
+        invoiceNumber, amount: totals.totalAmount, currency: m.organization.currency ?? "AED",
+        subtotal: totals.subtotal, vatAmount: totals.vatAmount, vatRate: totals.vatRate,
         dueDate, lineItems: lineItems.map((li) => ({ description: li.description, total: li.total })),
       });
     }

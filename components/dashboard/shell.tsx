@@ -21,7 +21,7 @@ type Props = {
   organization: {
     id: string; name: string; slug: string; plan: Plan;
     currency: string; timezone: string;
-    trialEndsAt: Date | null; stripeSubscriptionId: string | null;
+    trialEndsAt: Date | null; platformSubscriptionStatus: string | null;
   };
   role: UserRole;
   children: React.ReactNode;
@@ -66,7 +66,7 @@ export function DashboardShell({ user, organization, role, children }: Props) {
   const trialDaysLeft = organization.trialEndsAt
     ? Math.max(0, Math.ceil((new Date(organization.trialEndsAt).getTime() - Date.now()) / 86400000))
     : null;
-  const showTrial = trialDaysLeft !== null && trialDaysLeft <= 14 && !organization.stripeSubscriptionId;
+  const showTrial = trialDaysLeft !== null && trialDaysLeft <= 14 && organization.platformSubscriptionStatus !== "ACTIVE";
 
   async function handleSignOut() {
     await supabase.auth.signOut();

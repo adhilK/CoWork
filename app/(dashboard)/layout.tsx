@@ -37,7 +37,7 @@ export default async function DashboardLayout({
         currency: ctx.organization.currency,
         timezone: ctx.organization.timezone,
         trialEndsAt: ctx.organization.trialEndsAt,
-        stripeSubscriptionId: ctx.organization.stripeSubscriptionId,
+        platformSubscriptionStatus: ctx.organization.platformSubscriptionStatus,
       }}
       role={ctx.role}
     >

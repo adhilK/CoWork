@@ -26,24 +26,28 @@ const STEPS = [
 ];
 
 const TIMEZONES = [
-  { value: "Europe/London", label: "London (GMT/BST)" },
-  { value: "Europe/Paris", label: "Paris (CET)" },
-  { value: "America/New_York", label: "New York (ET)" },
-  { value: "America/Los_Angeles", label: "Los Angeles (PT)" },
-  { value: "America/Chicago", label: "Chicago (CT)" },
   { value: "Asia/Dubai", label: "Dubai (GST)" },
+  { value: "Asia/Riyadh", label: "Riyadh (AST)" },
+  { value: "Asia/Bahrain", label: "Bahrain (AST)" },
+  { value: "Asia/Qatar", label: "Doha (AST)" },
+  { value: "Asia/Kuwait", label: "Kuwait (AST)" },
+  { value: "Europe/London", label: "London (GMT/BST)" },
   { value: "Asia/Singapore", label: "Singapore (SGT)" },
-  { value: "Australia/Sydney", label: "Sydney (AEST)" },
 ];
 
 const CURRENCIES = [
-  { value: "GBP", label: "£ GBP — British Pound" },
+  { value: "AED", label: "AED — UAE Dirham" },
+  { value: "SAR", label: "SAR — Saudi Riyal" },
   { value: "USD", label: "$ USD — US Dollar" },
   { value: "EUR", label: "€ EUR — Euro" },
-  { value: "AED", label: "AED — UAE Dirham" },
-  { value: "SGD", label: "SGD — Singapore Dollar" },
-  { value: "AUD", label: "AUD — Australian Dollar" },
+  { value: "GBP", label: "£ GBP — British Pound" },
 ];
+
+// GCC jurisdiction — drives VAT rate, currency, license catalogs, gov bodies.
+const JURISDICTIONS = [
+  { value: "UAE", label: "🇦🇪 United Arab Emirates", currency: "AED", timezone: "Asia/Dubai" },
+  { value: "KSA", label: "🇸🇦 Saudi Arabia", currency: "SAR", timezone: "Asia/Riyadh" },
+] as const;
 
 export function RegisterForm() {
   const [step, setStep] = useState(1);
@@ -61,8 +65,9 @@ export function RegisterForm() {
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema) as any,
     defaultValues: {
-      orgTimezone: "Europe/London",
-      orgCurrency: "GBP",
+      orgTimezone: "Asia/Dubai",
+      orgCurrency: "AED",
+      orgJurisdiction: "UAE",
     },
   });
 
@@ -107,6 +112,7 @@ export function RegisterForm() {
             orgSlug: slugify(data.orgName),
             orgTimezone: data.orgTimezone,
             orgCurrency: data.orgCurrency,
+            orgJurisdiction: data.orgJurisdiction,
           }),
         });
 
@@ -194,6 +200,33 @@ export function RegisterForm() {
         {step === 2 && (
           <div className="space-y-4">
             <div className="space-y-2">
+              <Label>Jurisdiction</Label>
+              <Select
+                defaultValue="UAE"
+                onValueChange={(v) => {
+                  const j = JURISDICTIONS.find((x) => x.value === v) ?? JURISDICTIONS[0];
+                  setValue("orgJurisdiction", j.value);
+                  // Sensible defaults for the chosen jurisdiction
+                  setValue("orgCurrency", j.currency);
+                  setValue("orgTimezone", j.timezone);
+                }}
+              >
+                <SelectTrigger className="h-11">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {JURISDICTIONS.map((j) => (
+                    <SelectItem key={j.value} value={j.value}>
+                      {j.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-400">
+                Sets your VAT rate ({watch("orgJurisdiction") === "KSA" ? "15%" : "5%"}), currency, and government bodies.
+              </p>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="reg-orgName">Space name</Label>
               <Input id="reg-orgName" placeholder="LaunchHub Coworking" className="h-11" {...register("orgName")} />
               {errors.orgName && <p className="text-sm text-danger">{errors.orgName.message}</p>}
@@ -206,8 +239,8 @@ export function RegisterForm() {
             <div className="space-y-2">
               <Label>Timezone</Label>
               <Select
-                defaultValue="Europe/London"
-                onValueChange={(v) => setValue("orgTimezone", v ?? "Europe/London")}
+                value={watch("orgTimezone")}
+                onValueChange={(v) => setValue("orgTimezone", v ?? "Asia/Dubai")}
               >
                 <SelectTrigger className="h-11">
                   <SelectValue />
@@ -224,8 +257,8 @@ export function RegisterForm() {
             <div className="space-y-2">
               <Label>Currency</Label>
               <Select
-                defaultValue="GBP"
-                onValueChange={(v) => setValue("orgCurrency", v ?? "GBP")}
+                value={watch("orgCurrency")}
+                onValueChange={(v) => setValue("orgCurrency", v ?? "AED")}
               >
                 <SelectTrigger className="h-11">
                   <SelectValue />
