@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Calendar, Users, FileText, BarChart3,
   Settings, LogOut, Menu, Building2, Bell,
-  CreditCard, UserCheck, MessageSquare, Search, Tag, X, Mailbox, MessageCircle, FolderLock,
+  CreditCard, UserCheck, MessageSquare, Search, Tag, X, Mailbox, MessageCircle, FolderLock, MapPin,
 } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -31,6 +31,7 @@ const NAV_ITEMS: { href: string; label: string; icon: any; exact?: boolean; badg
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/dashboard/bookings", label: "Bookings", icon: Calendar },
   { href: "/dashboard/resources", label: "Resources", icon: Building2 },
+  { href: "/dashboard/locations", label: "Locations", icon: MapPin, badge: "NEW" },
   { href: "/dashboard/members", label: "Members", icon: Users },
   { href: "/dashboard/plans", label: "Plans", icon: Tag },
   { href: "/dashboard/visitors", label: "Visitors", icon: UserCheck },

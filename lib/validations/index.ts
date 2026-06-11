@@ -160,6 +160,8 @@ export const updateOrganizationSchema = z.object({
   logo: z.string().url().optional(),
   // GCC — UAE TRN (15 digits) or KSA VAT number (15 digits); nullable to clear
   taxRegistrationNumber: z.string().max(30).optional().nullable(),
+  // Multi-location (Module 11) — allow members to book at any location
+  allowCrossLocationBooking: z.boolean().optional(),
 });
 
 export type UpdateOrganizationInput = z.infer<typeof updateOrganizationSchema>;

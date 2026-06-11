@@ -7,7 +7,11 @@ import { ResourcesView } from "@/components/resources/resources-view";
 export const metadata: Metadata = { title: "Resources — CoWork Pro" };
 export const dynamic = "force-dynamic";
 
-export default async function ResourcesPage() {
+export default async function ResourcesPage({
+  searchParams,
+}: {
+  searchParams: { location?: string };
+}) {
   const ctx = await getAuthContext();
   if (!ctx) redirect("/login");
   const userOrg = { organizationId: ctx.organizationId, organization: ctx.organization };
@@ -15,9 +19,14 @@ export default async function ResourcesPage() {
   const now = new Date();
   const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
+  // Optional location scoping (from the Locations module "View resources" links).
+  const locationFilter = searchParams.location
+    ? { locationId: searchParams.location }
+    : {};
+
   const [resources, locations, upcomingBookings] = await Promise.all([
     prisma.resource.findMany({
-      where: { organizationId: userOrg.organizationId, deletedAt: null },
+      where: { organizationId: userOrg.organizationId, deletedAt: null, ...locationFilter },
       include: { location: true },
       orderBy: { name: "asc" },
     }),

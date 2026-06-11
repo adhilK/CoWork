@@ -213,6 +213,9 @@ model Organization {
   // GCC primary jurisdiction — drives VAT rate, license catalogs, gov bodies.
   // Fuller multi-jurisdiction config lives in JurisdictionConfig.
   jurisdiction  Jurisdiction @default(UAE)
+  // Multi-location (Module 11)
+  allowCrossLocationBooking Boolean @default(true)  // members may book at any location
+  franchiseParentId         String?                 // master operator org, if franchised
   plan          Plan     @default(STARTER)
   trialEndsAt   DateTime?
   // @deprecated — superseded by PlatformSubscription.stripeCustomerId
@@ -340,6 +343,21 @@ model Location {
   address        String?
   floorPlanUrl   String?
   isActive       Boolean      @default(true)
+  // Multi-location & franchise (Module 11)
+  jurisdiction       Jurisdiction @default(UAE)
+  city               String?
+  country            String?
+  timezone           String?    // overrides org timezone for this location
+  phone              String?
+  email              String?
+  vatNumber          String?    // KSA requires per-branch VAT registration
+  managerUserId      String?    // operator user who manages this location
+  openingHours       Json?      // { mon: { open, close, closed }, ... }
+  accessInstructions String?    // shown to members (how to get in)
+  wifiName           String?
+  wifiPassword       String?    // encrypted at rest (lib/encryption.ts)
+  parentLocationId   String?    // franchise sub-location → parent
+  deletedAt          DateTime?  // soft delete
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
@@ -347,6 +365,8 @@ model Location {
   resources      Resource[]
 
   @@index([organizationId])
+  @@index([organizationId, isActive])
+  @@index([organizationId, deletedAt])
 }
 
 // ─── RESOURCES ────────────────────────────────────────────────────────────────
