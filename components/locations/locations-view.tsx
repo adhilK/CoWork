@@ -218,7 +218,7 @@ export function LocationsView({ locations, managers, currency, allowCrossLocatio
           { label: "Locations", value: String(locations.length), icon: MapPin, color: "#15803D", bg: "rgba(21,128,61,0.1)" },
           { label: "Total resources", value: String(totalResources), icon: Building2, color: "#2563EB", bg: "rgba(37,99,235,0.1)" },
           { label: "Bookings (mo)", value: String(locations.reduce((s, l) => s + l.bookingsThisMonth, 0)), icon: Calendar, color: "#7C3AED", bg: "rgba(124,58,237,0.1)" },
-          { label: "Revenue (mo)", value: formatCurrency(totalRevenue, currency), icon: TrendingUp, color: "#D97706", bg: "rgba(217,119,6,0.1)" },
+          { label: "Booking rev (mo)", value: formatCurrency(totalRevenue, currency), icon: TrendingUp, color: "#D97706", bg: "rgba(217,119,6,0.1)" },
         ].map((s) => (
           <div key={s.label} className="dashboard-card p-5">
             <div className="flex items-start justify-between">
@@ -290,7 +290,7 @@ export function LocationsView({ locations, managers, currency, allowCrossLocatio
                 {[
                   { label: "Resources", value: String(l.resourceCount) },
                   { label: "Bookings (mo)", value: String(l.bookingsThisMonth) },
-                  { label: "Revenue (mo)", value: formatCurrency(l.revenueThisMonth, currency) },
+                  { label: "Booking rev (mo)", value: formatCurrency(l.revenueThisMonth, currency) },
                 ].map((it) => (
                   <div key={it.label} className="bg-gray-50 rounded-lg py-2">
                     <p className="text-[10px] text-gray-400 font-medium">{it.label}</p>

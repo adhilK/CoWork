@@ -24,7 +24,12 @@ export default async function InvoicesPage({ searchParams }: { searchParams: { p
     ...(status && status !== "all" && { status: status as any }),
   };
 
-  const [invoices, total, summary, members, unbilledBookings] = await Promise.all([
+  // Start of the current calendar month — for the "collected this month" KPI.
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+
+  const [invoices, total, summary, collectedThisMonthAgg, members, unbilledBookings] = await Promise.all([
     prisma.invoice.findMany({
       where,
       include: { member: { include: { user: { select: { name: true, email: true } } } } },
@@ -38,6 +43,17 @@ export default async function InvoicesPage({ searchParams }: { searchParams: { p
       where: { organizationId: userOrg.organizationId, deletedAt: null },
       _sum: { amount: true },
       _count: true,
+    }),
+    // Cash actually collected this month — PAID invoices by payment date.
+    // Matches the dashboard "Revenue this month" figure.
+    prisma.invoice.aggregate({
+      where: {
+        organizationId: userOrg.organizationId,
+        deletedAt: null,
+        status: "PAID",
+        paidAt: { gte: monthStart },
+      },
+      _sum: { amount: true },
     }),
     prisma.member.findMany({
       where: { organizationId: userOrg.organizationId, status: "ACTIVE", deletedAt: null },
@@ -68,6 +84,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: { p
       page={page}
       limit={limit}
       summary={summary as any}
+      collectedThisMonth={Number(collectedThisMonthAgg._sum.amount ?? 0)}
       currency={userOrg.organization.currency}
       vatRate={getVatRate(userOrg.organization.jurisdiction)}
       members={members as any}

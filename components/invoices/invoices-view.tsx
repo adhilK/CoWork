@@ -44,7 +44,7 @@ type Member = { id: string; user: { name: string | null; email: string } };
 
 type Props = {
   invoices: Invoice[]; total: number; page: number; limit: number;
-  summary: Summary[]; currency: string; vatRate: number; members: Member[];
+  summary: Summary[]; collectedThisMonth: number; currency: string; vatRate: number; members: Member[];
   organizationId: string; unbilledBookings: UnbilledBooking[];
 };
 
@@ -193,7 +193,7 @@ function GenerateInvoiceDialog({
   );
 }
 
-export function InvoicesView({ invoices, total, page, limit, summary, currency, vatRate, members, organizationId, unbilledBookings }: Props) {
+export function InvoicesView({ invoices, total, page, limit, summary, collectedThisMonth, currency, vatRate, members, organizationId, unbilledBookings }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -205,7 +205,6 @@ export function InvoicesView({ invoices, total, page, limit, summary, currency, 
   const memberGroups = groupByMember(unbilledBookings);
   const totalUnbilled = unbilledBookings.reduce((s, b) => s + Number(b.amountCharged), 0);
 
-  const totalRevenue = Number(summary.find((s) => s.status === "PAID")?._sum.amount ?? 0);
   const outstanding = Number(summary.find((s) => s.status === "PENDING")?._sum.amount ?? 0);
   const overdue = Number(summary.find((s) => s.status === "OVERDUE")?._sum.amount ?? 0);
 
@@ -246,15 +245,18 @@ export function InvoicesView({ invoices, total, page, limit, summary, currency, 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="dashboard-card p-4">
           <p className="text-xs text-gray-500">Collected this month</p>
-          <p className="text-xl font-bold mt-1 text-emerald-600">{formatCurrency(totalRevenue, currency)}</p>
+          <p className="text-xl font-bold mt-1 text-emerald-600">{formatCurrency(collectedThisMonth, currency)}</p>
+          <p className="text-[10px] text-gray-400 mt-0.5">Paid invoices, by payment date</p>
         </div>
         <div className="dashboard-card p-4">
           <p className="text-xs text-gray-500">Outstanding</p>
           <p className="text-xl font-bold mt-1 text-amber-600">{formatCurrency(outstanding, currency)}</p>
+          <p className="text-[10px] text-gray-400 mt-0.5">All unpaid invoices</p>
         </div>
         <div className="dashboard-card p-4">
           <p className="text-xs text-gray-500">Overdue</p>
           <p className="text-xl font-bold mt-1 text-red-500">{formatCurrency(overdue, currency)}</p>
+          <p className="text-[10px] text-gray-400 mt-0.5">Past due date</p>
         </div>
         <div className={cn("dashboard-card p-4 border-2", totalUnbilled > 0 ? "border-indigo-200" : "border-transparent")}>
           <p className="text-xs text-gray-500">Unbilled charges</p>
