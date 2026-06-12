@@ -11,8 +11,9 @@ export const whatsappSend = inngest.createFunction(
   {
     id: "whatsapp-send",
     name: "WhatsApp send",
+    // Capped at 5 to fit the Inngest free-plan concurrency limit.
     retries: 3,
-    concurrency: { limit: 10 },
+    concurrency: { limit: 5 },
     triggers: [{ event: "whatsapp/message.send" }],
   },
   async ({ event, step }) => {
