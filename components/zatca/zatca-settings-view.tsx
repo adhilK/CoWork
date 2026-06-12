@@ -122,7 +122,7 @@ export function ZatcaSettingsView(props: Props) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-gray-900">Arabic tax invoices</p>
-            <p className="text-xs text-gray-500 mt-0.5">Arabic is mandatory on KSA tax invoices. (Layout support is in progress.)</p>
+            <p className="text-xs text-gray-500 mt-0.5">Arabic is mandatory on KSA tax invoices. When on, invoice PDFs are issued bilingually (Arabic + English).</p>
           </div>
           <button
             role="switch" aria-checked={arabic} disabled={busy || !props.isOwner}

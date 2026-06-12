@@ -7,8 +7,9 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import React from "react";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
-import { InvoicePdf } from "@/lib/pdf/invoice-pdf";
+import { InvoicePdf, registerInvoiceFonts } from "@/lib/pdf/invoice-pdf";
 import { zatcaQrToDataUrl } from "@/lib/zatca";
+import { getBaseUrl } from "@/lib/utils";
 
 export async function GET(
   req: NextRequest,
@@ -56,6 +57,7 @@ export async function GET(
           taxRegistrationNumber: true,
           jurisdiction: true,
           currency: true,
+          jurisdictionConfig: { select: { arabicInvoices: true } },
         },
       },
       member: {
@@ -70,6 +72,13 @@ export async function GET(
 
   // ZATCA Phase-1 QR → scannable PNG (KSA invoices that have been stamped).
   const zatcaQrDataUrl = invoice.zatcaQrCode ? await zatcaQrToDataUrl(invoice.zatcaQrCode) : null;
+
+  // Bilingual KSA tax invoice: Arabic is mandatory when the org operates in KSA
+  // and has enabled Arabic invoices. Register the Arabic font only then.
+  const arabic =
+    invoice.organization.jurisdiction === "KSA" &&
+    !!invoice.organization.jurisdictionConfig?.arabicInvoices;
+  if (arabic) registerInvoiceFonts(getBaseUrl());
 
   const lineItems = Array.isArray(invoice.lineItems)
     ? (invoice.lineItems as { description: string; quantity: number; unitPrice: number; total: number }[])
@@ -100,6 +109,7 @@ export async function GET(
       email: invoice.member.user.email,
       company: invoice.member.company,
     },
+    arabic,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any) as any;
 

@@ -191,7 +191,53 @@ const s = StyleSheet.create({
   },
   footerText: { fontSize: 7.5, color: GRAY },
   footerBold: { fontSize: 7.5, fontFamily: "Helvetica-Bold", color: GRAY },
+
+  // ── Arabic (bilingual KSA tax invoice) ──────────────────────────────────────
+  arTitle:  { fontFamily: "Amiri", fontSize: 14, color: DARK, textAlign: "right", marginTop: 2 },
+  arLabel:  { fontFamily: "Amiri", fontSize: 8, color: GREEN, textAlign: "right", marginTop: 1 },
+  arText:   { fontFamily: "Amiri", fontSize: 9, color: DARK, textAlign: "right", marginTop: 1 },
+  arMeta:   { fontFamily: "Amiri", fontSize: 8, color: GRAY, textAlign: "right", marginTop: 1 },
+  arHeader: { fontFamily: "Amiri", fontSize: 7.5, color: WHITE, marginTop: 1 },
+  arTotals: { fontFamily: "Amiri", fontSize: 8.5, color: GRAY, textAlign: "right" },
+  arFooter: { fontFamily: "Amiri", fontSize: 7.5, color: GRAY, textAlign: "right", marginTop: 1 },
 });
+
+// ── Arabic labels (mandatory bilingual content on KSA tax invoices) ─────────────
+const AR = {
+  taxInvoice: "فاتورة ضريبية",
+  invoice: "فاتورة",
+  from: "من",
+  billTo: "فاتورة إلى",
+  issueDate: "تاريخ الإصدار",
+  dueDate: "تاريخ الاستحقاق",
+  paidOn: "تاريخ السداد",
+  status: "الحالة",
+  description: "الوصف",
+  qty: "الكمية",
+  unitPrice: "سعر الوحدة",
+  total: "المجموع",
+  subtotal: "المجموع الفرعي",
+  vat: "ضريبة القيمة المضافة",
+  grandTotal: "الإجمالي المستحق",
+  vatReg: "الرقم الضريبي",
+  notes: "ملاحظات",
+  computerGenerated: "هذه فاتورة ضريبية مُنشأة إلكترونياً",
+};
+
+// Register the Arabic font (Amiri) once per process. Called from the PDF route
+// only for KSA bilingual invoices, so UAE invoices never fetch it.
+let arabicFontRegistered = false;
+export function registerInvoiceFonts(baseUrl: string) {
+  if (arabicFontRegistered) return;
+  Font.register({
+    family: "Amiri",
+    fonts: [
+      { src: `${baseUrl}/fonts/Amiri-Regular.ttf` },
+      { src: `${baseUrl}/fonts/Amiri-Bold.ttf`, fontWeight: "bold" },
+    ],
+  });
+  arabicFontRegistered = true;
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -214,10 +260,12 @@ export function InvoicePdf({
   invoice,
   org,
   member,
+  arabic = false,
 }: {
   invoice: InvoicePdfData;
   org: InvoicePdfOrg;
   member: InvoicePdfMember;
+  arabic?: boolean;
 }) {
   const invoiceLabel = invoice.invoiceNumber ?? `INV-${new Date(invoice.issueDate).getTime()}`;
   const statusColors = STATUS_COLORS[invoice.status] ?? { bg: "#F3F4F6", text: "#4B5563" };
@@ -239,6 +287,7 @@ export function InvoicePdf({
           </View>
           <View>
             <Text style={s.invoiceLabel}>{isTaxInvoice ? "TAX INVOICE" : "INVOICE"}</Text>
+            {arabic && <Text style={s.arTitle}>{isTaxInvoice ? AR.taxInvoice : AR.invoice}</Text>}
             <Text style={s.invoiceNumber}>{invoiceLabel}</Text>
           </View>
         </View>
@@ -247,6 +296,7 @@ export function InvoicePdf({
         <View style={s.addressRow}>
           <View style={s.addressBlock}>
             <Text style={s.addressLabel}>From</Text>
+            {arabic && <Text style={s.arLabel}>{AR.from}</Text>}
             <Text style={s.addressName}>{org.name}</Text>
             {org.address && <Text style={s.addressLine}>{org.address}</Text>}
             {org.email && <Text style={s.addressLine}>{org.email}</Text>}
@@ -257,9 +307,13 @@ export function InvoicePdf({
                 {org.taxRegistrationNumber}
               </Text>
             )}
+            {arabic && org.taxRegistrationNumber && (
+              <Text style={s.arMeta}>{AR.vatReg}: {org.taxRegistrationNumber}</Text>
+            )}
           </View>
           <View style={s.addressBlock}>
             <Text style={s.addressLabel}>Bill To</Text>
+            {arabic && <Text style={s.arLabel}>{AR.billTo}</Text>}
             <Text style={s.addressName}>{member.name ?? member.email}</Text>
             {member.company && <Text style={s.addressLine}>{member.company}</Text>}
             <Text style={s.addressLine}>{member.email}</Text>
@@ -270,20 +324,24 @@ export function InvoicePdf({
         <View style={s.metaRow}>
           <View style={s.metaBlock}>
             <Text style={s.metaLabel}>Issue Date</Text>
+            {arabic && <Text style={s.arMeta}>{AR.issueDate}</Text>}
             <Text style={s.metaValue}>{fmtDate(invoice.issueDate)}</Text>
           </View>
           <View style={s.metaBlock}>
             <Text style={s.metaLabel}>Due Date</Text>
+            {arabic && <Text style={s.arMeta}>{AR.dueDate}</Text>}
             <Text style={s.metaValue}>{fmtDate(invoice.dueDate)}</Text>
           </View>
           {invoice.paidAt && (
             <View style={s.metaBlock}>
               <Text style={s.metaLabel}>Paid On</Text>
+              {arabic && <Text style={s.arMeta}>{AR.paidOn}</Text>}
               <Text style={s.metaValue}>{fmtDate(invoice.paidAt)}</Text>
             </View>
           )}
           <View style={s.metaBlock}>
             <Text style={s.metaLabel}>Status</Text>
+            {arabic && <Text style={s.arMeta}>{AR.status}</Text>}
             <View style={[s.statusBadge, { backgroundColor: statusColors.bg }]}>
               <Text style={[s.statusText, { color: statusColors.text }]}>
                 {invoice.status.charAt(0) + invoice.status.slice(1).toLowerCase()}
@@ -294,10 +352,22 @@ export function InvoicePdf({
 
         {/* ── Line items table ── */}
         <View style={s.tableHeader}>
-          <Text style={[s.tableHeaderText, s.colDesc]}>Description</Text>
-          <Text style={[s.tableHeaderText, s.colQty]}>Qty</Text>
-          <Text style={[s.tableHeaderText, s.colUnit]}>Unit Price</Text>
-          <Text style={[s.tableHeaderText, s.colTotal]}>Total</Text>
+          <View style={s.colDesc}>
+            <Text style={s.tableHeaderText}>Description</Text>
+            {arabic && <Text style={s.arHeader}>{AR.description}</Text>}
+          </View>
+          <View style={s.colQty}>
+            <Text style={[s.tableHeaderText, { textAlign: "center" }]}>Qty</Text>
+            {arabic && <Text style={[s.arHeader, { textAlign: "center" }]}>{AR.qty}</Text>}
+          </View>
+          <View style={s.colUnit}>
+            <Text style={[s.tableHeaderText, { textAlign: "right" }]}>Unit Price</Text>
+            {arabic && <Text style={[s.arHeader, { textAlign: "right" }]}>{AR.unitPrice}</Text>}
+          </View>
+          <View style={s.colTotal}>
+            <Text style={[s.tableHeaderText, { textAlign: "right" }]}>Total</Text>
+            {arabic && <Text style={[s.arHeader, { textAlign: "right" }]}>{AR.total}</Text>}
+          </View>
         </View>
 
         {invoice.lineItems.map((item, idx) => (
@@ -313,16 +383,16 @@ export function InvoicePdf({
         <View style={s.totalsContainer}>
           <View style={s.totalsBox}>
             <View style={s.totalsRow}>
-              <Text style={s.totalsLabel}>Subtotal</Text>
+              <Text style={[s.totalsLabel, arabic ? { fontFamily: "Amiri" } : {}]}>Subtotal{arabic ? ` · ${AR.subtotal}` : ""}</Text>
               <Text style={s.totalsValue}>{fmtCurrency(invoice.subtotal, invoice.currency)}</Text>
             </View>
             <View style={s.totalsRow}>
-              <Text style={s.totalsLabel}>{vatLabel(invoice.vatRate)}</Text>
+              <Text style={[s.totalsLabel, arabic ? { fontFamily: "Amiri" } : {}]}>{vatLabel(invoice.vatRate)}{arabic ? ` · ${AR.vat}` : ""}</Text>
               <Text style={s.totalsValue}>{fmtCurrency(invoice.vatAmount, invoice.currency)}</Text>
             </View>
             <View style={s.totalsDivider} />
             <View style={s.totalsRow}>
-              <Text style={s.totalsGrandLabel}>Total</Text>
+              <Text style={[s.totalsGrandLabel, arabic ? { fontFamily: "Amiri" } : {}]}>Total{arabic ? ` · ${AR.grandTotal}` : ""}</Text>
               <Text style={s.totalsGrandValue}>{fmtCurrency(invoice.totalAmount, invoice.currency)}</Text>
             </View>
           </View>
@@ -331,7 +401,7 @@ export function InvoicePdf({
         {/* ── Notes ── */}
         {invoice.notes && (
           <View style={s.notesBox}>
-            <Text style={s.notesLabel}>Notes</Text>
+            <Text style={[s.notesLabel, arabic ? { fontFamily: "Amiri" } : {}]}>Notes{arabic ? ` · ${AR.notes}` : ""}</Text>
             <Text style={s.notesText}>{invoice.notes}</Text>
           </View>
         )}
@@ -353,7 +423,10 @@ export function InvoicePdf({
 
         {/* ── Footer ── */}
         <View style={s.footer} fixed>
-          <Text style={s.footerText}>This is a computer-generated invoice.</Text>
+          <View>
+            <Text style={s.footerText}>This is a computer-generated invoice.</Text>
+            {arabic && <Text style={[s.arFooter, { textAlign: "left" }]}>{AR.computerGenerated}</Text>}
+          </View>
           <View>
             {org.taxRegistrationNumber && (
               <Text style={s.footerBold}>
