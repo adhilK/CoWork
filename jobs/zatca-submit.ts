@@ -1,36 +1,27 @@
 import { inngest } from "@/lib/inngest";
-import { prisma } from "@/lib/prisma";
+import { submitInvoiceToZatca } from "@/lib/zatca";
 
 /**
- * ZATCA e-invoicing submission queue (KSA) — Phase 2 STUB.
+ * ZATCA e-invoicing submission queue (KSA).
  *
- * Mandatory ZATCA reporting/clearance will be implemented via certified
- * middleware (e.g. Wafeq) in Phase 3. This function establishes the durable,
- * retried queue now so invoice creation can fire-and-forget a submission event;
- * today it just records intent. Do NOT build the cryptographic stamping here —
- * route it through the certified provider when wired up.
+ * Phase 1 (the QR) is generated synchronously at invoice creation. This queue
+ * handles Phase-2 reporting/clearance. Today `submitInvoiceToZatca` is a STUB
+ * that transitions the invoice PENDING → REPORTED; in Phase 3 its body submits
+ * the signed UBL XML via certified middleware (e.g. Wafeq). The durable, retried
+ * queue is in place now so nothing changes at the call sites when that lands.
  */
 export const zatcaSubmit = inngest.createFunction(
   {
     id: "zatca-submit",
-    name: "ZATCA submit (stub)",
+    name: "ZATCA submit",
     retries: 3,
     triggers: [{ event: "zatca/invoice.submit" }],
   },
   async ({ event, step }) => {
-    const { organizationId, invoiceId } = event.data as any;
-
-    return step.run("record-intent", async () => {
-      const invoice = await prisma.invoice.findFirst({
-        where: { id: invoiceId, organizationId, deletedAt: null },
-        select: { id: true, invoiceNumber: true },
-      });
-      if (!invoice) return { skipped: true, reason: "invoice not found" };
-
-      // Placeholder: real implementation submits to ZATCA via middleware and
-      // stores the cleared XML/QR + UUID on the invoice.
-      console.log(`[zatca] would submit invoice ${invoice.invoiceNumber ?? invoice.id} for org ${organizationId}`);
-      return { submitted: false, stub: true, invoiceId: invoice.id };
+    const { invoiceId } = event.data as any;
+    return step.run("submit", async () => {
+      const result = await submitInvoiceToZatca(invoiceId);
+      return result ?? { skipped: true };
     });
   }
 );

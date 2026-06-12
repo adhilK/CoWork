@@ -3,7 +3,7 @@
 // No Tailwind, no shadcn — styles via StyleSheet.create().
 // Arabic text support deferred: needs a registered Arabic font (separate task).
 
-import { Document, Page, View, Text, StyleSheet, Font } from "@react-pdf/renderer";
+import { Document, Page, View, Text, Image, StyleSheet, Font } from "@react-pdf/renderer";
 import { format } from "date-fns";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -37,6 +37,10 @@ export type InvoicePdfData = {
   totalAmount: number;
   currency: string;
   notes: string | null;
+  // ZATCA (KSA) — present only for KSA e-invoices
+  zatcaQrDataUrl?: string | null; // PNG data URL of the Phase-1 QR
+  zatcaUuid?: string | null;
+  zatcaStatus?: string | null;
 };
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -156,6 +160,21 @@ const s = StyleSheet.create({
   },
   notesLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: GRAY, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 4 },
   notesText: { fontSize: 8.5, color: DARK, lineHeight: 1.5 },
+
+  // ── ZATCA (KSA) ──────────────────────────────────────────────────────────────
+  zatcaBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: LGRAY,
+    borderRadius: 4,
+    padding: 12,
+    marginBottom: 16,
+  },
+  zatcaQr: { width: 84, height: 84, marginRight: 14 },
+  zatcaInfo: { flexDirection: "column", flex: 1 },
+  zatcaTitle: { fontSize: 9, fontFamily: "Helvetica-Bold", color: DARK, marginBottom: 3 },
+  zatcaLine: { fontSize: 7.5, color: GRAY, marginBottom: 1.5 },
+  zatcaMono: { fontSize: 7, color: GRAY, fontFamily: "Helvetica" },
 
   // ── Footer ─────────────────────────────────────────────────────────────────
   footer: {
@@ -314,6 +333,21 @@ export function InvoicePdf({
           <View style={s.notesBox}>
             <Text style={s.notesLabel}>Notes</Text>
             <Text style={s.notesText}>{invoice.notes}</Text>
+          </View>
+        )}
+
+        {/* ── ZATCA QR (KSA e-invoice) ── */}
+        {invoice.zatcaQrDataUrl && (
+          <View style={s.zatcaBox}>
+            <Image style={s.zatcaQr} src={invoice.zatcaQrDataUrl} />
+            <View style={s.zatcaInfo}>
+              <Text style={s.zatcaTitle}>ZATCA e-Invoice</Text>
+              <Text style={s.zatcaLine}>
+                Scan with the ZATCA verification app to validate this tax invoice.
+              </Text>
+              {invoice.zatcaUuid && <Text style={s.zatcaMono}>UUID: {invoice.zatcaUuid}</Text>}
+              {invoice.zatcaStatus && <Text style={s.zatcaMono}>Status: {invoice.zatcaStatus}</Text>}
+            </View>
           </View>
         )}
 

@@ -153,6 +153,17 @@ export function SettingsView({ organization }: Props) {
           Manage billing →
         </Button>
       </div>
+
+      {/* ZATCA e-invoicing (KSA) */}
+      <div className="dashboard-card p-6">
+        <h2 className="text-base font-semibold text-gray-900">ZATCA e-invoicing</h2>
+        <p className="text-sm text-gray-500 mt-1">
+          KSA tax-invoice compliance — Phase-1 QR codes and reporting for Saudi Arabia.
+        </p>
+        <Button variant="outline" className="mt-4" onClick={() => window.location.href = "/dashboard/settings/zatca"}>
+          Configure ZATCA →
+        </Button>
+      </div>
     </div>
   );
 }

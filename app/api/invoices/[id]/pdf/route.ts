@@ -8,6 +8,7 @@ import React from "react";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { InvoicePdf } from "@/lib/pdf/invoice-pdf";
+import { zatcaQrToDataUrl } from "@/lib/zatca";
 
 export async function GET(
   req: NextRequest,
@@ -67,6 +68,9 @@ export async function GET(
 
   if (!invoice) return new Response("Not found", { status: 404 });
 
+  // ZATCA Phase-1 QR → scannable PNG (KSA invoices that have been stamped).
+  const zatcaQrDataUrl = invoice.zatcaQrCode ? await zatcaQrToDataUrl(invoice.zatcaQrCode) : null;
+
   const lineItems = Array.isArray(invoice.lineItems)
     ? (invoice.lineItems as { description: string; quantity: number; unitPrice: number; total: number }[])
     : [];
@@ -86,6 +90,9 @@ export async function GET(
       totalAmount: Number(invoice.totalAmount),
       currency: invoice.currency,
       notes: invoice.notes,
+      zatcaQrDataUrl,
+      zatcaUuid: invoice.zatcaUuid,
+      zatcaStatus: invoice.zatcaStatus,
     },
     org: invoice.organization,
     member: {

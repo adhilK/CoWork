@@ -195,6 +195,18 @@ enum DocumentRequestStatus {
   CANCELLED
 }
 
+// KSA ZATCA e-invoicing lifecycle (Module 10).
+// PENDING  — Phase-1 QR generated, awaiting reporting/clearance
+// REPORTED — submitted to ZATCA reporting API (simplified invoices)
+// CLEARED  — cleared by ZATCA (standard invoices)
+// REJECTED — submission rejected / failed
+enum ZatcaStatus {
+  PENDING
+  REPORTED
+  CLEARED
+  REJECTED
+}
+
 // ─── MULTI-TENANCY ────────────────────────────────────────────────────────────
 
 model Organization {
@@ -547,6 +559,12 @@ model Invoice {
   lineItems       Json          // [{ description, quantity, unitPrice, total }]
   notes           String?
   virtualOfficeSubscriptionId String?
+  // ZATCA e-invoicing (KSA only — null for UAE / non-VAT invoices)
+  zatcaUuid       String?       // invoice UUID (Phase 2)
+  zatcaHash       String?       // invoice hash / PIH placeholder
+  zatcaQrCode     String?       // Phase-1 TLV QR, base64 (ZATCA-compliant)
+  zatcaStatus     ZatcaStatus?
+  zatcaReportedAt DateTime?
   // Soft delete
   deletedAt       DateTime?
   createdAt       DateTime      @default(now())

@@ -12,7 +12,8 @@
 import { prisma } from "@/lib/prisma";
 import { computeInvoiceTotals } from "@/lib/jurisdiction";
 import { sendInvoiceEmail } from "@/lib/email";
-import { dispatchWhatsAppText } from "@/lib/jobs";
+import { dispatchWhatsAppText, enqueue } from "@/lib/jobs";
+import { stampInvoiceForZatca } from "@/lib/zatca";
 import { formatCurrency } from "@/lib/utils";
 import { startOfMonth, endOfMonth, addDays } from "date-fns";
 
@@ -76,6 +77,12 @@ export async function runMonthlyBilling(): Promise<BillingResult> {
     });
 
     created++;
+
+    // ZATCA (KSA): stamp Phase-1 QR + queue reporting. No-op for UAE / disabled.
+    const zatca = await stampInvoiceForZatca(invoice.id);
+    if (zatca) {
+      await enqueue("zatca/invoice.submit", { organizationId: m.organizationId, invoiceId: invoice.id });
+    }
 
     // Email (fire-and-forget)
     if (m.user.email) {

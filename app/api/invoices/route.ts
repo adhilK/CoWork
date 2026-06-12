@@ -4,6 +4,8 @@ import { requireAdminApi } from "@/lib/auth";
 import { createInvoiceSchema } from "@/lib/validations";
 import { apiError, apiSuccess, buildPaginationMeta, getPaginationParams } from "@/lib/utils";
 import { computeInvoiceTotals } from "@/lib/jurisdiction";
+import { stampInvoiceForZatca } from "@/lib/zatca";
+import { enqueue } from "@/lib/jobs";
 import { nanoid } from "nanoid";
 
 export async function GET(req: NextRequest) {
@@ -82,5 +84,12 @@ export async function POST(req: NextRequest) {
     include: { member: { include: { user: true } } },
   });
 
-  return apiSuccess(invoice, 201);
+  // ZATCA (KSA): stamp the Phase-1 QR, then queue the reporting submission.
+  // No-op for UAE / ZATCA-disabled orgs.
+  const zatca = await stampInvoiceForZatca(invoice.id);
+  if (zatca) {
+    await enqueue("zatca/invoice.submit", { organizationId: orgId, invoiceId: invoice.id });
+  }
+
+  return apiSuccess(zatca ? { ...invoice, ...zatca } : invoice, 201);
 }
