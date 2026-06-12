@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/auth";
 import { apiError, apiSuccess } from "@/lib/utils";
-import { sendWhatsAppText, sendWhatsAppTemplate, renderTemplateBody } from "@/lib/whatsapp";
+import { enqueue } from "@/lib/jobs";
+import { runBroadcast } from "@/lib/jobs/broadcast";
 import { z } from "zod";
 
 const createBroadcastSchema = z.object({
@@ -83,46 +84,18 @@ export async function POST(req: NextRequest) {
     return apiSuccess(broadcast, 201);
   }
 
-  // Fan out. Sends are throttled lightly to avoid Meta rate limits. For large
-  // audiences this should move to an Inngest job; inline is acceptable at the
-  // current scale (1–5 locations, ≤300 members).
-  let sent = 0;
-  let failed = 0;
-  for (const r of recipients) {
-    if (!r.whatsAppNumber) { failed += 1; continue; }
-    const result = template
-      ? await sendWhatsAppTemplate({
-          organizationId: orgId,
-          to: r.whatsAppNumber,
-          memberId: r.id,
-          templateName: template.name,
-          language: template.language,
-          params: [],
-          renderedBody: renderTemplateBody(template.body, []),
-          messageType: "ANNOUNCEMENT",
-          broadcastId: broadcast.id,
-        })
-      : await sendWhatsAppText({
-          organizationId: orgId,
-          to: r.whatsAppNumber,
-          memberId: r.id,
-          body: d.content,
-          messageType: "ANNOUNCEMENT",
-          broadcastId: broadcast.id,
-        });
-    if (result.ok) sent += 1;
-    else failed += 1;
+  // Prefer the queue: hand the fan-out to Inngest so a large send never blocks
+  // the request. Falls back to running inline when Inngest isn't configured.
+  const queued = await enqueue("whatsapp/broadcast.send", {
+    organizationId: orgId,
+    broadcastId: broadcast.id,
+  });
+  if (queued) {
+    // Status stays SENDING; the job updates counts + completion.
+    return apiSuccess(broadcast, 202);
   }
 
-  const updated = await prisma.whatsAppBroadcast.update({
-    where: { id: broadcast.id },
-    data: {
-      status: failed === recipients.length && recipients.length > 0 ? "FAILED" : "SENT",
-      sentCount: sent,
-      failedCount: failed,
-      completedAt: new Date(),
-    },
-  });
-
-  return apiSuccess(updated, 201);
+  const result = await runBroadcast(orgId, broadcast.id);
+  const updated = await prisma.whatsAppBroadcast.findUnique({ where: { id: broadcast.id } });
+  return apiSuccess(updated ?? { ...broadcast, ...result }, 201);
 }

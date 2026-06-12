@@ -89,6 +89,21 @@ export function sendMemberInvite(o: {
   });
 }
 
+export function sendReminderEmail(o: {
+  to: string; memberName: string | null; orgName: string;
+  title: string; message: string;
+  // optional structured rows (e.g. document type, expiry date)
+  rows?: { label: string; value: string }[];
+}) {
+  const rowsHtml = (o.rows ?? []).map((r) => row(r.label, r.value)).join("");
+  const body = `
+    <p style="color:#475569;font-size:14px;margin:0 0 18px;">
+      Hi ${o.memberName ?? "there"}, ${o.message}
+    </p>
+    ${rowsHtml ? `<table style="width:100%;border-collapse:collapse;border-top:1px solid #e2e8f0;">${rowsHtml}</table>` : ""}`;
+  return safeSend({ to: o.to, subject: `${o.title} — ${o.orgName}`, html: shell(o.orgName, o.title, body) });
+}
+
 export function sendInvoiceEmail(o: {
   to: string; memberName: string | null; orgName: string;
   invoiceNumber: string; amount: number; currency: string; dueDate: Date;

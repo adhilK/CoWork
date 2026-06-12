@@ -1,20 +1,18 @@
 import { NextRequest } from "next/server";
 import { apiError, apiSuccess } from "@/lib/utils";
-import { runMonthlyBilling } from "@/lib/jobs/billing";
+import { runDailyReminders } from "@/lib/jobs/reminders";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 /**
- * Monthly billing — Vercel Cron fallback.
+ * Daily reminders — Vercel Cron fallback.
  *
- * The primary scheduler is now Inngest (jobs/monthly-billing.ts). This route
- * remains as a no-Inngest fallback and a manual "run now" entry point. The
- * underlying logic is shared and idempotent (skips members already invoiced for
- * the period), so running both schedulers is safe.
+ * The primary scheduler is Inngest (jobs/daily-reminders.ts). This route is the
+ * no-Inngest fallback and a manual trigger. The logic is idempotent (dedupe
+ * window), so it is safe to run alongside the Inngest schedule.
  *
- * Protected by CRON_SECRET. Vercel Cron sends `Authorization: Bearer <secret>`;
- * a manual trigger can use the `x-cron-secret` header.
+ * Protected by CRON_SECRET.
  */
 function authorized(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -26,13 +24,12 @@ function authorized(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   if (!authorized(req)) return apiError("Unauthorized", 401);
-  const result = await runMonthlyBilling();
+  const result = await runDailyReminders();
   return apiSuccess({ ok: true, ...result });
 }
 
-// Vercel Cron issues GET requests
 export async function GET(req: NextRequest) {
   if (!authorized(req)) return apiError("Unauthorized", 401);
-  const result = await runMonthlyBilling();
+  const result = await runDailyReminders();
   return apiSuccess({ ok: true, ...result });
 }
