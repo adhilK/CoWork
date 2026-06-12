@@ -26,9 +26,12 @@ enum Plan {
 }
 
 enum UserRole {
-  OWNER
-  ADMIN
-  MEMBER
+  OWNER        // full access incl. billing & settings
+  ADMIN        // full operational access, no billing
+  MANAGER      // location-level operational access (Phase 3)
+  RECEPTIONIST // visitor check-in + booking view only (Phase 3)
+  PRO_AGENT    // PRO-services & business-setup workflow only (Phase 3)
+  MEMBER       // end-member self-service portal
 }
 
 enum ResourceType {

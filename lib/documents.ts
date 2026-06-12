@@ -9,11 +9,12 @@
 import { prisma } from "@/lib/prisma";
 import { getApiAuth } from "@/lib/auth";
 import { decryptField } from "@/lib/encryption";
+import type { AppRole } from "@/lib/permissions";
 
 export type DocumentAccess = {
   userId: string;
   organizationId: string;
-  role: "OWNER" | "ADMIN" | "MEMBER";
+  role: AppRole;
   isAdmin: boolean;
   /** The caller's own member id, when they are a MEMBER (null for staff). */
   memberId: string | null;

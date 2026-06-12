@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
 import { CommandPalette } from "@/components/shared/command-palette";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { can, type Capability } from "@/lib/permissions";
 import type { Plan, UserRole } from "@prisma/client";
 
 type Props = {
@@ -27,21 +28,21 @@ type Props = {
   children: React.ReactNode;
 };
 
-const NAV_ITEMS: { href: string; label: string; icon: any; exact?: boolean; badge?: string }[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { href: "/dashboard/bookings", label: "Bookings", icon: Calendar },
-  { href: "/dashboard/resources", label: "Resources", icon: Building2 },
-  { href: "/dashboard/locations", label: "Locations", icon: MapPin, badge: "NEW" },
-  { href: "/dashboard/members", label: "Members", icon: Users },
-  { href: "/dashboard/plans", label: "Plans", icon: Tag },
-  { href: "/dashboard/visitors", label: "Visitors", icon: UserCheck },
-  { href: "/dashboard/invoices", label: "Invoices", icon: FileText },
-  { href: "/dashboard/documents", label: "Documents", icon: FolderLock, badge: "NEW" },
-  { href: "/dashboard/virtual-office", label: "Virtual Office", icon: Mailbox },
-  { href: "/dashboard/whatsapp", label: "WhatsApp", icon: MessageCircle },
-  { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/dashboard/automations", label: "Automations", icon: Zap, badge: "NEW" },
-  { href: "/dashboard/community", label: "Community", icon: MessageSquare },
+const NAV_ITEMS: { href: string; label: string; icon: any; exact?: boolean; badge?: string; cap: Capability }[] = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true, cap: "dashboard" },
+  { href: "/dashboard/bookings", label: "Bookings", icon: Calendar, cap: "bookings" },
+  { href: "/dashboard/resources", label: "Resources", icon: Building2, cap: "resources" },
+  { href: "/dashboard/locations", label: "Locations", icon: MapPin, cap: "locations" },
+  { href: "/dashboard/members", label: "Members", icon: Users, cap: "members" },
+  { href: "/dashboard/plans", label: "Plans", icon: Tag, cap: "plans" },
+  { href: "/dashboard/visitors", label: "Visitors", icon: UserCheck, cap: "visitors" },
+  { href: "/dashboard/invoices", label: "Invoices", icon: FileText, cap: "invoices" },
+  { href: "/dashboard/documents", label: "Documents", icon: FolderLock, cap: "documents" },
+  { href: "/dashboard/virtual-office", label: "Virtual Office", icon: Mailbox, cap: "virtualOffice" },
+  { href: "/dashboard/whatsapp", label: "WhatsApp", icon: MessageCircle, cap: "whatsapp" },
+  { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3, cap: "analytics" },
+  { href: "/dashboard/automations", label: "Automations", icon: Zap, cap: "automations" },
+  { href: "/dashboard/community", label: "Community", icon: MessageSquare, cap: "community" },
 ];
 
 const PLAN_COLORS: Record<Plan, string> = {
@@ -62,6 +63,10 @@ export function DashboardShell({ user, organization, role, children }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
   const supabase = createClient();
+
+  // Filter navigation to what this role is allowed to see.
+  const visibleNav = NAV_ITEMS.filter((item) => can(role, item.cap));
+  const canSettings = can(role, "settings");
 
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
@@ -121,7 +126,7 @@ export function DashboardShell({ user, organization, role, children }: Props) {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto space-y-1 -mx-1 px-1">
-        {NAV_ITEMS.map((item) => {
+        {visibleNav.map((item) => {
           const active = isActive(item.href, item.exact);
           return (
             <Link key={item.href} href={item.href}
@@ -147,17 +152,19 @@ export function DashboardShell({ user, organization, role, children }: Props) {
 
       {/* Bottom */}
       <div className="pt-3 mt-2 space-y-1 flex-shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-        <Link href="/dashboard/settings"
-          className={cn(
-            "group flex items-center gap-3 pl-1.5 pr-3 py-1.5 rounded-2xl text-[13.5px] font-medium transition-all",
-            isActive("/dashboard/settings") ? "bg-white text-gray-900 shadow-sm" : "text-white/55 hover:text-white hover:bg-white/[0.05]"
-          )}>
-          <span className={cn("w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
-            isActive("/dashboard/settings") ? "bg-gray-900 text-white" : "bg-white/[0.07] text-white/65 group-hover:bg-white/[0.12]")}>
-            <Settings style={{ width: 15, height: 15 }} />
-          </span>
-          <span>Settings</span>
-        </Link>
+        {canSettings && (
+          <Link href="/dashboard/settings"
+            className={cn(
+              "group flex items-center gap-3 pl-1.5 pr-3 py-1.5 rounded-2xl text-[13.5px] font-medium transition-all",
+              isActive("/dashboard/settings") ? "bg-white text-gray-900 shadow-sm" : "text-white/55 hover:text-white hover:bg-white/[0.05]"
+            )}>
+            <span className={cn("w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
+              isActive("/dashboard/settings") ? "bg-gray-900 text-white" : "bg-white/[0.07] text-white/65 group-hover:bg-white/[0.12]")}>
+              <Settings style={{ width: 15, height: 15 }} />
+            </span>
+            <span>Settings</span>
+          </Link>
+        )}
         <button onClick={handleSignOut}
           className="group w-full flex items-center gap-3 pl-1.5 pr-3 py-1.5 rounded-2xl text-[13.5px] font-medium text-white/55 hover:text-red-400 hover:bg-white/[0.05] transition-all">
           <span className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-white/[0.07] text-white/65 group-hover:bg-red-500/15 group-hover:text-red-400">
@@ -254,12 +261,13 @@ export function DashboardShell({ user, organization, role, children }: Props) {
       <nav className="fixed bottom-0 left-0 right-0 lg:hidden z-40 bg-white border-t border-gray-100"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div className="flex items-center justify-around px-1 py-1.5">
-          {[
-            { href: "/dashboard", label: "Home", icon: LayoutDashboard, exact: true },
-            { href: "/dashboard/bookings", label: "Bookings", icon: Calendar },
-            { href: "/dashboard/resources", label: "Spaces", icon: Building2 },
-            { href: "/dashboard/members", label: "Members", icon: Users },
-          ].map((item) => {
+          {([
+            { href: "/dashboard", label: "Home", icon: LayoutDashboard, exact: true, cap: "dashboard" as Capability },
+            { href: "/dashboard/bookings", label: "Bookings", icon: Calendar, cap: "bookings" as Capability },
+            { href: "/dashboard/resources", label: "Spaces", icon: Building2, cap: "resources" as Capability },
+            { href: "/dashboard/members", label: "Members", icon: Users, cap: "members" as Capability },
+            { href: "/dashboard/visitors", label: "Visitors", icon: UserCheck, cap: "visitors" as Capability },
+          ].filter((item) => can(role, item.cap)).slice(0, 4)).map((item) => {
             const active = isActive(item.href, item.exact);
             return (
               <Link key={item.href} href={item.href}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/auth";
+import { canBilling, homePathForRole } from "@/lib/permissions";
 import { BillingView } from "@/components/billing/billing-view";
 
 export const metadata: Metadata = { title: "Billing & Plan — CoWork Pro" };
@@ -9,6 +10,8 @@ export const dynamic = "force-dynamic";
 export default async function BillingPage() {
   const ctx = await getAuthContext();
   if (!ctx) redirect("/login");
+  // Billing is owner-only.
+  if (!canBilling(ctx.role)) redirect(homePathForRole(ctx.role));
 
   const trialEndsAt = ctx.organization.trialEndsAt;
   const trialDaysLeft = trialEndsAt

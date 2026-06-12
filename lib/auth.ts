@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { isAdminRole, type AppRole } from "@/lib/permissions";
 
 /**
  * Authenticated user for the current request.
@@ -22,7 +23,7 @@ export const getCurrentUser = cache(async () => {
 export type AuthContext = {
   user: { id: string; email: string; name: string | null; avatar: string | null };
   organizationId: string;
-  role: "OWNER" | "ADMIN" | "MEMBER";
+  role: AppRole;
   organization: {
     id: string;
     name: string;
@@ -101,7 +102,7 @@ export const getAuthContext = cache(async (): Promise<AuthContext | null> => {
  * This removes a ~1s round-trip from every authenticated API request
  * after the first. Wrapped in React `cache()` for per-request dedupe too.
  */
-type CachedOrg = { orgId: string | null; role: "OWNER" | "ADMIN" | "MEMBER" | null; exp: number };
+type CachedOrg = { orgId: string | null; role: AppRole | null; exp: number };
 const _orgIdCache = new Map<string, CachedOrg>();
 const ORG_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
@@ -144,7 +145,7 @@ export const getOrgIdForUser = cache(async (userId: string) => {
 export type ApiAuth = {
   userId: string;
   organizationId: string;
-  role: "OWNER" | "ADMIN" | "MEMBER";
+  role: AppRole;
 };
 
 export const getApiAuth = cache(async (): Promise<ApiAuth | null> => {
@@ -166,6 +167,16 @@ export const getApiAuth = cache(async (): Promise<ApiAuth | null> => {
  */
 export const requireAdminApi = cache(async (): Promise<ApiAuth | null> => {
   const auth = await getApiAuth();
-  if (!auth || auth.role === "MEMBER") return null;
+  // Operational-admin roles only (OWNER/ADMIN/MANAGER). RECEPTIONIST and
+  // PRO_AGENT are staff but must NOT reach the shared admin API — they get
+  // scoped access through their own module routes.
+  if (!auth || !isAdminRole(auth.role)) return null;
+  return auth;
+});
+
+/** Owner-only API guard (platform billing and other owner-restricted actions). */
+export const requireOwnerApi = cache(async (): Promise<ApiAuth | null> => {
+  const auth = await getApiAuth();
+  if (!auth || auth.role !== "OWNER") return null;
   return auth;
 });
