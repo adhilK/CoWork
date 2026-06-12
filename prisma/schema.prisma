@@ -258,6 +258,7 @@ model Organization {
   whatsAppBroadcasts        WhatsAppBroadcast[]
   documents                 Document[]
   documentRequests          DocumentRequest[]
+  deliveries                Delivery[]
 
   @@index([slug])
 }
@@ -475,6 +476,7 @@ model Member {
   whatsAppMessages          WhatsAppMessage[]
   documents                 Document[]
   documentRequests          DocumentRequest[]
+  deliveries                Delivery[]
 
   @@index([organizationId])
   @@index([userId])
@@ -596,12 +598,56 @@ model Visitor {
   expectedArrival DateTime?
   checkedInAt     DateTime?
   checkedOutAt    DateTime?
+  // GCC / reception (Module 9)
+  nationality     String?
+  idType          String?   // "Passport" | "Emirates ID" | "Iqama"
+  idNumber        String?   // encrypted at rest (lib/encryption.ts)
+  vehiclePlate    String?
+  photoUrl        String?   // private bucket object path — served via signed URL
+  isBlacklisted   Boolean   @default(false)
+  blacklistReason String?
+  whatsappNotified Boolean  @default(false)
+  deletedAt       DateTime?
   createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId])
   @@index([organizationId, checkedInAt])
+  @@index([organizationId, deletedAt])
+  @@index([organizationId, isBlacklisted])
+}
+
+// ─── DELIVERIES (reception) ─────────────────────────────────────────────────
+// Packages/mail received at reception for members (distinct from the Virtual
+// Office mailroom, which is for registered-address clients).
+
+model Delivery {
+  id             String    @id @default(cuid())
+  organizationId String
+  memberId       String?
+  courierName    String?
+  trackingNumber String?
+  description    String?
+  photoUrl       String?
+  receivedBy     String?   // staff name
+  receivedAt     DateTime  @default(now())
+  notifiedAt     DateTime?
+  collectedAt    DateTime?
+  collectedBy    String?   // who collected (name / signature note)
+  whatsappNotified Boolean @default(false)
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member         Member?      @relation(fields: [memberId], references: [id])
+
+  @@index([organizationId])
+  @@index([organizationId, deletedAt])
+  @@index([organizationId, collectedAt])
+  @@index([memberId])
 }
 
 // ─── COMMUNITY ───────────────────────────────────────────────────────────────
