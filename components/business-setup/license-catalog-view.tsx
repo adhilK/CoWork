@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
+import { BsTabs } from "@/components/business-setup/bs-tabs";
 import {
   LICENSE_TYPE_LABELS, licenseTypeLabel, UAE_EMIRATES, ACTIVITY_CATEGORIES, type LicenseTypeValue,
 } from "@/lib/license-catalog/uae";
@@ -188,6 +189,8 @@ export function LicenseCatalogView({ items, canManage, currency }: Props) {
           </div>
         )}
       </div>
+
+      <BsTabs />
 
       {/* Empty state → import CTA */}
       {items.length === 0 ? (

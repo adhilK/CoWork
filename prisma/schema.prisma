@@ -210,6 +210,46 @@ enum ZatcaStatus {
   REJECTED
 }
 
+enum LeadStage {
+  NEW_ENQUIRY
+  QUALIFIED
+  PROPOSAL_SENT
+  DOCUMENTS_COLLECTION
+  SUBMITTED_TO_AUTHORITY
+  AWAITING_APPROVAL
+  APPROVED
+  COMPLETED
+  LOST
+}
+
+enum LeadPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum LeadActivityType {
+  NOTE
+  CALL
+  WHATSAPP
+  EMAIL
+  MEETING
+  STAGE_CHANGE
+  DOCUMENT_RECEIVED
+  PAYMENT_RECEIVED
+  PROPOSAL_SENT
+  REMINDER_SENT
+}
+
+enum ProposalStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
 // Coarse license classification (Module 6). Detailed products live in
 // LicenseCatalog; leads/applications reference this enum.
 enum LicenseType {
@@ -279,6 +319,7 @@ model Organization {
   documentRequests          DocumentRequest[]
   deliveries                Delivery[]
   licenseCatalog            LicenseCatalog[]
+  businessSetupLeads        BusinessSetupLead[]
 
   @@index([slug])
 }
@@ -497,6 +538,7 @@ model Member {
   documents                 Document[]
   documentRequests          DocumentRequest[]
   deliveries                Delivery[]
+  businessSetupLeads        BusinessSetupLead[]
 
   @@index([organizationId])
   @@index([userId])
@@ -708,6 +750,110 @@ model LicenseCatalog {
   @@index([organizationId, jurisdiction])
   @@index([organizationId, deletedAt])
   @@index([organizationId, licenseType])
+}
+
+// ─── BUSINESS SETUP CRM (Module 6) ──────────────────────────────────────────────
+
+model BusinessSetupLead {
+  id                String        @id @default(cuid())
+  organizationId    String
+  memberId          String?       // linked once converted
+  assignedTo        String?       // operator userId (PRO agent / staff)
+  jurisdiction      Jurisdiction  @default(UAE)
+  clientName        String
+  clientEmail       String?
+  clientPhone       String
+  clientWhatsapp    String?
+  clientNationality String?
+  companyName       String?
+  licenseType       LicenseType
+  licenseCatalogId  String?       // selected catalog product
+  freezoneName      String?       // UAE freezone / authority
+  sezName           String?       // KSA SEZ
+  businessActivity  String[]      @default([])
+  stage             LeadStage     @default(NEW_ENQUIRY)
+  priority          LeadPriority  @default(MEDIUM)
+  estimatedFee      Decimal?      @db.Decimal(10, 2)
+  quotedFee         Decimal?      @db.Decimal(10, 2)
+  currency          String        @default("AED")
+  notes             String?
+  source            String?       // WhatsApp, walk-in, referral, website
+  expectedCloseDate DateTime?
+  closedAt          DateTime?
+  lostReason        String?
+  deletedAt         DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  organization      Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member            Member?                   @relation(fields: [memberId], references: [id])
+  activities        LeadActivity[]
+  proposal          BusinessSetupProposal?
+  application        BusinessSetupApplication?
+
+  @@index([organizationId])
+  @@index([organizationId, stage])
+  @@index([organizationId, deletedAt])
+  @@index([assignedTo])
+  @@index([memberId])
+}
+
+model LeadActivity {
+  id           String           @id @default(cuid())
+  leadId       String
+  userId       String
+  activityType LeadActivityType @default(NOTE)
+  note         String
+  createdAt    DateTime         @default(now())
+
+  lead         BusinessSetupLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+}
+
+model BusinessSetupProposal {
+  id             String         @id @default(cuid())
+  leadId         String         @unique
+  organizationId String
+  lineItems      Json           // [{ service, description, fee }]
+  subtotal       Decimal        @default(0) @db.Decimal(10, 2)
+  totalFee       Decimal        @db.Decimal(10, 2)
+  currency       String         @default("AED")
+  validUntil     DateTime
+  status         ProposalStatus @default(DRAFT)
+  notes          String?
+  sentAt         DateTime?
+  acceptedAt     DateTime?
+  pdfUrl         String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  lead           BusinessSetupLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+model BusinessSetupApplication {
+  id              String       @id @default(cuid())
+  leadId          String       @unique
+  organizationId  String
+  jurisdiction    Jurisdiction
+  licenseType     LicenseType
+  referenceNumber String?
+  authorityName   String?      // DED, RAKEZ, MISA...
+  currentStep     String?
+  steps           Json         @default("[]")  // [{ step, status, completedAt, notes }]
+  submittedAt     DateTime?
+  approvedAt      DateTime?
+  licenseNumber   String?
+  licenseExpiry   DateTime?
+  notes           String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  lead            BusinessSetupLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
 }
 
 // ─── COMMUNITY ───────────────────────────────────────────────────────────────
