@@ -101,3 +101,46 @@ export function homePathForRole(role: string | null | undefined): string {
     default: return "/dashboard";
   }
 }
+
+// ── Team management ─────────────────────────────────────────────────────────────
+
+export const ROLE_LABELS: Record<AppRole, string> = {
+  OWNER: "Owner",
+  ADMIN: "Admin",
+  MANAGER: "Manager",
+  RECEPTIONIST: "Receptionist",
+  PRO_AGENT: "PRO Agent",
+  MEMBER: "Member",
+};
+
+export const ROLE_DESCRIPTIONS: Record<AppRole, string> = {
+  OWNER: "Full access including billing and settings.",
+  ADMIN: "Full operational access. Cannot manage billing.",
+  MANAGER: "Day-to-day operations across bookings, members, invoices, and locations. No settings or integrations.",
+  RECEPTIONIST: "Front desk — visitor check-in and booking visibility only.",
+  PRO_AGENT: "Business setup and PRO-services workflow, with related documents.",
+  MEMBER: "End-member self-service portal only.",
+};
+
+/** Which roles a given actor is allowed to assign when inviting/editing staff. */
+export function assignableRoles(actorRole: string | null | undefined): AppRole[] {
+  switch (asRole(actorRole ?? "MEMBER")) {
+    case "OWNER": return ["ADMIN", "MANAGER", "RECEPTIONIST", "PRO_AGENT"];
+    case "ADMIN": return ["MANAGER", "RECEPTIONIST", "PRO_AGENT"];
+    default: return [];
+  }
+}
+
+/**
+ * Can `actorRole` manage (edit role / remove) a staff member who currently has
+ * `targetRole`? Owners are never managed via the UI; admins can't manage other
+ * admins or owners.
+ */
+export function canManageTarget(actorRole: string | null | undefined, targetRole: string | null | undefined): boolean {
+  const actor = asRole(actorRole ?? "MEMBER");
+  const target = asRole(targetRole ?? "MEMBER");
+  if (target === "OWNER") return false;
+  if (actor === "OWNER") return true;
+  if (actor === "ADMIN") return target !== "ADMIN";
+  return false;
+}

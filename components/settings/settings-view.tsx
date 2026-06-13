@@ -154,6 +154,17 @@ export function SettingsView({ organization }: Props) {
         </Button>
       </div>
 
+      {/* Team */}
+      <div className="dashboard-card p-6">
+        <h2 className="text-base font-semibold text-gray-900">Team</h2>
+        <p className="text-sm text-gray-500 mt-1">
+          Invite staff and manage their roles — admins, managers, receptionists, and PRO agents.
+        </p>
+        <Button variant="outline" className="mt-4" onClick={() => window.location.href = "/dashboard/settings/team"}>
+          Manage team →
+        </Button>
+      </div>
+
       {/* ZATCA e-invoicing (KSA) */}
       <div className="dashboard-card p-6">
         <h2 className="text-base font-semibold text-gray-900">ZATCA e-invoicing</h2>
