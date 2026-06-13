@@ -210,6 +210,22 @@ enum ZatcaStatus {
   REJECTED
 }
 
+// Coarse license classification (Module 6). Detailed products live in
+// LicenseCatalog; leads/applications reference this enum.
+enum LicenseType {
+  UAE_MAINLAND_DED
+  UAE_FREEZONE
+  UAE_OFFSHORE_RAKICC
+  UAE_OFFSHORE_JAFZA
+  UAE_BRANCH_OFFICE
+  KSA_MAINLAND_MISA
+  KSA_SEZ_KAFD
+  KSA_SEZ_JAZAN
+  KSA_SEZ_NEOM
+  KSA_BRANCH_OFFICE
+  KSA_REPRESENTATIVE_OFFICE
+}
+
 // ─── MULTI-TENANCY ────────────────────────────────────────────────────────────
 
 model Organization {
@@ -262,6 +278,7 @@ model Organization {
   documents                 Document[]
   documentRequests          DocumentRequest[]
   deliveries                Delivery[]
+  licenseCatalog            LicenseCatalog[]
 
   @@index([slug])
 }
@@ -651,6 +668,46 @@ model Delivery {
   @@index([organizationId, deletedAt])
   @@index([organizationId, collectedAt])
   @@index([memberId])
+}
+
+// ─── LICENSE CATALOG (Business Setup CRM — Module 6) ─────────────────────────────
+// Per-org catalog of license/jurisdiction products operators sell. Seeded from a
+// built-in UAE template, then customised (pricing, what they offer). Referenced
+// by leads/proposals/applications.
+
+model LicenseCatalog {
+  id               String       @id @default(cuid())
+  organizationId   String
+  jurisdiction     Jurisdiction @default(UAE)
+  licenseType      LicenseType
+  authority        String       // "IFZA", "DMCC", "DET (Dubai)", "RAK ICC" ...
+  emirate          String?      // Dubai, Abu Dhabi, Sharjah, RAK, Ajman, UAQ, Fujairah
+  name             String       // product/package name
+  activityCategory String?      // Commercial, Professional, Industrial, Holding, E-commerce
+  description      String?
+  // Costs in AED (VAT-exclusive). Operator sets the selling price on a proposal.
+  baseCost         Decimal?     @db.Decimal(10, 2)
+  govFees          Decimal?     @db.Decimal(10, 2)
+  visaQuota        Int?         // visas included / available
+  officeType       String?      // Flexi-desk, Physical office, Virtual, None
+  minShareCapital  Decimal?     @db.Decimal(12, 2)
+  tenureYears      Int          @default(1)
+  processingDays   Int?         // estimated turnaround
+  features         String[]     @default([])
+  isActive         Boolean      @default(true)
+  isPopular        Boolean      @default(false)
+  // Provenance: distinguishes seeded template rows from operator-custom ones.
+  templateKey      String?      // stable key from the seed template (for idempotent import)
+  deletedAt        DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([organizationId, jurisdiction])
+  @@index([organizationId, deletedAt])
+  @@index([organizationId, licenseType])
 }
 
 // ─── COMMUNITY ───────────────────────────────────────────────────────────────
