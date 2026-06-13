@@ -250,6 +250,57 @@ enum ProposalStatus {
   EXPIRED
 }
 
+// PRO Services Tracker (Module 7)
+enum ProServiceType {
+  UAE_VISA_NEW
+  UAE_VISA_RENEWAL
+  UAE_VISA_CANCELLATION
+  UAE_EMIRATES_ID_NEW
+  UAE_EMIRATES_ID_RENEWAL
+  UAE_ESTABLISHMENT_CARD
+  UAE_ECHANNEL_REGISTRATION
+  UAE_MEDICAL_FITNESS
+  UAE_GDRFA_SERVICE
+  UAE_DED_TRANSACTION
+  UAE_ATTESTATION
+  UAE_TYPING_SERVICE
+  UAE_EJARI_REGISTRATION
+  UAE_TRADE_LICENSE_RENEWAL
+  KSA_IQAMA_NEW
+  KSA_IQAMA_RENEWAL
+  KSA_QIWA_REGISTRATION
+  KSA_MUQEEM_REGISTRATION
+  KSA_GOSI_REGISTRATION
+  KSA_LABOUR_CONTRACT
+  KSA_EXIT_REENTRY_VISA
+  KSA_DEPENDENT_VISA
+  KSA_ATTESTATION
+  KSA_MINISTRY_HR_TRANSACTION
+  KSA_TRADE_LICENSE_RENEWAL
+  DOCUMENT_ATTESTATION
+  NOTARISATION
+  OTHER
+}
+
+enum ProServiceStage {
+  SUBMITTED
+  DOCUMENTS_PENDING
+  DOCUMENTS_RECEIVED
+  IN_PROGRESS
+  AT_TYPING_CENTRE
+  AT_GOVERNMENT
+  AWAITING_COLLECTION
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum ServiceUrgency {
+  STANDARD
+  EXPRESS
+  URGENT
+}
+
 // Coarse license classification (Module 6). Detailed products live in
 // LicenseCatalog; leads/applications reference this enum.
 enum LicenseType {
@@ -320,6 +371,7 @@ model Organization {
   deliveries                Delivery[]
   licenseCatalog            LicenseCatalog[]
   businessSetupLeads        BusinessSetupLead[]
+  proServiceRequests        ProServiceRequest[]
 
   @@index([slug])
 }
@@ -539,6 +591,7 @@ model Member {
   documentRequests          DocumentRequest[]
   deliveries                Delivery[]
   businessSetupLeads        BusinessSetupLead[]
+  proServiceRequests        ProServiceRequest[]
 
   @@index([organizationId])
   @@index([userId])
@@ -854,6 +907,61 @@ model BusinessSetupApplication {
   lead            BusinessSetupLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
   @@index([organizationId])
+}
+
+// ─── PRO SERVICES TRACKER (Module 7) ────────────────────────────────────────────
+
+model ProServiceRequest {
+  id                 String          @id @default(cuid())
+  organizationId     String
+  memberId           String
+  assignedTo         String?         // staff userId (PRO agent)
+  jurisdiction       Jurisdiction    @default(UAE)
+  serviceType        ProServiceType
+  serviceDescription String?
+  urgency            ServiceUrgency  @default(STANDARD)
+  stage              ProServiceStage @default(SUBMITTED)
+  governingBody      String?         // DED, GDRFA, MISA, Qiwa...
+  referenceNumber    String?
+  requestedBy        String?         // member or operator userId
+  fee                Decimal?        @db.Decimal(10, 2)
+  currency           String          @default("AED")
+  invoiceId          String?         // linked member invoice (plain ref)
+  slaDays            Int?
+  dueDate            DateTime?
+  completedAt        DateTime?
+  cancelledAt        DateTime?
+  cancelReason       String?
+  clientNotes        String?         // client-visible
+  internalNotes      String?         // operator only
+  deletedAt          DateTime?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  organization       Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member             Member               @relation(fields: [memberId], references: [id])
+  activities         ProServiceActivity[]
+
+  @@index([organizationId])
+  @@index([organizationId, stage])
+  @@index([organizationId, deletedAt])
+  @@index([memberId])
+  @@index([assignedTo])
+  @@index([organizationId, dueDate])
+}
+
+model ProServiceActivity {
+  id              String           @id @default(cuid())
+  requestId       String
+  userId          String
+  stage           ProServiceStage?
+  note            String
+  isClientVisible Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+
+  request         ProServiceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
 }
 
 // ─── COMMUNITY ───────────────────────────────────────────────────────────────

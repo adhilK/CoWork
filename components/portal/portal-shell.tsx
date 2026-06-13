@@ -9,6 +9,7 @@ import {
   Clock,
   FileText,
   FolderLock,
+  Stamp,
   User,
   LogOut,
   Menu,
@@ -40,6 +41,7 @@ const NAV_ITEMS = [
   { href: "/portal/my-bookings", label: "My bookings", icon: Clock },
   { href: "/portal/invoices", label: "Invoices", icon: FileText },
   { href: "/portal/documents", label: "Documents", icon: FolderLock },
+  { href: "/portal/pro-services", label: "PRO Services", icon: Stamp },
   { href: "/portal/profile", label: "Profile", icon: User },
 ];
 
