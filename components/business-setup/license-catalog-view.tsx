@@ -18,6 +18,9 @@ import { BsTabs } from "@/components/business-setup/bs-tabs";
 import {
   LICENSE_TYPE_LABELS, licenseTypeLabel, UAE_EMIRATES, ACTIVITY_CATEGORIES, type LicenseTypeValue,
 } from "@/lib/license-catalog/uae";
+import { KSA_REGIONS } from "@/lib/license-catalog/ksa";
+
+const itemCurrency = (jurisdiction: string) => (jurisdiction === "KSA" ? "SAR" : "AED");
 
 type License = {
   id: string;
@@ -44,7 +47,6 @@ type License = {
 type Props = { items: License[]; canManage: boolean; currency: string };
 
 const LICENSE_TYPE_OPTIONS = Object.keys(LICENSE_TYPE_LABELS) as LicenseTypeValue[];
-const UAE_TYPES = LICENSE_TYPE_OPTIONS.filter((t) => t.startsWith("UAE_"));
 
 const emptyForm = {
   jurisdiction: "UAE", licenseType: "UAE_FREEZONE", authority: "", emirate: "Dubai", name: "",
@@ -53,18 +55,25 @@ const emptyForm = {
   featuresText: "", isActive: true, isPopular: false,
 };
 
-export function LicenseCatalogView({ items, canManage, currency }: Props) {
+export function LicenseCatalogView({ items, canManage }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [emirateFilter, setEmirateFilter] = useState("ALL");
-  const [importing, setImporting] = useState(false);
+  const [jurisdictionFilter, setJurisdictionFilter] = useState("ALL");
+  const [importing, setImporting] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<License | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ ...emptyForm });
 
+  // Region filter options come from the catalog itself (works for UAE + KSA).
+  const locationOptions = Array.from(new Set(items.map((i) => i.emirate).filter(Boolean))) as string[];
+  const hasUae = items.some((i) => i.jurisdiction === "UAE");
+  const hasKsa = items.some((i) => i.jurisdiction === "KSA");
+
   const filtered = items.filter((i) => {
+    if (jurisdictionFilter !== "ALL" && i.jurisdiction !== jurisdictionFilter) return false;
     if (typeFilter !== "ALL" && i.licenseType !== typeFilter) return false;
     if (emirateFilter !== "ALL" && i.emirate !== emirateFilter) return false;
     if (search) {
@@ -79,18 +88,20 @@ export function LicenseCatalogView({ items, canManage, currency }: Props) {
     return true;
   });
 
-  async function importUae() {
-    setImporting(true);
+  async function importCatalog(jurisdiction: "UAE" | "KSA") {
+    setImporting(jurisdiction);
     try {
-      const res = await fetch("/api/business-setup/licenses/seed", { method: "POST" });
+      const res = await fetch("/api/business-setup/licenses/seed", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jurisdiction }),
+      });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
       const json = await res.json();
-      toast.success(`Imported ${json.imported} licenses${json.skipped ? ` (${json.skipped} already present)` : ""}`);
+      toast.success(`Imported ${json.imported} ${jurisdiction} licenses${json.skipped ? ` (${json.skipped} already present)` : ""}`);
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to import");
     } finally {
-      setImporting(false);
+      setImporting(null);
     }
   }
 
@@ -178,10 +189,16 @@ export function LicenseCatalogView({ items, canManage, currency }: Props) {
         {canManage && (
           <div className="flex items-center gap-2">
             {items.length > 0 && (
-              <Button variant="outline" className="h-9" onClick={importUae} disabled={importing}>
-                {importing ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Download className="w-4 h-4 mr-1.5" />}
-                Sync UAE
-              </Button>
+              <>
+                <Button variant="outline" className="h-9" onClick={() => importCatalog("UAE")} disabled={!!importing}>
+                  {importing === "UAE" ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Download className="w-4 h-4 mr-1.5" />}
+                  Sync UAE
+                </Button>
+                <Button variant="outline" className="h-9" onClick={() => importCatalog("KSA")} disabled={!!importing}>
+                  {importing === "KSA" ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Download className="w-4 h-4 mr-1.5" />}
+                  Sync KSA
+                </Button>
+              </>
             )}
             <Button className="h-9 text-white" style={{ background: "linear-gradient(135deg, #15803D, #22C55E)" }} onClick={openCreate}>
               <Plus className="w-4 h-4 mr-1.5" /> Add license
@@ -198,13 +215,19 @@ export function LicenseCatalogView({ items, canManage, currency }: Props) {
           <Landmark className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <p className="text-sm font-medium text-gray-500">Your catalog is empty</p>
           <p className="text-xs text-gray-400 mt-1 mb-4 max-w-md mx-auto">
-            Load the built-in UAE catalog — {/* count hint */}freezones, mainland, offshore and branch options — then customise pricing and what you offer.
+            Load a built-in catalog — UAE freezones/mainland/offshore or KSA MISA/SEZ/RHQ options — then customise pricing and what you offer.
           </p>
           {canManage ? (
-            <Button onClick={importUae} disabled={importing} className="text-white" style={{ background: "linear-gradient(135deg, #15803D, #22C55E)" }}>
-              {importing ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Download className="w-4 h-4 mr-1.5" />}
-              Load UAE catalog
-            </Button>
+            <div className="flex items-center justify-center gap-2">
+              <Button onClick={() => importCatalog("UAE")} disabled={!!importing} className="text-white" style={{ background: "linear-gradient(135deg, #15803D, #22C55E)" }}>
+                {importing === "UAE" ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Download className="w-4 h-4 mr-1.5" />}
+                Load UAE catalog
+              </Button>
+              <Button onClick={() => importCatalog("KSA")} disabled={!!importing} variant="outline">
+                {importing === "KSA" ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Download className="w-4 h-4 mr-1.5" />}
+                Load KSA catalog
+              </Button>
+            </div>
           ) : (
             <p className="text-xs text-gray-400">Ask an admin to load the catalog.</p>
           )}
@@ -217,18 +240,28 @@ export function LicenseCatalogView({ items, canManage, currency }: Props) {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
               <Input className="pl-8 h-9 text-sm" placeholder="Search authority, name…" value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
+            {hasUae && hasKsa && (
+              <Select value={jurisdictionFilter} onValueChange={(v) => setJurisdictionFilter(v ?? "ALL")}>
+                <SelectTrigger className="w-[120px] h-9 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">UAE & KSA</SelectItem>
+                  <SelectItem value="UAE">UAE</SelectItem>
+                  <SelectItem value="KSA">KSA</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
             <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v ?? "ALL")}>
               <SelectTrigger className="w-[190px] h-9 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All license types</SelectItem>
-                {UAE_TYPES.map((t) => <SelectItem key={t} value={t}>{LICENSE_TYPE_LABELS[t]}</SelectItem>)}
+                {LICENSE_TYPE_OPTIONS.map((t) => <SelectItem key={t} value={t}>{LICENSE_TYPE_LABELS[t]}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={emirateFilter} onValueChange={(v) => setEmirateFilter(v ?? "ALL")}>
               <SelectTrigger className="w-[150px] h-9 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">All emirates</SelectItem>
-                {UAE_EMIRATES.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                <SelectItem value="ALL">All regions</SelectItem>
+                {locationOptions.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
               </SelectContent>
             </Select>
             <span className="text-xs text-gray-400 ml-auto">{filtered.length} of {items.length}</span>
@@ -253,7 +286,7 @@ export function LicenseCatalogView({ items, canManage, currency }: Props) {
 
                 {l.baseCost != null && (
                   <div>
-                    <span className="text-lg font-bold text-gray-900">{formatCurrency(l.baseCost, currency)}</span>
+                    <span className="text-lg font-bold text-gray-900">{formatCurrency(l.baseCost, itemCurrency(l.jurisdiction))}</span>
                     <span className="text-[11px] text-gray-400"> from · {l.tenureYears}yr</span>
                   </div>
                 )}
@@ -320,11 +353,11 @@ export function LicenseCatalogView({ items, canManage, currency }: Props) {
                 <Input placeholder="IFZA, DMCC, DET…" value={form.authority} onChange={(e) => setForm((f) => ({ ...f, authority: e.target.value }))} />
               </div>
               <div className="space-y-1.5">
-                <Label>Emirate</Label>
+                <Label>{form.jurisdiction === "KSA" ? "Region" : "Emirate"}</Label>
                 <Select value={form.emirate} onValueChange={(v) => setForm((f) => ({ ...f, emirate: v ?? "" }))}>
                   <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
-                    {UAE_EMIRATES.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                    {(form.jurisdiction === "KSA" ? KSA_REGIONS : UAE_EMIRATES).map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

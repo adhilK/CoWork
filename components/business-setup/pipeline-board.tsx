@@ -265,7 +265,7 @@ export function PipelineBoard({ leads, staff, catalog, currency, currentUserId }
                 <Label>License product <span className="text-gray-400 font-normal text-[11px]">from your catalog</span></Label>
                 <Select value={form.licenseCatalogId} onValueChange={(v) => {
                   const c = catalog.find((x) => x.id === v);
-                  setForm((f) => ({ ...f, licenseCatalogId: v ?? "", licenseType: c?.licenseType ?? f.licenseType, estimatedFee: c?.baseCost != null ? String(c.baseCost) : f.estimatedFee }));
+                  setForm((f) => ({ ...f, licenseCatalogId: v ?? "", licenseType: c?.licenseType ?? f.licenseType, jurisdiction: c?.jurisdiction ?? f.jurisdiction, estimatedFee: c?.baseCost != null ? String(c.baseCost) : f.estimatedFee }));
                 }}>
                   <SelectTrigger><SelectValue placeholder="Optional — link a product" /></SelectTrigger>
                   <SelectContent>
