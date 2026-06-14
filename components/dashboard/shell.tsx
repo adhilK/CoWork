@@ -121,7 +121,14 @@ export function DashboardShell({ user, organization, role, children }: Props) {
     window.location.href = "/login";
   }
 
-  const SidebarContent = () => (
+  // NOTE: rendered as a function call — `{sidebar()}` — NOT as `<Sidebar />`.
+  // Defining a component inside another and mounting it as an element gives it
+  // a new type identity on every parent render (which happens on every route
+  // change via usePathname), so React unmounts/remounts the whole subtree and
+  // the nav's scroll position jumps back to the top. Calling it as a function
+  // inlines the JSX so it reconciles in place and scroll is preserved. It uses
+  // no hooks, so calling it (even twice) is safe.
+  const sidebar = () => (
     <div className="flex flex-col h-full px-3 py-4">
       {/* Brand */}
       <div className="flex items-center gap-2.5 px-2 mb-4 flex-shrink-0">
@@ -233,7 +240,7 @@ export function DashboardShell({ user, organization, role, children }: Props) {
       <RoleWelcome role={role} userId={user.id} userName={user.name} />
       {/* Desktop Sidebar — full height */}
       <aside className="hidden lg:flex flex-col flex-shrink-0" style={{ width: 252, background: "#0A0F0A" }}>
-        <SidebarContent />
+        {sidebar()}
       </aside>
 
         {/* Mobile Overlay */}
@@ -241,7 +248,7 @@ export function DashboardShell({ user, organization, role, children }: Props) {
           <div className="fixed inset-0 z-50 lg:hidden">
             <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
             <aside className="absolute left-0 top-0 bottom-0 flex flex-col" style={{ width: 256, background: "#0A0F0A" }}>
-              <SidebarContent />
+              {sidebar()}
             </aside>
           </div>
         )}
@@ -327,7 +334,7 @@ export function DashboardShell({ user, organization, role, children }: Props) {
       </nav>
 
       {/* Global command palette (⌘K / search box) */}
-      <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />
+      <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} role={role} />
     </div>
   );
 }

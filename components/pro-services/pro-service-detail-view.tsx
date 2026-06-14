@@ -77,11 +77,13 @@ export function ProServiceDetailView({ request, staff, staffMap }: Props) {
 
   return (
     <div className="space-y-5 max-w-4xl">
+      {/* Back */}
+      <Link href="/dashboard/pro-services"
+        className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors">
+        <ArrowLeft className="w-4 h-4 mr-1" /> Back to PRO services
+      </Link>
       {/* Header */}
       <div className="flex items-start gap-3 flex-wrap">
-        <Link href="/dashboard/pro-services" className="p-1.5 rounded-lg hover:bg-black/5 mt-1">
-          <ArrowLeft className="w-4 h-4 text-gray-500" />
-        </Link>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-xl font-bold text-gray-900">{serviceTypeLabel(r.serviceType)}</h1>

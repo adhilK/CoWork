@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getApiAuth } from "@/lib/auth";
 import { updateBookingSchema } from "@/lib/validations";
 import { checkinUrl } from "@/lib/checkin-token";
+import { computeCharge } from "@/lib/booking-pricing";
+import { validateWithinOpeningHours } from "@/lib/opening-hours";
 import { getBaseUrl, apiError, apiSuccess } from "@/lib/utils";
 import { deleteCalendarEvent } from "@/lib/google-calendar";
 
@@ -44,23 +46,63 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const { startTime, endTime, resourceId, ...rest } = parsed.data;
 
-  // Overlap check if times changed
-  if (startTime && endTime) {
+  // The effective window/resource after this edit (fall back to current values).
+  const effResourceId = resourceId ?? booking.resourceId;
+  const effStart = startTime ?? booking.startTime;
+  const effEnd = endTime ?? booking.endTime;
+  const timesChanged = !!startTime || !!endTime || !!resourceId;
+
+  // Load the (possibly new) resource with rates + location hours so we can both
+  // enforce opening hours and reprice the booking.
+  const resource = await prisma.resource.findFirst({
+    where: { id: effResourceId, organizationId: orgId, deletedAt: null },
+    include: {
+      location: { select: { openingHours: true, timezone: true } },
+      organization: { select: { timezone: true } },
+    },
+  });
+  if (!resource) return apiError("Resource not found", 404);
+
+  if (timesChanged) {
+    // Opening-hours enforcement on the new window
+    const hoursError = validateWithinOpeningHours(
+      resource.location?.openingHours,
+      resource.location?.timezone ?? resource.organization.timezone,
+      effStart,
+      effEnd
+    );
+    if (hoursError) return apiError(hoursError, 422);
+
+    // Overlap check against other bookings on the effective resource/window
     const conflict = await prisma.booking.findFirst({
       where: {
-        resourceId: resourceId ?? booking.resourceId,
+        resourceId: effResourceId,
         deletedAt: null,
         id: { not: params.id },
         status: { in: ["PENDING", "CONFIRMED", "CHECKED_IN"] },
-        AND: [{ startTime: { lt: endTime } }, { endTime: { gt: startTime } }],
+        AND: [{ startTime: { lt: effEnd } }, { endTime: { gt: effStart } }],
       },
     });
     if (conflict) return apiError("Time slot conflict with another booking", 409);
   }
 
+  // Reprice when the window or resource changed. Credit-settled bookings
+  // (creditsUsed > 0) keep their credit settlement; pay-per-use bookings get
+  // their amount recomputed so extending/shortening reflects in the price.
+  let repricedAmount: number | undefined;
+  if (timesChanged && booking.creditsUsed === 0) {
+    repricedAmount = computeCharge(resource, effStart, effEnd).amount;
+  }
+
   const updated = await prisma.booking.update({
     where: { id: params.id },
-    data: { ...rest, ...(startTime && { startTime }), ...(endTime && { endTime }), ...(resourceId && { resourceId }) },
+    data: {
+      ...rest,
+      ...(startTime && { startTime }),
+      ...(endTime && { endTime }),
+      ...(resourceId && { resourceId }),
+      ...(repricedAmount !== undefined && { amountCharged: repricedAmount }),
+    },
     include: { resource: true, member: { include: { user: true } } },
   });
 

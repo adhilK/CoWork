@@ -45,7 +45,8 @@ export function MembersTable({ members, total, page, limit, currency, plans, org
     const params = new URLSearchParams(searchParams.toString());
     if (value && value !== "all") params.set(key, value);
     else params.delete(key);
-    params.delete("page");
+    // Changing a filter resets to page 1; paging itself must keep the page.
+    if (key !== "page") params.delete("page");
     startTransition(() => router.push(`/dashboard/members?${params}`));
   }
 

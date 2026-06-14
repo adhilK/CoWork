@@ -74,10 +74,17 @@ function todayString() {
   return new Date().toISOString().split("T")[0]!;
 }
 
-export function ResourceBrowser({ currency }: { currency: string }) {
+export function ResourceBrowser({
+  currency,
+  initialResources,
+}: {
+  currency: string;
+  initialResources?: Resource[];
+}) {
   const router = useRouter();
-  const [resources, setResources] = useState<Resource[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [resources, setResources] = useState<Resource[]>(initialResources ?? []);
+  // When the page already provided resources, there's nothing to load.
+  const [loading, setLoading] = useState(!initialResources);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("ALL");
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
@@ -91,6 +98,9 @@ export function ResourceBrowser({ currency }: { currency: string }) {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    // Resources are supplied by the server component; only fall back to the
+    // API if they weren't (keeps the component usable standalone).
+    if (initialResources) return;
     fetch("/api/resources")
       .then((r) => r.json())
       .then((data) => {
@@ -106,7 +116,7 @@ export function ResourceBrowser({ currency }: { currency: string }) {
       })
       .catch(() => toast.error("Failed to load resources"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [initialResources]);
 
   const filtered = resources
     .filter((r) => r.isActive)

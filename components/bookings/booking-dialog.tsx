@@ -63,6 +63,21 @@ export function BookingDialog({ open, onClose, bookingId, defaultDate, resources
 
   const recurringValue = watch("recurring");
 
+  // Live charge estimate so the price reflects time changes (e.g. extending
+  // hours) immediately, before saving. Only hourly-rated resources can be
+  // estimated client-side; others fall back to the stored amount.
+  const watchResourceId = watch("resourceId");
+  const watchStart = watch("startTime");
+  const watchEnd = watch("endTime");
+  const liveEstimate = (() => {
+    const r = resources.find((x) => x.id === watchResourceId);
+    if (!r || r.hourlyRate == null || !watchStart || !watchEnd) return null;
+    const hrs = (new Date(watchEnd).getTime() - new Date(watchStart).getTime()) / 3600000;
+    if (!(hrs > 0)) return null;
+    return Math.round(hrs * Number(r.hourlyRate) * 100) / 100;
+  })();
+  const displayAmount = liveEstimate ?? amountCharged;
+
   useEffect(() => {
     if (open && !isEdit && defaultDate) {
       const start = defaultDate;
@@ -314,20 +329,22 @@ export function BookingDialog({ open, onClose, bookingId, defaultDate, resources
             </div>
           )}
 
-          {/* Charge summary */}
-          {amountCharged !== null && amountCharged > 0 && (
+          {/* Charge summary — live estimate updates as the times change */}
+          {displayAmount !== null && displayAmount > 0 && (
             <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 border border-gray-100">
               <div>
                 <p className="text-xs text-gray-500">Booking charge</p>
-                {bookingStatus && bookingStatus !== "CANCELLED" && (
+                {liveEstimate !== null ? (
+                  <p className="text-[10px] text-gray-400 mt-0.5">Estimated from hourly rate</p>
+                ) : bookingStatus && bookingStatus !== "CANCELLED" ? (
                   <p className="text-[10px] text-gray-400 mt-0.5">
                     {bookingStatus === "COMPLETED" || bookingStatus === "CHECKED_IN"
                       ? "Completed — ready to invoice"
                       : "Will be invoiced after completion"}
                   </p>
-                )}
+                ) : null}
               </div>
-              <span className="text-lg font-bold text-gray-900">{formatCurrency(amountCharged, currency)}</span>
+              <span className="text-lg font-bold text-gray-900">{formatCurrency(displayAmount, currency)}</span>
             </div>
           )}
 

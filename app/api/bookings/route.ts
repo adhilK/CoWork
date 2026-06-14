@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/auth";
 import { createBookingSchema } from "@/lib/validations";
 import { computeCharge, settleBooking } from "@/lib/booking-pricing";
+import { validateWithinOpeningHours } from "@/lib/opening-hours";
 import { sendBookingConfirmation } from "@/lib/email";
 import { apiError, apiSuccess, buildPaginationMeta, getPaginationParams } from "@/lib/utils";
 import { addDays, addWeeks, addMonths } from "date-fns";
@@ -100,17 +101,33 @@ export async function POST(req: NextRequest) {
 
   const { resourceId, memberId, startTime, endTime, title, description, attendees, recurring, recurringUntil } = parsed.data;
 
-  // Verify resource belongs to org
+  // Verify resource belongs to org. Pull the location's opening hours +
+  // timezone (and org timezone fallback) so we can enforce open hours.
   const resource = await prisma.resource.findFirst({
     where: { id: resourceId, organizationId: orgId, isActive: true, deletedAt: null },
+    include: {
+      location: { select: { openingHours: true, timezone: true } },
+      organization: { select: { timezone: true } },
+    },
   });
   if (!resource) return apiError("Resource not found", 404);
+
+  const tz = resource.location?.timezone ?? resource.organization.timezone;
 
   // Build the full list of slots (1 for one-off, N for recurring)
   const isRecurring = recurring !== "NONE" && !!recurringUntil;
   const slots = isRecurring
     ? buildRecurringSlots(startTime, endTime, recurring as "DAILY" | "WEEKLY" | "MONTHLY", recurringUntil!)
     : [{ start: startTime, end: endTime }];
+
+  // Opening-hours check for ALL slots (recurring occurrences may land on a
+  // closed day) before creating any.
+  for (const slot of slots) {
+    const hoursError = validateWithinOpeningHours(
+      resource.location?.openingHours, tz, slot.start, slot.end
+    );
+    if (hoursError) return apiError(hoursError, 422);
+  }
 
   // Conflict check for ALL slots before creating any
   for (const slot of slots) {

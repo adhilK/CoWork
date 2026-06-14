@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { computeCharge, settleBooking } from "@/lib/booking-pricing";
+import { validateWithinOpeningHours } from "@/lib/opening-hours";
 import { sendBookingConfirmation } from "@/lib/email";
 import { apiError, apiSuccess } from "@/lib/utils";
 import { createCalendarEvent } from "@/lib/google-calendar";
@@ -87,13 +88,18 @@ export async function POST(req: NextRequest) {
 
   const { resourceId, startTime, endTime, title, attendees } = parsed.data;
 
-  // Verify resource belongs to the member's organization and is active
+  // Verify resource belongs to the member's organization and is active.
+  // Include location hours + timezone for the opening-hours check.
   const resource = await prisma.resource.findFirst({
     where: {
       id: resourceId,
       organizationId: member.organizationId,
       isActive: true,
       deletedAt: null,
+    },
+    include: {
+      location: { select: { openingHours: true, timezone: true } },
+      organization: { select: { timezone: true } },
     },
   });
   if (!resource) return apiError("Resource not found", 404);
@@ -105,6 +111,15 @@ export async function POST(req: NextRequest) {
       400
     );
   }
+
+  // Opening-hours check — members can't book a closed day or outside hours
+  const hoursError = validateWithinOpeningHours(
+    resource.location?.openingHours,
+    resource.location?.timezone ?? resource.organization.timezone,
+    startTime,
+    endTime
+  );
+  if (hoursError) return apiError(hoursError, 422);
 
   // Advance booking check
   const maxAdvanceMs = resource.advanceBookingDays * 24 * 60 * 60 * 1000;
