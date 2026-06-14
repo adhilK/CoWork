@@ -301,6 +301,27 @@ enum ServiceUrgency {
   URGENT
 }
 
+// Partner network & referral fees (Phase 3)
+enum PartnerType {
+  INDIVIDUAL
+  COMPANY
+  AGENCY
+  FREELANCER
+  OTHER
+}
+
+enum CommissionType {
+  PERCENTAGE
+  FIXED
+}
+
+enum ReferralStatus {
+  PENDING
+  CONVERTED
+  PAID
+  CANCELLED
+}
+
 // Coarse license classification (Module 6). Detailed products live in
 // LicenseCatalog; leads/applications reference this enum.
 enum LicenseType {
@@ -372,6 +393,8 @@ model Organization {
   licenseCatalog            LicenseCatalog[]
   businessSetupLeads        BusinessSetupLead[]
   proServiceRequests        ProServiceRequest[]
+  partners                  Partner[]
+  referrals                 Referral[]
 
   @@index([slug])
 }
@@ -962,6 +985,66 @@ model ProServiceActivity {
   request         ProServiceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
 
   @@index([requestId])
+}
+
+// ─── PARTNER NETWORK & REFERRAL FEES (Phase 3) ──────────────────────────────────
+
+model Partner {
+  id             String         @id @default(cuid())
+  organizationId String
+  name           String
+  companyName    String?
+  type           PartnerType    @default(INDIVIDUAL)
+  email          String?
+  phone          String?
+  whatsapp       String?
+  commissionType CommissionType @default(PERCENTAGE)
+  // PERCENTAGE → percent (e.g. 10.00); FIXED → flat amount per converted referral.
+  commissionRate Decimal        @default(0) @db.Decimal(10, 2)
+  currency       String         @default("AED")
+  payoutDetails  String?        // IBAN/bank — encrypted at rest (lib/encryption.ts)
+  notes          String?
+  isActive       Boolean        @default(true)
+  deletedAt      DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  referrals      Referral[]
+
+  @@index([organizationId])
+  @@index([organizationId, deletedAt])
+}
+
+model Referral {
+  id                 String         @id @default(cuid())
+  organizationId     String
+  partnerId          String
+  clientName         String
+  clientPhone        String?
+  clientEmail        String?
+  serviceDescription String?
+  leadId             String?        // linked BusinessSetupLead (plain ref)
+  memberId           String?        // when converted to a member
+  dealValue          Decimal?       @db.Decimal(10, 2)
+  commissionAmount   Decimal?       @db.Decimal(10, 2)
+  currency           String         @default("AED")
+  status             ReferralStatus @default(PENDING)
+  convertedAt        DateTime?
+  paidAt             DateTime?
+  payoutReference    String?
+  notes              String?
+  deletedAt          DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  partner            Partner      @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, deletedAt])
+  @@index([partnerId])
 }
 
 // ─── COMMUNITY ───────────────────────────────────────────────────────────────

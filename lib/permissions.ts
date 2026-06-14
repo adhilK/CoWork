@@ -32,13 +32,14 @@ export type Capability =
   | "community"
   | "businessSetup" // Phase 3
   | "proServices"   // Phase 3
+  | "partners"      // Phase 3 — referral partners & commissions
   | "billing"       // platform subscription / billing
   | "settings";     // org settings + integrations
 
 const ALL: Capability[] = [
   "dashboard", "bookings", "resources", "locations", "members", "plans",
   "visitors", "invoices", "documents", "virtualOffice", "whatsapp", "analytics",
-  "automations", "community", "businessSetup", "proServices", "billing", "settings",
+  "automations", "community", "businessSetup", "proServices", "partners", "billing", "settings",
 ];
 
 // Everything an ADMIN can do = everything except platform billing.

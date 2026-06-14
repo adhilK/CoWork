@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Calendar, Users, FileText, BarChart3,
   Settings, LogOut, Menu, Building2, Bell,
-  CreditCard, UserCheck, MessageSquare, Search, Tag, X, Mailbox, MessageCircle, FolderLock, MapPin, Zap, Landmark, Stamp,
+  CreditCard, UserCheck, MessageSquare, Search, Tag, X, Mailbox, MessageCircle, FolderLock, MapPin, Zap, Landmark, Stamp, Handshake,
 } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -39,7 +39,8 @@ const NAV_ITEMS: { href: string; label: string; icon: any; exact?: boolean; badg
   { href: "/dashboard/invoices", label: "Invoices", icon: FileText, cap: "invoices" },
   { href: "/dashboard/documents", label: "Documents", icon: FolderLock, cap: "documents" },
   { href: "/dashboard/business-setup/leads", label: "Business Setup", icon: Landmark, cap: "businessSetup" },
-  { href: "/dashboard/pro-services", label: "PRO Services", icon: Stamp, cap: "proServices", badge: "NEW" },
+  { href: "/dashboard/pro-services", label: "PRO Services", icon: Stamp, cap: "proServices" },
+  { href: "/dashboard/partners", label: "Partners", icon: Handshake, cap: "partners", badge: "NEW" },
   { href: "/dashboard/virtual-office", label: "Virtual Office", icon: Mailbox, cap: "virtualOffice" },
   { href: "/dashboard/whatsapp", label: "WhatsApp", icon: MessageCircle, cap: "whatsapp" },
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3, cap: "analytics" },
