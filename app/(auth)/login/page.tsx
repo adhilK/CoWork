@@ -43,16 +43,25 @@ export default function LoginPage({
 
       <LoginForm />
 
-      <p className="text-center text-sm text-gray-500">
-        Don&apos;t have an account?{" "}
-        <a
-          href="/register"
-          className="font-semibold transition-colors"
-          style={{ color: "#22C55E" }}
-        >
-          Start your 14-day free trial →
-        </a>
-      </p>
+      {/* Audience clarity — members/staff are invited, operators sign up */}
+      <div className="space-y-3">
+        <div className="rounded-xl border border-gray-100 bg-gray-50/70 px-4 py-3">
+          <p className="text-xs text-gray-600">
+            <span className="font-semibold text-gray-800">Member or staff?</span> You don&apos;t need to sign up —
+            open the invite link emailed to you by your space, then sign in here.
+          </p>
+        </div>
+        <p className="text-center text-sm text-gray-500">
+          Run a coworking space?{" "}
+          <a
+            href="/register"
+            className="font-semibold transition-colors"
+            style={{ color: "#22C55E" }}
+          >
+            Start your 14-day free trial →
+          </a>
+        </p>
+      </div>
     </div>
   );
 }

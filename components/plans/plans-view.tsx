@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Users, Trash2, ToggleLeft, ToggleRight, ChevronRight, Tag } from "lucide-react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -229,13 +230,17 @@ export function PlansView({ initialPlans, currency }: Props) {
       </div>
 
       {plans.length === 0 ? (
-        <div className="dashboard-card p-12 text-center">
-          <Tag className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-medium">No plans yet</p>
-          <p className="text-sm text-gray-400 mt-1">Create a membership plan to assign to members.</p>
-          <Button className="mt-4 text-white" style={{ background: "#22C55E" }}
-            onClick={() => setDialogOpen(true)}>Create first plan</Button>
-        </div>
+        <EmptyState
+          icon={Tag}
+          title="Create your membership plans"
+          description="Plans define what you charge members and what they get — a monthly price, included booking credits, and meeting-room hours. You'll assign a plan to each member."
+          steps={[
+            "Create a plan (e.g. “Hot Desk — Monthly”).",
+            "Set the price, billing cycle, and included credits.",
+            "Assign it to members so billing runs automatically.",
+          ]}
+          primary={{ label: "Create your first plan", onClick: () => setDialogOpen(true) }}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {plans.map((p) => (

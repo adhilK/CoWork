@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Search, UserPlus, ChevronRight } from "lucide-react";
+import { Plus, Search, UserPlus, ChevronRight, Users } from "lucide-react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +50,37 @@ export function MembersTable({ members, total, page, limit, currency, plans, org
   }
 
   const totalPages = Math.ceil(total / limit);
+  const noFilters = !searchParams.get("search") && (!searchParams.get("status") || searchParams.get("status") === "all");
+
+  // Brand-new org → guided empty state instead of an empty table + filter bar.
+  if (total === 0 && noFilters) {
+    return (
+      <div className="space-y-5">
+        <div>
+          <h1 className="page-title">Members</h1>
+          <p className="page-subtitle">The people who use your space</p>
+        </div>
+        <EmptyState
+          icon={Users}
+          title="Invite your members"
+          description="Members get their own portal to book spaces, view invoices, and manage documents. Invite them by email — they set their own password from the link."
+          steps={[
+            "Invite a member by name and email.",
+            "Optionally put them on a membership plan.",
+            "They accept the email invite and can start booking.",
+          ]}
+          primary={{ label: "Invite your first member", onClick: () => setInviteOpen(true) }}
+        />
+        <InviteMemberDialog
+          open={inviteOpen}
+          onClose={() => setInviteOpen(false)}
+          plans={plans}
+          organizationId={organizationId}
+          onSuccess={() => { setInviteOpen(false); router.refresh(); }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

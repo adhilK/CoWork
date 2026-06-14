@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Building2, Users, Clock, MoreVertical, Edit, Trash2, ChevronRight, Search, CheckCircle2 } from "lucide-react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -133,15 +134,17 @@ export function ResourcesView({ resources, locations, currency, organizationId, 
       )}
 
       {items.length === 0 ? (
-        <div className="dashboard-card p-12 text-center">
-          <Building2 className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-medium">No resources yet</p>
-          <p className="text-sm text-gray-400 mt-1">Add desks, meeting rooms, and offices to get started.</p>
-          <Button className="mt-4 text-white" style={{ background: "#22C55E" }}
-            onClick={() => router.push("/dashboard/resources/new")}>
-            Add first resource
-          </Button>
-        </div>
+        <EmptyState
+          icon={Building2}
+          title="Add the spaces people can book"
+          description="Resources are the desks, meeting rooms, and offices members reserve. Set their capacity and hourly or day rates, and they'll appear in the booking calendar."
+          steps={[
+            "Add a resource — e.g. “Hot Desk” or “Meeting Room A”.",
+            "Set its capacity and pricing (or mark it credit-based).",
+            "Members can now book it from their portal.",
+          ]}
+          primary={{ label: "Add your first resource", href: "/dashboard/resources/new" }}
+        />
       ) : displayed.length === 0 ? (
         <div className="dashboard-card p-12 text-center text-gray-400">
           <Search className="w-9 h-9 text-gray-300 mx-auto mb-2" />

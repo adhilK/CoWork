@@ -9,7 +9,7 @@ import { OccupancyChart } from "@/components/dashboard/occupancy-chart";
 import { RecentInvoices } from "@/components/dashboard/recent-invoices";
 import { NeedsAttention } from "@/components/dashboard/needs-attention";
 import { GettingStarted, type SetupStep } from "@/components/dashboard/getting-started";
-import { isAdminRole } from "@/lib/permissions";
+import { isAdminRole, homePathForRole } from "@/lib/permissions";
 import { startOfMonth, subMonths, startOfDay, endOfDay } from "date-fns";
 
 export const metadata: Metadata = { title: "Dashboard — CoWork Pro" };
@@ -144,6 +144,10 @@ async function getSetupSteps(orgId: string): Promise<{ steps: SetupStep[]; essen
 export default async function DashboardPage() {
   const ctx = await getAuthContext();
   if (!ctx) redirect("/login");
+
+  // Focused roles (receptionist, PRO agent) land directly in their work area
+  // rather than the operator overview, which they can't act on.
+  if (!isAdminRole(ctx.role)) redirect(homePathForRole(ctx.role));
 
   const data = await getDashboardData(ctx.organizationId);
   // Show the guided setup checklist to operators while setup is incomplete.

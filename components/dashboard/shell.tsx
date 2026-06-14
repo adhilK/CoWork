@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
 import { CommandPalette } from "@/components/shared/command-palette";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { can, type Capability } from "@/lib/permissions";
+import { can, ROLE_LABELS, type Capability } from "@/lib/permissions";
 import type { Plan, UserRole } from "@prisma/client";
 
 type Props = {
@@ -218,6 +218,10 @@ export function DashboardShell({ user, organization, role, children }: Props) {
             <p className="text-white text-xs font-semibold truncate leading-tight">{user.name ?? "You"}</p>
             <p className="text-[10px] truncate" style={{ color: "rgba(255,255,255,0.35)" }}>{user.email}</p>
           </div>
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0"
+            style={{ background: "rgba(34,197,94,0.15)", color: "#4ADE80" }}>
+            {ROLE_LABELS[role] ?? role}
+          </span>
         </div>
       </div>
     </div>
