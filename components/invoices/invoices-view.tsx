@@ -3,6 +3,7 @@
 import { useState, useTransition, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, FileText, AlertCircle, ChevronDown, ChevronUp, Zap, Download } from "lucide-react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -338,12 +339,17 @@ export function InvoicesView({ invoices, total, page, limit, summary, collectedT
 
       {/* Invoice list — card on mobile, table on sm+ */}
       {invoices.length === 0 ? (
-        <div className="dashboard-card p-10 text-center text-gray-400 text-sm">
-          No invoices yet
-          {unbilledBookings.length > 0 && (
-            <p className="text-xs mt-1 text-indigo-400">Use the panel above to generate invoices from unbilled bookings</p>
-          )}
-        </div>
+        <EmptyState
+          icon={FileText}
+          title="No invoices yet"
+          description="Invoices carry the right VAT for your jurisdiction and download as a PDF. They're created automatically from plans and bookings, or you can raise one by hand."
+          steps={[
+            "Members on a plan are billed automatically each month.",
+            "Turn unbilled bookings into invoices from the panel above.",
+            "Or create a one-off invoice for any member.",
+          ]}
+          primary={{ label: "New invoice", onClick: () => setCreateOpen(true) }}
+        />
       ) : (
         <>
           {/* Mobile cards */}

@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { format, isToday } from "date-fns";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/shared/empty-state";
 import { PhotoCapture } from "@/components/visitors/photo-capture";
 
 type Visitor = {
@@ -440,7 +441,17 @@ export function VisitorsView({ initialVisitors, members, deliveries, stats }: Pr
       {/* ── Visitors tab ── */}
       {tab === "visitors" && (
         initialVisitors.length === 0 ? (
-          <Empty icon={UserCheck} title="No visitors yet" hint="Log your first visitor with the button above." />
+          <EmptyState
+            icon={UserCheck}
+            title="Sign in your visitors"
+            description="Keep a log of everyone who comes to your space — capture their details and (optionally) a photo, and the member they're here to see is notified automatically."
+            steps={[
+              "Log a visitor with their name and who they're visiting.",
+              "The host member gets a WhatsApp arrival alert.",
+              "Check them out when they leave.",
+            ]}
+            primary={{ label: "Log a visitor", onClick: () => setVisitorDialog(true) }}
+          />
         ) : (
           <div className="space-y-5">
             {todayVisitors.length > 0 && (

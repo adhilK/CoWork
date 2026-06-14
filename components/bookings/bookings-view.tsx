@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { EmptyState } from "@/components/shared/empty-state";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -258,14 +259,17 @@ export function BookingsView({ resources, members, currency, timezone, upcomingB
       {/* ── SCHEDULE VIEW (default) ─────────────────────────────────────────── */}
       {tab === "schedule" && (
         grouped.length === 0 ? (
-          <div className="dashboard-card p-12 text-center">
-            <CalendarDays className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500 font-medium">No upcoming bookings</p>
-            <p className="text-sm text-gray-400 mt-1">New bookings for the next 14 days will appear here.</p>
-            <Button className="mt-4 text-white" style={{ background: "#22C55E" }} onClick={openNew}>
-              <Plus className="w-4 h-4 mr-1.5" /> Create a booking
-            </Button>
-          </div>
+          <EmptyState
+            icon={CalendarDays}
+            title="No upcoming bookings"
+            description="Bookings are reservations of your spaces — desks, meeting rooms, or offices. Create one for a member, or members can book themselves from their portal."
+            steps={[
+              "Pick a resource, member, date, and time.",
+              "Charge a fee or deduct booking credits automatically.",
+              "It shows here and on the member's portal.",
+            ]}
+            primary={{ label: "Create a booking", onClick: openNew }}
+          />
         ) : (
           <div className="space-y-6">
             {grouped.map((g) => (

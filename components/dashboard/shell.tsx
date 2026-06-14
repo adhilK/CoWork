@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/client";
 import { CommandPalette } from "@/components/shared/command-palette";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { can, ROLE_LABELS, type Capability } from "@/lib/permissions";
+import { RoleWelcome } from "@/components/dashboard/role-welcome";
 import type { Plan, UserRole } from "@prisma/client";
 
 type Props = {
@@ -229,6 +230,7 @@ export function DashboardShell({ user, organization, role, children }: Props) {
 
   return (
     <div className="flex h-screen overflow-hidden">
+      <RoleWelcome role={role} userId={user.id} userName={user.name} />
       {/* Desktop Sidebar — full height */}
       <aside className="hidden lg:flex flex-col flex-shrink-0" style={{ width: 252, background: "#0A0F0A" }}>
         <SidebarContent />
