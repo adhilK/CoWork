@@ -28,24 +28,56 @@ type Props = {
   children: React.ReactNode;
 };
 
-const NAV_ITEMS: { href: string; label: string; icon: any; exact?: boolean; badge?: string; cap: Capability }[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true, cap: "dashboard" },
-  { href: "/dashboard/bookings", label: "Bookings", icon: Calendar, cap: "bookings" },
-  { href: "/dashboard/resources", label: "Resources", icon: Building2, cap: "resources" },
-  { href: "/dashboard/locations", label: "Locations", icon: MapPin, cap: "locations" },
-  { href: "/dashboard/members", label: "Members", icon: Users, cap: "members" },
-  { href: "/dashboard/plans", label: "Plans", icon: Tag, cap: "plans" },
-  { href: "/dashboard/visitors", label: "Visitors", icon: UserCheck, cap: "visitors" },
-  { href: "/dashboard/invoices", label: "Invoices", icon: FileText, cap: "invoices" },
-  { href: "/dashboard/documents", label: "Documents", icon: FolderLock, cap: "documents" },
-  { href: "/dashboard/business-setup/leads", label: "Business Setup", icon: Landmark, cap: "businessSetup" },
-  { href: "/dashboard/pro-services", label: "PRO Services", icon: Stamp, cap: "proServices" },
-  { href: "/dashboard/partners", label: "Partners", icon: Handshake, cap: "partners", badge: "NEW" },
-  { href: "/dashboard/virtual-office", label: "Virtual Office", icon: Mailbox, cap: "virtualOffice" },
-  { href: "/dashboard/whatsapp", label: "WhatsApp", icon: MessageCircle, cap: "whatsapp" },
-  { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3, cap: "analytics" },
-  { href: "/dashboard/automations", label: "Automations", icon: Zap, cap: "automations" },
-  { href: "/dashboard/community", label: "Community", icon: MessageSquare, cap: "community" },
+type NavItem = { href: string; label: string; icon: any; exact?: boolean; cap: Capability };
+
+// Grouped navigation — keeps each section short and scannable instead of one
+// long flat list. Empty sections (after role filtering) are hidden.
+const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
+  {
+    label: null,
+    items: [{ href: "/dashboard", label: "Home", icon: LayoutDashboard, exact: true, cap: "dashboard" }],
+  },
+  {
+    label: "Workspace",
+    items: [
+      { href: "/dashboard/bookings", label: "Bookings", icon: Calendar, cap: "bookings" },
+      { href: "/dashboard/resources", label: "Resources", icon: Building2, cap: "resources" },
+      { href: "/dashboard/visitors", label: "Visitors", icon: UserCheck, cap: "visitors" },
+    ],
+  },
+  {
+    label: "Members & Billing",
+    items: [
+      { href: "/dashboard/members", label: "Members", icon: Users, cap: "members" },
+      { href: "/dashboard/plans", label: "Plans", icon: Tag, cap: "plans" },
+      { href: "/dashboard/invoices", label: "Invoices", icon: FileText, cap: "invoices" },
+    ],
+  },
+  {
+    label: "Business Services",
+    items: [
+      { href: "/dashboard/business-setup/leads", label: "Business Setup", icon: Landmark, cap: "businessSetup" },
+      { href: "/dashboard/pro-services", label: "PRO Services", icon: Stamp, cap: "proServices" },
+      { href: "/dashboard/virtual-office", label: "Virtual Office", icon: Mailbox, cap: "virtualOffice" },
+      { href: "/dashboard/documents", label: "Documents", icon: FolderLock, cap: "documents" },
+      { href: "/dashboard/partners", label: "Partners", icon: Handshake, cap: "partners" },
+    ],
+  },
+  {
+    label: "Grow",
+    items: [
+      { href: "/dashboard/whatsapp", label: "WhatsApp", icon: MessageCircle, cap: "whatsapp" },
+      { href: "/dashboard/community", label: "Community", icon: MessageSquare, cap: "community" },
+      { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3, cap: "analytics" },
+    ],
+  },
+  {
+    label: "Admin",
+    items: [
+      { href: "/dashboard/locations", label: "Locations", icon: MapPin, cap: "locations" },
+      { href: "/dashboard/automations", label: "Automations", icon: Zap, cap: "automations" },
+    ],
+  },
 ];
 
 const PLAN_COLORS: Record<Plan, string> = {
@@ -67,8 +99,10 @@ export function DashboardShell({ user, organization, role, children }: Props) {
   const [cmdOpen, setCmdOpen] = useState(false);
   const supabase = createClient();
 
-  // Filter navigation to what this role is allowed to see.
-  const visibleNav = NAV_ITEMS.filter((item) => can(role, item.cap));
+  // Filter navigation to what this role is allowed to see; drop empty sections.
+  const visibleSections = NAV_SECTIONS
+    .map((s) => ({ label: s.label, items: s.items.filter((item) => can(role, item.cap)) }))
+    .filter((s) => s.items.length > 0);
   const canSettings = can(role, "settings");
 
   useEffect(() => { setMobileOpen(false); }, [pathname]);
@@ -124,55 +158,50 @@ export function DashboardShell({ user, organization, role, children }: Props) {
         <kbd className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.3)" }}>⌘K</kbd>
       </button>
 
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] px-2 mb-2 flex-shrink-0"
-        style={{ color: "rgba(255,255,255,0.25)" }}>Navigation</p>
-
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto space-y-1 -mx-1 px-1">
-        {visibleNav.map((item) => {
-          const active = isActive(item.href, item.exact);
-          return (
-            <Link key={item.href} href={item.href}
-              className={cn(
-                "group flex items-center gap-3 pl-1.5 pr-3 py-1.5 rounded-2xl text-[13.5px] font-medium transition-all duration-150",
-                active ? "bg-white text-gray-900 shadow-sm" : "text-white/55 hover:text-white hover:bg-white/[0.05]"
-              )}>
-              <span className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-colors",
-                active ? "bg-gray-900 text-white" : "bg-white/[0.07] text-white/65 group-hover:bg-white/[0.12]"
-              )}>
-                <item.icon style={{ width: 15, height: 15 }} />
-              </span>
-              <span className="flex-1">{item.label}</span>
-              {item.badge && (
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                  style={{ background: "rgba(34,197,94,0.18)", color: "#4ADE80" }}>{item.badge}</span>
-              )}
-            </Link>
-          );
-        })}
+      {/* Nav — grouped sections */}
+      <nav className="flex-1 overflow-y-auto -mx-1 px-1">
+        {visibleSections.map((section, si) => (
+          <div key={section.label ?? `s-${si}`} className={section.label ? "mt-4 first:mt-0" : ""}>
+            {section.label && (
+              <p className="text-[10px] font-semibold uppercase tracking-[0.1em] px-2.5 mb-1.5"
+                style={{ color: "rgba(255,255,255,0.28)" }}>{section.label}</p>
+            )}
+            <div className="space-y-0.5">
+              {section.items.map((item) => {
+                const active = isActive(item.href, item.exact);
+                return (
+                  <Link key={item.href} href={item.href}
+                    className={cn(
+                      "group flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-colors",
+                      active ? "bg-white text-gray-900 shadow-sm" : "text-white/60 hover:text-white hover:bg-white/[0.06]"
+                    )}>
+                    <item.icon className={cn("flex-shrink-0 transition-colors", active ? "text-emerald-600" : "text-white/45 group-hover:text-white/80")}
+                      style={{ width: 17, height: 17 }} />
+                    <span className="flex-1">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* Bottom */}
-      <div className="pt-3 mt-2 space-y-1 flex-shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+      <div className="pt-2 mt-2 space-y-0.5 flex-shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
         {canSettings && (
           <Link href="/dashboard/settings"
             className={cn(
-              "group flex items-center gap-3 pl-1.5 pr-3 py-1.5 rounded-2xl text-[13.5px] font-medium transition-all",
-              isActive("/dashboard/settings") ? "bg-white text-gray-900 shadow-sm" : "text-white/55 hover:text-white hover:bg-white/[0.05]"
+              "group flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-colors",
+              isActive("/dashboard/settings") ? "bg-white text-gray-900 shadow-sm" : "text-white/60 hover:text-white hover:bg-white/[0.06]"
             )}>
-            <span className={cn("w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
-              isActive("/dashboard/settings") ? "bg-gray-900 text-white" : "bg-white/[0.07] text-white/65 group-hover:bg-white/[0.12]")}>
-              <Settings style={{ width: 15, height: 15 }} />
-            </span>
+            <Settings className={cn("flex-shrink-0", isActive("/dashboard/settings") ? "text-emerald-600" : "text-white/45 group-hover:text-white/80")}
+              style={{ width: 17, height: 17 }} />
             <span>Settings</span>
           </Link>
         )}
         <button onClick={handleSignOut}
-          className="group w-full flex items-center gap-3 pl-1.5 pr-3 py-1.5 rounded-2xl text-[13.5px] font-medium text-white/55 hover:text-red-400 hover:bg-white/[0.05] transition-all">
-          <span className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-white/[0.07] text-white/65 group-hover:bg-red-500/15 group-hover:text-red-400">
-            <LogOut style={{ width: 15, height: 15 }} />
-          </span>
+          className="group w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-[13px] font-medium text-white/60 hover:text-red-400 hover:bg-white/[0.06] transition-colors">
+          <LogOut className="flex-shrink-0 text-white/45 group-hover:text-red-400" style={{ width: 17, height: 17 }} />
           <span>Sign out</span>
         </button>
 
