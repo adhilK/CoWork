@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { Calendar, Clock, CreditCard, ArrowRight, Pin, Megaphone, CalendarPlus, Sparkles } from "lucide-react";
+import {
+  Calendar, Clock, CreditCard, ArrowRight, Pin, Megaphone, CalendarPlus, Sparkles,
+  FileText, FolderLock, Stamp, User,
+} from "lucide-react";
 import { formatDate, formatDateTime, formatTime, humanizeEnum } from "@/lib/utils";
 
 type Booking = {
@@ -27,6 +30,8 @@ type Props = {
   announcements: Announcement[];
   bookingsThisMonth: number;
   isNewMember?: boolean;
+  hasDocuments?: boolean;
+  hasProServices?: boolean;
 };
 
 const STATUS_STYLES: Record<string, string> = {
@@ -91,8 +96,19 @@ export function MemberDashboard({
   announcements,
   bookingsThisMonth,
   isNewMember,
+  hasDocuments,
+  hasProServices,
 }: Props) {
   const nextBooking = upcomingBookings[0];
+
+  const quickActions = [
+    { href: "/portal/book", label: "Book a space", desc: "Reserve a desk or room", icon: CalendarPlus, color: "#15803D", bg: "rgba(21,128,61,0.1)", primary: true, show: true },
+    { href: "/portal/my-bookings", label: "My bookings", desc: "View & manage reservations", icon: Clock, color: "#2563EB", bg: "rgba(37,99,235,0.1)", show: true },
+    { href: "/portal/invoices", label: "Invoices", desc: "Your bills & payments", icon: FileText, color: "#D97706", bg: "rgba(217,119,6,0.1)", show: true },
+    { href: "/portal/documents", label: "Documents", desc: "Upload & manage your files", icon: FolderLock, color: "#7C3AED", bg: "rgba(124,58,237,0.1)", show: true },
+    { href: "/portal/pro-services", label: "PRO Services", desc: "Visa & government requests", icon: Stamp, color: "#0891B2", bg: "rgba(8,145,178,0.1)", show: !!hasProServices },
+    { href: "/portal/profile", label: "My profile", desc: "Details & preferences", icon: User, color: "#6B7280", bg: "rgba(107,114,128,0.1)", show: true },
+  ].filter((a) => a.show);
 
   return (
     <div className="space-y-5 animate-fade-in max-w-4xl">
@@ -189,6 +205,26 @@ export function MemberDashboard({
               <Clock className="w-4 h-4 text-violet-500" />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Quick actions — clear entry points to everything a member can do */}
+      <div>
+        <h2 className="section-title mb-3">What would you like to do?</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {quickActions.map((a) => (
+            <Link key={a.href} href={a.href}
+              className={`group flex items-center gap-3 p-4 rounded-2xl border bg-white transition-all hover:-translate-y-0.5 ${a.primary ? "border-emerald-200 shadow-sm" : "border-gray-100 hover:border-gray-200"}`}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: a.bg }}>
+                <a.icon style={{ width: 18, height: 18, color: a.color }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900">{a.label}</p>
+                <p className="text-[11px] text-gray-400">{a.desc}</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-emerald-500 transition-colors flex-shrink-0" />
+            </Link>
+          ))}
         </div>
       </div>
 

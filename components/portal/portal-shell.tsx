@@ -32,24 +32,27 @@ type MemberInfo = {
 
 type Props = {
   member: MemberInfo;
+  showProServices?: boolean;
   children: React.ReactNode;
 };
 
-const NAV_ITEMS = [
+const ALL_NAV_ITEMS: { href: string; label: string; icon: any; exact?: boolean; key?: string }[] = [
   { href: "/portal", label: "Home", icon: LayoutDashboard, exact: true },
   { href: "/portal/book", label: "Book a space", icon: CalendarPlus },
   { href: "/portal/my-bookings", label: "My bookings", icon: Clock },
   { href: "/portal/invoices", label: "Invoices", icon: FileText },
   { href: "/portal/documents", label: "Documents", icon: FolderLock },
-  { href: "/portal/pro-services", label: "PRO Services", icon: Stamp },
+  { href: "/portal/pro-services", label: "PRO Services", icon: Stamp, key: "proServices" },
   { href: "/portal/profile", label: "Profile", icon: User },
 ];
 
-export function PortalShell({ member, children }: Props) {
+export function PortalShell({ member, showProServices, children }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const supabase = createClient();
+
+  const NAV_ITEMS = ALL_NAV_ITEMS.filter((i) => i.key !== "proServices" || showProServices);
 
   useEffect(() => {
     setMobileOpen(false);

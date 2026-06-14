@@ -8,6 +8,8 @@ import { TodaySchedule } from "@/components/dashboard/today-schedule";
 import { OccupancyChart } from "@/components/dashboard/occupancy-chart";
 import { RecentInvoices } from "@/components/dashboard/recent-invoices";
 import { NeedsAttention } from "@/components/dashboard/needs-attention";
+import { GettingStarted, type SetupStep } from "@/components/dashboard/getting-started";
+import { isAdminRole } from "@/lib/permissions";
 import { startOfMonth, subMonths, startOfDay, endOfDay } from "date-fns";
 
 export const metadata: Metadata = { title: "Dashboard — CoWork Pro" };
@@ -117,11 +119,35 @@ async function getDashboardData(orgId: string) {
   };
 }
 
+async function getSetupSteps(orgId: string): Promise<{ steps: SetupStep[]; essentialsDone: boolean }> {
+  const [resourceCount, planCount, memberCount, bookingCount, waConfig, staffCount] = await Promise.all([
+    prisma.resource.count({ where: { organizationId: orgId, deletedAt: null } }),
+    prisma.membershipPlan.count({ where: { organizationId: orgId, isActive: true } }),
+    prisma.member.count({ where: { organizationId: orgId, deletedAt: null } }),
+    prisma.booking.count({ where: { organizationId: orgId, deletedAt: null } }),
+    prisma.whatsAppConfig.findUnique({ where: { organizationId: orgId }, select: { isActive: true } }),
+    prisma.userOrganization.count({ where: { organizationId: orgId, role: { not: "MEMBER" } } }),
+  ]);
+
+  const steps: SetupStep[] = [
+    { title: "Add desks & meeting rooms", desc: "Create the spaces members can book.", href: "/dashboard/resources", cta: "Add resources", done: resourceCount > 0 },
+    { title: "Create a membership plan", desc: "Set the pricing your members are billed on.", href: "/dashboard/plans", cta: "Create plan", done: planCount > 0 },
+    { title: "Add your members", desc: "Invite the people who use your space.", href: "/dashboard/members", cta: "Add members", done: memberCount > 0 },
+    { title: "Take your first booking", desc: "Reserve a space to see the calendar in action.", href: "/dashboard/bookings", cta: "Open calendar", done: bookingCount > 0 },
+    { title: "Connect WhatsApp", desc: "Message members and automate reminders.", href: "/dashboard/whatsapp/settings", cta: "Connect", done: !!waConfig?.isActive, optional: true },
+    { title: "Invite your team", desc: "Add staff with the right level of access.", href: "/dashboard/settings/team", cta: "Invite team", done: staffCount > 1, optional: true },
+  ];
+  const essentialsDone = steps.filter((s) => !s.optional).every((s) => s.done);
+  return { steps, essentialsDone };
+}
+
 export default async function DashboardPage() {
   const ctx = await getAuthContext();
   if (!ctx) redirect("/login");
 
   const data = await getDashboardData(ctx.organizationId);
+  // Show the guided setup checklist to operators while setup is incomplete.
+  const setup = isAdminRole(ctx.role) ? await getSetupSteps(ctx.organizationId) : null;
   const currency = ctx.organization.currency;
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
@@ -136,6 +162,11 @@ export default async function DashboardPage() {
         </h1>
         <p className="text-gray-400 text-sm mt-1">Here&apos;s what&apos;s happening at {ctx.organization.name} today.</p>
       </div>
+
+      {/* Guided setup — only while incomplete */}
+      {setup && !setup.essentialsDone && (
+        <GettingStarted steps={setup.steps} orgName={ctx.organization.name} />
+      )}
 
       {/* Glanceable stats */}
       <KPICards kpi={data.kpi} currency={currency} />

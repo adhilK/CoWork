@@ -71,6 +71,12 @@ export default async function PortalHomePage({
     take: 3,
   });
 
+  // Only surface Documents / PRO Services quick actions if the member uses them.
+  const [docCount, proCount] = await Promise.all([
+    prisma.document.count({ where: { memberId: member.id, deletedAt: null } }),
+    prisma.proServiceRequest.count({ where: { memberId: member.id, deletedAt: null } }),
+  ]);
+
   return (
     <MemberDashboard
       memberName={member.user.name}
@@ -80,6 +86,8 @@ export default async function PortalHomePage({
       bookingsThisMonth={bookingsThisMonth}
       announcements={announcements}
       isNewMember={searchParams.welcome === "1"}
+      hasDocuments={docCount > 0}
+      hasProServices={proCount > 0}
     />
   );
 }
