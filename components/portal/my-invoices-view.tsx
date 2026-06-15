@@ -100,7 +100,7 @@ export function MyInvoicesView({ invoices }: Props) {
   }, [searchParams]);
 
   return (
-    <div className="space-y-5 animate-fade-in max-w-3xl">
+    <div className="space-y-5 animate-fade-in max-w-6xl">
       <div>
         <h1 className="page-title">Invoices</h1>
         <p className="page-subtitle">Your billing history and outstanding invoices.</p>

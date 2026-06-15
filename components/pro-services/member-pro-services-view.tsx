@@ -17,7 +17,7 @@ export function MemberProServicesView({ requests }: { requests: Req[] }) {
   const [openId, setOpenId] = useState<string | null>(requests[0]?.id ?? null);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in max-w-6xl">
       <div>
         <h1 className="text-xl font-bold text-gray-900">PRO Services</h1>
         <p className="text-sm text-gray-500 mt-0.5">Track your government-liaison requests</p>

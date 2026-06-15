@@ -111,7 +111,7 @@ export function MemberDashboard({
   ].filter((a) => a.show);
 
   return (
-    <div className="space-y-5 animate-fade-in max-w-4xl">
+    <div className="space-y-5 animate-fade-in max-w-6xl">
       {/* Welcome banner for first-time invited members */}
       {isNewMember && (
         <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3.5">

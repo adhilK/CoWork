@@ -190,7 +190,7 @@ export function ResourceBrowser({
   }
 
   return (
-    <div className="space-y-5 animate-fade-in max-w-5xl">
+    <div className="space-y-5 animate-fade-in max-w-6xl">
       <div>
         <h1 className="page-title">Book a space</h1>
         <p className="page-subtitle">Browse available desks, rooms, and offices.</p>

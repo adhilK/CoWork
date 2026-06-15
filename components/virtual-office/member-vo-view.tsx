@@ -57,7 +57,7 @@ export function MemberVOView({ subscriptions, recentMail }: Props) {
   const pendingMail = recentMail.filter((m) => !m.collectedAt && !m.forwardedAt);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in max-w-6xl">
       <div>
         <h1 className="text-xl font-bold text-gray-900">Virtual Office</h1>
         <p className="text-sm text-gray-500 mt-0.5">Your registered address subscriptions and mail</p>

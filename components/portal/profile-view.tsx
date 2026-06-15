@@ -110,7 +110,7 @@ export function ProfileView({ profile }: Props) {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-2xl">
+    <div className="space-y-6 animate-fade-in max-w-4xl">
       <div>
         <h1 className="page-title">Profile</h1>
         <p className="page-subtitle">Update your personal information and preferences.</p>

@@ -103,7 +103,7 @@ export function MemberDocumentsView({ documents, requests }: Props) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in max-w-6xl">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-xl font-bold text-gray-900">My Documents</h1>
@@ -153,7 +153,7 @@ export function MemberDocumentsView({ documents, requests }: Props) {
           <Button onClick={() => openUpload()} variant="outline">Upload your first document</Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {documents.map((d) => {
             const exp = EXPIRY_BADGE[expiryBucket(d.expiryDate)]!;
             return (

@@ -155,7 +155,7 @@ export function MyBookingsView({ upcoming, past }: Props) {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-3xl">
+    <div className="space-y-6 animate-fade-in max-w-6xl">
       <div>
         <h1 className="page-title">My bookings</h1>
         <p className="page-subtitle">View and manage your upcoming and past reservations.</p>
