@@ -46,9 +46,10 @@ export async function middleware(request: NextRequest) {
     "/api/inngest",  // Inngest sync/invoke — verified by INNGEST_SIGNING_KEY, not session
     "/checkin",      // QR check-in, protected by a per-booking token
   ];
-  const isPublicRoute = publicRoutes.some((route) =>
-    pathname.startsWith(route)
-  );
+  // "/" is the public marketing homepage. Matched exactly, because a
+  // startsWith("/") test would make every route public.
+  const isPublicRoute =
+    pathname === "/" || publicRoutes.some((route) => pathname.startsWith(route));
 
   // ── Not authenticated → redirect to login ────────────────────────────────
   if (!user && !isPublicRoute) {
