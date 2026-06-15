@@ -172,7 +172,8 @@ export function ProServicesView({ requests, members, staff, staffMap, currency, 
         </div>
       ) : (
         <div className="dashboard-card overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[680px]">
             <thead>
               <tr className="border-b border-gray-100">
                 {["Member", "Service", "Stage", "SLA / Due", "Assignee", ""].map((h) => (
@@ -214,6 +215,7 @@ export function ProServicesView({ requests, members, staff, staffMap, currency, 
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

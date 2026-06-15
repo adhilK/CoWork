@@ -250,7 +250,8 @@ export function PartnersView({ partners, referrals, currency }: Props) {
             <Empty icon={BadgeDollarSign} title="No referrals" hint="Log referrals from your partners and track commissions." action={partners.length > 0 ? <Button onClick={() => setROpen(true)} variant="outline">Log referral</Button> : undefined} />
           ) : (
             <div className="dashboard-card overflow-hidden">
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[680px]">
                 <thead><tr className="border-b border-gray-100">
                   {["Client", "Partner", "Deal value", "Commission", "Status", ""].map((h) => (
                     <th key={h} className="text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 first:pl-5 last:pr-5">{h}</th>
@@ -295,6 +296,7 @@ export function PartnersView({ partners, referrals, currency }: Props) {
                   })}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </>
@@ -305,7 +307,7 @@ export function PartnersView({ partners, referrals, currency }: Props) {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader><DialogTitle>{editingP ? "Edit partner" : "Add partner"}</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2 max-h-[66vh] overflow-y-auto pr-1">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label>Name *</Label><Input value={pForm.name} onChange={(e) => setPForm((f) => ({ ...f, name: e.target.value }))} /></div>
               <div className="space-y-1.5"><Label>Company</Label><Input value={pForm.companyName} onChange={(e) => setPForm((f) => ({ ...f, companyName: e.target.value }))} /></div>
               <div className="space-y-1.5">
@@ -319,7 +321,7 @@ export function PartnersView({ partners, referrals, currency }: Props) {
               <div className="space-y-1.5"><Label>Phone</Label><Input value={pForm.phone} onChange={(e) => setPForm((f) => ({ ...f, phone: e.target.value }))} /></div>
               <div className="space-y-1.5"><Label>WhatsApp</Label><Input value={pForm.whatsapp} onChange={(e) => setPForm((f) => ({ ...f, whatsapp: e.target.value }))} /></div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label>Commission</Label>
                 <Select value={pForm.commissionType} onValueChange={(v) => setPForm((f) => ({ ...f, commissionType: v ?? "PERCENTAGE" }))}>
@@ -369,7 +371,7 @@ export function PartnersView({ partners, referrals, currency }: Props) {
                 <SelectContent>{partners.filter((p) => p.isActive).map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label>Client name *</Label><Input value={rForm.clientName} onChange={(e) => setRForm((f) => ({ ...f, clientName: e.target.value }))} /></div>
               <div className="space-y-1.5"><Label>Client phone</Label><Input value={rForm.clientPhone} onChange={(e) => setRForm((f) => ({ ...f, clientPhone: e.target.value }))} /></div>
             </div>
