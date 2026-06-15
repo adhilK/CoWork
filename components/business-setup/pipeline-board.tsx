@@ -214,7 +214,7 @@ export function PipelineBoard({ leads, staff, catalog, currency, currentUserId }
         <DialogContent className="sm:max-w-lg">
           <DialogHeader><DialogTitle>New lead</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2 max-h-[66vh] overflow-y-auto pr-1">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Client name *</Label>
                 <Input value={form.clientName} onChange={(e) => setForm((f) => ({ ...f, clientName: e.target.value }))} />
@@ -241,7 +241,7 @@ export function PipelineBoard({ leads, staff, catalog, currency, currentUserId }
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Jurisdiction</Label>
                 <Select value={form.jurisdiction} onValueChange={(v) => setForm((f) => ({ ...f, jurisdiction: v ?? "UAE" }))}>
@@ -276,7 +276,7 @@ export function PipelineBoard({ leads, staff, catalog, currency, currentUserId }
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label>Priority</Label>
                 <Select value={form.priority} onValueChange={(v) => setForm((f) => ({ ...f, priority: v ?? "MEDIUM" }))}>
@@ -301,7 +301,7 @@ export function PipelineBoard({ leads, staff, catalog, currency, currentUserId }
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Assign to</Label>
                 <Select value={form.assignedTo} onValueChange={(v) => setForm((f) => ({ ...f, assignedTo: v ?? "" }))}>

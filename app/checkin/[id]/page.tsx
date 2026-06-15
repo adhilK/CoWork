@@ -78,6 +78,23 @@ export default async function CheckinPage({
     );
   }
 
+  // Only valid within the booking window (15 min early grace → booking end)
+  const nowMs = Date.now();
+  if (nowMs < booking.startTime.getTime() - 15 * 60 * 1000) {
+    return (
+      <Frame tint="#FEF3C7" icon={<Clock className="w-8 h-8 text-amber-500" />}
+        title="Too early to check in"
+        message={`Check-in opens at ${format(new Date(booking.startTime.getTime() - 15 * 60 * 1000), "HH:mm")}. Please come back closer to your booking.`}
+        detail={detail} />
+    );
+  }
+  if (nowMs > booking.endTime.getTime()) {
+    return (
+      <Frame tint="#F3F4F6" icon={<Clock className="w-8 h-8 text-gray-400" />}
+        title="Check-in closed" message="This booking has already ended." detail={detail} />
+    );
+  }
+
   // Perform the check-in (CONFIRMED or PENDING → CHECKED_IN)
   await prisma.booking.update({
     where: { id: booking.id },

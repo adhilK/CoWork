@@ -40,6 +40,7 @@ export default async function BookPage() {
     halfDayRate: r.halfDayRate == null ? null : Number(r.halfDayRate),
     fullDayRate: r.fullDayRate == null ? null : Number(r.fullDayRate),
     amenities: r.amenities,
+    images: r.images,
     requiresApproval: r.requiresApproval,
     isActive: r.isActive,
     location: r.location ? { name: r.location.name } : null,

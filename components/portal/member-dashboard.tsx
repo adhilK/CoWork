@@ -4,6 +4,8 @@ import {
   FileText, FolderLock, Stamp, User,
 } from "lucide-react";
 import { formatDate, formatDateTime, formatTime, humanizeEnum } from "@/lib/utils";
+import { ResourceIcon } from "@/components/shared/resource-icon";
+import type { ResourceType } from "@prisma/client";
 
 type Booking = {
   id: string;
@@ -43,17 +45,6 @@ const STATUS_STYLES: Record<string, string> = {
   NO_SHOW: "bg-orange-50 text-orange-700 border-orange-200/60",
 };
 
-const RESOURCE_EMOJI: Record<string, string> = {
-  HOT_DESK: "🪑",
-  DEDICATED_DESK: "🖥️",
-  PRIVATE_OFFICE: "🚪",
-  MEETING_ROOM: "📅",
-  EVENT_SPACE: "🏛️",
-  PHONE_BOOTH: "📞",
-  PODCAST_ROOM: "🎙️",
-  OTHER: "📌",
-};
-
 function getGreeting() {
   const h = new Date().getHours();
   if (h < 12) return "Good morning";
@@ -64,9 +55,7 @@ function getGreeting() {
 function BookingCard({ booking }: { booking: Booking }) {
   return (
     <div className="flex items-center gap-3 p-3.5 rounded-2xl border border-gray-100 bg-white hover:border-gray-200 transition-colors">
-      <span className="text-xl leading-none flex-shrink-0">
-        {RESOURCE_EMOJI[booking.resource?.type ?? "OTHER"] ?? "📌"}
-      </span>
+      <ResourceIcon type={(booking.resource?.type ?? "OTHER") as ResourceType} size="md" />
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-gray-900 text-sm truncate">
           {booking.title ?? booking.resource?.name ?? "Booking"}
@@ -273,9 +262,7 @@ export function MemberDashboard({
           <div className="space-y-2">
             {upcomingBookings.slice(0, 3).map((b) => (
               <div key={b.id} className="flex items-center gap-3 p-3.5 rounded-2xl border border-gray-100 bg-white">
-                <span className="text-xl leading-none flex-shrink-0">
-                  {RESOURCE_EMOJI[b.resource?.type ?? "OTHER"] ?? "📌"}
-                </span>
+                <ResourceIcon type={(b.resource?.type ?? "OTHER") as ResourceType} size="md" />
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-gray-900 text-sm truncate">
                     {b.title ?? b.resource?.name ?? "Booking"}

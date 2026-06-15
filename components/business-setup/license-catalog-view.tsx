@@ -325,7 +325,7 @@ export function LicenseCatalogView({ items, canManage }: Props) {
           <DialogHeader><DialogTitle>{editing ? "Edit license" : "Add license"}</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2 max-h-[66vh] overflow-y-auto pr-1">
             {!editing && (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label>License type *</Label>
                   <Select value={form.licenseType} onValueChange={(v) => setForm((f) => ({ ...f, licenseType: v ?? "UAE_FREEZONE" }))}>
@@ -347,7 +347,7 @@ export function LicenseCatalogView({ items, canManage }: Props) {
                 </div>
               </div>
             )}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Authority *</Label>
                 <Input placeholder="IFZA, DMCC, DET…" value={form.authority} onChange={(e) => setForm((f) => ({ ...f, authority: e.target.value }))} />
@@ -370,7 +370,7 @@ export function LicenseCatalogView({ items, canManage }: Props) {
               <Label>Description</Label>
               <Textarea rows={2} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label>Base cost</Label>
                 <Input type="number" min={0} value={form.baseCost} onChange={(e) => setForm((f) => ({ ...f, baseCost: e.target.value }))} />
@@ -384,7 +384,7 @@ export function LicenseCatalogView({ items, canManage }: Props) {
                 <Input type="number" min={0} value={form.visaQuota} onChange={(e) => setForm((f) => ({ ...f, visaQuota: e.target.value }))} />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label>Office type</Label>
                 <Select value={form.officeType} onValueChange={(v) => setForm((f) => ({ ...f, officeType: v ?? "" }))}>
@@ -403,7 +403,7 @@ export function LicenseCatalogView({ items, canManage }: Props) {
                 <Input type="number" min={0} value={form.processingDays} onChange={(e) => setForm((f) => ({ ...f, processingDays: e.target.value }))} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Activity category</Label>
                 <Select value={form.activityCategory} onValueChange={(v) => setForm((f) => ({ ...f, activityCategory: v ?? "" }))}>

@@ -16,6 +16,17 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     return apiError(`Booking cannot be checked in (status: ${booking.status})`, 400);
   }
 
+  // Check-in is only valid within the booking window (from 15 minutes before
+  // start until the booking ends).
+  const now = Date.now();
+  const EARLY_GRACE_MS = 15 * 60 * 1000;
+  if (now < booking.startTime.getTime() - EARLY_GRACE_MS) {
+    return apiError("Check-in opens 15 minutes before the booking start time", 422);
+  }
+  if (now > booking.endTime.getTime()) {
+    return apiError("This booking has already ended — check-in is closed", 422);
+  }
+
   const updated = await prisma.booking.update({
     where: { id: params.id },
     data: { status: "CHECKED_IN", checkedInAt: new Date() },

@@ -232,7 +232,7 @@ export function TemplatesView({ templates }: Props) {
               />
               <p className="text-[11px] text-gray-400">Lowercase letters, numbers, underscores. Must match the Meta template name.</p>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Category</Label>
                 <Select value={form.category} onValueChange={(v) => setForm((f) => ({ ...f, category: v ?? "UTILITY" }))}>
@@ -267,7 +267,7 @@ export function TemplatesView({ templates }: Props) {
               <Input placeholder="member name, resource name" value={form.variablesText}
                 onChange={(e) => setForm((f) => ({ ...f, variablesText: e.target.value }))} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Approval status</Label>
                 <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v ?? "DRAFT" }))}>

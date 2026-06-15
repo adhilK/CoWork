@@ -24,6 +24,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { formatCurrency, humanizeEnum } from "@/lib/utils";
+import { ResourceIcon, RESOURCE_ICON } from "@/components/shared/resource-icon";
+import type { ResourceType } from "@prisma/client";
 
 type Resource = {
   id: string;
@@ -35,6 +37,7 @@ type Resource = {
   halfDayRate: number | null;
   fullDayRate: number | null;
   amenities: string[];
+  images: string[];
   requiresApproval: boolean;
   isActive: boolean;
   location: { name: string } | null;
@@ -46,17 +49,6 @@ type BookingFormState = {
   endTime: string;
   title: string;
   attendees: number;
-};
-
-const RESOURCE_EMOJI: Record<string, string> = {
-  HOT_DESK: "🪑",
-  DEDICATED_DESK: "🖥️",
-  PRIVATE_OFFICE: "🚪",
-  MEETING_ROOM: "📅",
-  EVENT_SPACE: "🏛️",
-  PHONE_BOOTH: "📞",
-  PODCAST_ROOM: "🎙️",
-  OTHER: "📌",
 };
 
 const RESOURCE_TYPE_ORDER = [
@@ -228,7 +220,7 @@ export function ResourceBrowser({
                   : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"
               }`}
             >
-              {RESOURCE_EMOJI[t]} {humanizeEnum(t)}
+              {humanizeEnum(t)}
             </button>
           ))}
         </div>
@@ -247,7 +239,7 @@ export function ResourceBrowser({
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 dashboard-card">
-          <p className="text-2xl mb-2">🔍</p>
+          <Search className="w-8 h-8 text-gray-300 mx-auto mb-2" />
           <p className="text-gray-500 font-medium text-sm">No spaces found</p>
           <p className="text-gray-400 text-xs mt-1">Try adjusting your filters</p>
         </div>
@@ -256,12 +248,25 @@ export function ResourceBrowser({
           {filtered.map((resource) => (
             <div
               key={resource.id}
-              className="dashboard-card p-5 flex flex-col hover:-translate-y-0.5 transition-transform"
+              className="dashboard-card overflow-hidden flex flex-col hover:-translate-y-0.5 transition-transform"
             >
+              {/* Image banner — falls back to a tinted type icon when no photo */}
+              {resource.images && resource.images.length > 0 ? (
+                <div className="h-32 w-full bg-gray-100 flex-shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={resource.images[0]} alt={resource.name} className="h-full w-full object-cover" />
+                </div>
+              ) : (
+                <div
+                  className="h-32 w-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: (RESOURCE_ICON[resource.type as ResourceType] ?? RESOURCE_ICON.OTHER).bg }}
+                >
+                  <ResourceIcon type={resource.type as ResourceType} size="lg" className="!bg-white/70" />
+                </div>
+              )}
+
+              <div className="p-5 flex flex-col flex-1">
               <div className="flex items-start gap-3 mb-3">
-                <span className="text-2xl leading-none flex-shrink-0">
-                  {RESOURCE_EMOJI[resource.type] ?? "📌"}
-                </span>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-gray-900 text-sm leading-tight">
                     {resource.name}
@@ -345,6 +350,7 @@ export function ResourceBrowser({
                 <Calendar className="w-3.5 h-3.5 mr-2" />
                 Book now
               </Button>
+              </div>
             </div>
           ))}
         </div>
@@ -358,10 +364,19 @@ export function ResourceBrowser({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <span>{RESOURCE_EMOJI[selectedResource?.type ?? "OTHER"]}</span>
+              {selectedResource && (
+                <ResourceIcon type={selectedResource.type as ResourceType} size="sm" />
+              )}
               <span>Book {selectedResource?.name}</span>
             </DialogTitle>
           </DialogHeader>
+
+          {selectedResource?.images && selectedResource.images.length > 0 && (
+            <div className="rounded-xl overflow-hidden bg-gray-100 -mt-1 mb-1">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={selectedResource.images[0]} alt={selectedResource.name} className="w-full h-40 object-cover" />
+            </div>
+          )}
 
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">

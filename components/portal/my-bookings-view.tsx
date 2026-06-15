@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Calendar, Clock, X, Loader2 } from "lucide-react";
+import { ResourceIcon } from "@/components/shared/resource-icon";
+import type { ResourceType } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -45,17 +47,6 @@ const STATUS_STYLES: Record<string, string> = {
   NO_SHOW: "bg-orange-50 text-orange-700 border-orange-200/60",
 };
 
-const RESOURCE_EMOJI: Record<string, string> = {
-  HOT_DESK: "🪑",
-  DEDICATED_DESK: "🖥️",
-  PRIVATE_OFFICE: "🚪",
-  MEETING_ROOM: "📅",
-  EVENT_SPACE: "🏛️",
-  PHONE_BOOTH: "📞",
-  PODCAST_ROOM: "🎙️",
-  OTHER: "📌",
-};
-
 function BookingRow({
   booking,
   canCancel,
@@ -70,9 +61,7 @@ function BookingRow({
 
   return (
     <div className="flex items-start gap-4 p-4 rounded-2xl border border-gray-100 bg-white hover:border-gray-200 transition-colors">
-      <span className="text-2xl leading-none flex-shrink-0 mt-0.5">
-        {RESOURCE_EMOJI[booking.resource?.type ?? "OTHER"] ?? "📌"}
-      </span>
+      <ResourceIcon type={(booking.resource?.type ?? "OTHER") as ResourceType} size="lg" className="mt-0.5" />
 
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">

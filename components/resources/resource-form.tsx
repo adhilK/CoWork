@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { createResourceSchema, type CreateResourceInput } from "@/lib/validations";
+import { ImageUploader } from "@/components/shared/image-uploader";
 import type { ResourceType } from "@prisma/client";
 
 const RESOURCE_TYPES: { value: ResourceType; label: string }[] = [
@@ -200,6 +201,18 @@ export function ResourceForm({ locations, currency, resourceId, defaultValues }:
             ))}
           </div>
         )}
+      </div>
+
+      {/* Photos */}
+      <div className="space-y-1.5">
+        <Label>Photos</Label>
+        <Controller
+          control={control}
+          name="images"
+          render={({ field }) => (
+            <ImageUploader value={field.value ?? []} onChange={field.onChange} kind="resource" />
+          )}
+        />
       </div>
 
       {/* Booking settings */}

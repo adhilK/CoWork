@@ -12,6 +12,9 @@ import { createClient } from "@supabase/supabase-js";
 
 export const DOCUMENTS_BUCKET = "documents";
 export const VISITOR_PHOTOS_BUCKET = "visitor-photos";
+// Space / location photos are NOT sensitive — members browse them in the
+// portal — so they live in a PUBLIC bucket and are stored as plain URLs.
+export const SPACE_IMAGES_BUCKET = "space-images";
 export const SIGNED_URL_TTL = 15 * 60; // 15 minutes, in seconds
 export const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20 MB
 export const MAX_PHOTO_BYTES = 4 * 1024 * 1024; // 4 MB
@@ -117,6 +120,57 @@ export async function deleteDocumentObject(path: string): Promise<void> {
     await supabase.storage.from(DOCUMENTS_BUCKET).remove([path]);
   } catch {
     // best-effort — DB soft-delete is the source of truth
+  }
+}
+
+// ── Space / location images (PUBLIC bucket) ────────────────────────────────────
+
+let spaceBucketEnsured = false;
+
+async function ensureSpaceImagesBucket(): Promise<void> {
+  if (spaceBucketEnsured) return;
+  const supabase = storageClient();
+  const { data: buckets } = await supabase.storage.listBuckets();
+  const exists = buckets?.some((b) => b.name === SPACE_IMAGES_BUCKET);
+  if (!exists) {
+    await supabase.storage.createBucket(SPACE_IMAGES_BUCKET, {
+      public: true,
+      fileSizeLimit: MAX_PHOTO_BYTES,
+    });
+  }
+  spaceBucketEnsured = true;
+}
+
+const SPACE_IMAGE_MIME = ["image/jpeg", "image/png", "image/webp"];
+
+/**
+ * Upload a space/location photo to the public bucket and return its public URL.
+ * `kind` namespaces the object path (e.g. "resource" / "location").
+ */
+export async function uploadSpaceImage(
+  organizationId: string,
+  kind: string,
+  fileName: string,
+  body: ArrayBuffer | Buffer | Uint8Array,
+  contentType: string
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  if (!SPACE_IMAGE_MIME.includes(contentType)) {
+    return { ok: false, error: "Only JPG, PNG, or WebP images are allowed" };
+  }
+  try {
+    await ensureSpaceImagesBucket();
+    const supabase = storageClient();
+    const ext = contentType.split("/")[1] === "png" ? "png" : contentType.split("/")[1] === "webp" ? "webp" : "jpg";
+    const safe = fileName.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 40);
+    const path = `${organizationId}/${kind}/${crypto.randomUUID()}-${safe}.${ext}`;
+    const { error } = await supabase.storage
+      .from(SPACE_IMAGES_BUCKET)
+      .upload(path, body as any, { contentType, upsert: false });
+    if (error) return { ok: false, error: error.message };
+    const { data } = supabase.storage.from(SPACE_IMAGES_BUCKET).getPublicUrl(path);
+    return { ok: true, url: data.publicUrl };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Upload failed" };
   }
 }
 

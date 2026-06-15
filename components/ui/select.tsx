@@ -6,7 +6,41 @@ import { Select as SelectPrimitive } from "@base-ui/react/select"
 import { cn } from "@/lib/utils"
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
 
-const Select = SelectPrimitive.Root
+/**
+ * Recursively collect `{ value, label }` pairs from `<SelectItem>` descendants
+ * so Base UI can resolve the trigger label. Without an `items` map, Base UI's
+ * `<Select.Value>` falls back to rendering the raw value (e.g. a member's cuid
+ * or an enum code like "VISA_RENEWAL"), which is what surfaced as "the id /
+ * code shows in the dropdown". Deriving items from the children means every
+ * Select in the app shows the human label with no per-form changes.
+ */
+function collectSelectItems(
+  node: React.ReactNode,
+  acc: { value: unknown; label: React.ReactNode }[]
+) {
+  React.Children.forEach(node, (child) => {
+    if (!React.isValidElement(child)) return;
+    const props = child.props as { value?: unknown; children?: React.ReactNode };
+    if (child.type === SelectItem && props.value !== undefined) {
+      acc.push({ value: props.value, label: props.children });
+    }
+    if (props.children) collectSelectItems(props.children, acc);
+  });
+}
+
+function Select({ items, children, ...props }: SelectPrimitive.Root.Props<any>) {
+  const derivedItems = React.useMemo(() => {
+    if (items) return items;
+    const acc: { value: unknown; label: React.ReactNode }[] = [];
+    collectSelectItems(children, acc);
+    return acc.length ? acc : undefined;
+  }, [items, children]);
+  return (
+    <SelectPrimitive.Root items={derivedItems as any} {...props}>
+      {children}
+    </SelectPrimitive.Root>
+  );
+}
 
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   return (

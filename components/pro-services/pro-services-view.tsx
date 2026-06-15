@@ -231,7 +231,7 @@ export function ProServicesView({ requests, members, staff, staffMap, currency, 
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Service type *</Label>
                 <Select value={form.serviceType} onValueChange={(v) => setForm((f) => ({ ...f, serviceType: v ?? "OTHER" }))}>
@@ -254,7 +254,7 @@ export function ProServicesView({ requests, members, staff, staffMap, currency, 
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Urgency</Label>
                 <Select value={form.urgency} onValueChange={(v) => setForm((f) => ({ ...f, urgency: v ?? "STANDARD" }))}>
@@ -274,7 +274,7 @@ export function ProServicesView({ requests, members, staff, staffMap, currency, 
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label>Fee</Label>
                 <Input type="number" min={0} value={form.fee} onChange={(e) => setForm((f) => ({ ...f, fee: e.target.value }))} />
@@ -288,7 +288,7 @@ export function ProServicesView({ requests, members, staff, staffMap, currency, 
                 <Input type="date" value={form.dueDate} onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Reference #</Label>
                 <Input value={form.referenceNumber} onChange={(e) => setForm((f) => ({ ...f, referenceNumber: e.target.value }))} />

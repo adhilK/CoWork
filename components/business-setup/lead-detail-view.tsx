@@ -247,7 +247,7 @@ function Overview({ lead, staff, staffMap, patchLead, busy }: {
       <div className="lg:col-span-2 space-y-4">
         <div className="dashboard-card p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-3">Client</h2>
-          <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4 text-sm">
             <Field label="Name" value={lead.clientName} />
             <Field label="Company" value={lead.companyName ?? "—"} />
             <Field label="Phone" value={lead.clientPhone} />
@@ -259,7 +259,7 @@ function Overview({ lead, staff, staffMap, patchLead, busy }: {
 
         <div className="dashboard-card p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-3">Setup</h2>
-          <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4 text-sm">
             <Field label="Jurisdiction" value={lead.jurisdiction} />
             <Field label="License type" value={licenseTypeLabel(lead.licenseType)} />
             <Field label="Authority / freezone" value={lead.freezoneName ?? lead.sezName ?? "—"} />
@@ -473,7 +473,7 @@ function ApplicationTab({ lead, busy, setBusy }: { lead: Lead; busy: boolean; se
 
   return (
     <div className="space-y-4 max-w-3xl">
-      <div className="dashboard-card p-5 grid grid-cols-2 gap-3">
+      <div className="dashboard-card p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label className="text-xs text-gray-500">Reference number</Label>
           <Input className="h-9 text-sm" value={ref} onChange={(e) => setRef(e.target.value)} onBlur={() => put({ referenceNumber: ref || null })} />

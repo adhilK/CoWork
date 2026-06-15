@@ -332,7 +332,7 @@ export function LocationsView({ locations, managers, currency, allowCrossLocatio
             <>
               <DialogHeader><DialogTitle>{detail.name}</DialogTitle></DialogHeader>
               <div className="space-y-4 pt-2 max-h-[65vh] overflow-y-auto text-sm">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Info label="Jurisdiction" value={detail.jurisdiction} />
                   <Info label="Status" value={detail.isActive ? "Active" : "Inactive"} />
                   <Info label="Address" value={[detail.address, detail.city, detail.country].filter(Boolean).join(", ") || "—"} full />
@@ -466,14 +466,16 @@ export function LocationsView({ locations, managers, currency, allowCrossLocatio
                 {DAYS.map((d) => {
                   const h = form.openingHours[d.key] ?? {};
                   return (
-                    <div key={d.key} className="flex items-center gap-2">
+                    <div key={d.key} className="flex items-center gap-2 flex-wrap">
                       <span className="w-10 text-xs font-medium text-gray-500">{d.label}</span>
-                      <Input type="time" className="h-8 text-xs flex-1" value={h.open ?? "09:00"} disabled={h.closed}
-                        onChange={(e) => setDay(d.key, { open: e.target.value })} />
-                      <span className="text-gray-300 text-xs">–</span>
-                      <Input type="time" className="h-8 text-xs flex-1" value={h.close ?? "18:00"} disabled={h.closed}
-                        onChange={(e) => setDay(d.key, { close: e.target.value })} />
-                      <label className="flex items-center gap-1 text-[11px] text-gray-500 w-16">
+                      <div className="flex items-center gap-2 flex-1 min-w-[170px]">
+                        <Input type="time" className="h-8 text-xs flex-1 min-w-0" value={h.open ?? "09:00"} disabled={h.closed}
+                          onChange={(e) => setDay(d.key, { open: e.target.value })} />
+                        <span className="text-gray-300 text-xs">–</span>
+                        <Input type="time" className="h-8 text-xs flex-1 min-w-0" value={h.close ?? "18:00"} disabled={h.closed}
+                          onChange={(e) => setDay(d.key, { close: e.target.value })} />
+                      </div>
+                      <label className="flex items-center gap-1 text-[11px] text-gray-500 w-16 flex-shrink-0">
                         <input type="checkbox" checked={!!h.closed} onChange={(e) => setDay(d.key, { closed: e.target.checked })}
                           className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-600" />
                         Closed

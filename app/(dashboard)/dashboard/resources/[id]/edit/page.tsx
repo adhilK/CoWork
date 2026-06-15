@@ -37,6 +37,7 @@ export default async function EditResourcePage({ params }: { params: { id: strin
     halfDayRate: resource.halfDayRate ? Number(resource.halfDayRate) : undefined,
     fullDayRate: resource.fullDayRate ? Number(resource.fullDayRate) : undefined,
     amenities: resource.amenities,
+    images: resource.images,
     requiresApproval: resource.requiresApproval,
     advanceBookingDays: resource.advanceBookingDays,
     minBookingMinutes: resource.minBookingMinutes,
