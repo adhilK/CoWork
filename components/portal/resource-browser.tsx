@@ -11,6 +11,10 @@ import {
   Clock,
   MapPin,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +84,9 @@ export function ResourceBrowser({
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("ALL");
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
+  // Details view (with image gallery) — opened by clicking a card.
+  const [detailResource, setDetailResource] = useState<Resource | null>(null);
+  const [galleryIndex, setGalleryIndex] = useState(0);
   const [form, setForm] = useState<BookingFormState>({
     date: todayString(),
     startTime: "09:00",
@@ -126,6 +133,21 @@ export function ResourceBrowser({
   const types = Array.from(new Set(resources.map((r) => r.type))).sort(
     (a, b) => RESOURCE_TYPE_ORDER.indexOf(a) - RESOURCE_TYPE_ORDER.indexOf(b)
   );
+
+  function openDetail(resource: Resource) {
+    setGalleryIndex(0);
+    setDetailResource(resource);
+  }
+
+  // Move from the details view straight into the booking form.
+  function bookFromDetail(resource: Resource) {
+    setDetailResource(null);
+    setSelectedResource(resource);
+  }
+
+  function galleryStep(dir: 1 | -1, total: number) {
+    setGalleryIndex((i) => (i + dir + total) % total);
+  }
 
   async function handleSubmit() {
     if (!selectedResource) return;
@@ -248,20 +270,29 @@ export function ResourceBrowser({
           {filtered.map((resource) => (
             <div
               key={resource.id}
-              className="dashboard-card overflow-hidden flex flex-col hover:-translate-y-0.5 transition-transform"
+              onClick={() => openDetail(resource)}
+              className="dashboard-card overflow-hidden flex flex-col hover:-translate-y-0.5 hover:shadow-md transition-all cursor-pointer"
             >
               {/* Image banner — falls back to a tinted type icon when no photo */}
               {resource.images && resource.images.length > 0 ? (
-                <div className="h-32 w-full bg-gray-100 flex-shrink-0">
+                <div className="relative h-44 w-full bg-gray-100 flex-shrink-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={resource.images[0]} alt={resource.name} className="h-full w-full object-cover" />
+                  {resource.images.length > 1 && (
+                    <span className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                      <ImageIcon className="w-3 h-3" /> {resource.images.length}
+                    </span>
+                  )}
                 </div>
               ) : (
                 <div
-                  className="h-32 w-full flex items-center justify-center flex-shrink-0"
+                  className="h-44 w-full flex flex-col items-center justify-center gap-1.5 flex-shrink-0"
                   style={{ background: (RESOURCE_ICON[resource.type as ResourceType] ?? RESOURCE_ICON.OTHER).bg }}
                 >
                   <ResourceIcon type={resource.type as ResourceType} size="lg" className="!bg-white/70" />
+                  <span className="text-[10px] font-medium" style={{ color: (RESOURCE_ICON[resource.type as ResourceType] ?? RESOURCE_ICON.OTHER).tint }}>
+                    No photos yet
+                  </span>
                 </div>
               )}
 
@@ -342,14 +373,23 @@ export function ResourceBrowser({
                 </div>
               )}
 
-              <Button
-                className="mt-auto w-full text-white text-sm"
-                style={{ background: "linear-gradient(135deg, #16A34A, #15803D)" }}
-                onClick={() => setSelectedResource(resource)}
-              >
-                <Calendar className="w-3.5 h-3.5 mr-2" />
-                Book now
-              </Button>
+              <div className="mt-auto flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1 text-sm"
+                  onClick={(e) => { e.stopPropagation(); openDetail(resource); }}
+                >
+                  Details
+                </Button>
+                <Button
+                  className="flex-1 text-white text-sm"
+                  style={{ background: "linear-gradient(135deg, #16A34A, #15803D)" }}
+                  onClick={(e) => { e.stopPropagation(); setSelectedResource(resource); }}
+                >
+                  <Calendar className="w-3.5 h-3.5 mr-1.5" />
+                  Book
+                </Button>
+              </div>
               </div>
             </div>
           ))}
@@ -487,6 +527,157 @@ export function ResourceBrowser({
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Space details + image gallery */}
+      <Dialog open={!!detailResource} onOpenChange={(open) => !open && setDetailResource(null)}>
+        <DialogContent className="sm:max-w-2xl max-h-[88vh] overflow-y-auto p-0">
+          {detailResource && (
+            <>
+              {/* Gallery */}
+              {detailResource.images && detailResource.images.length > 0 ? (
+                <div className="relative bg-gray-900">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={detailResource.images[galleryIndex] ?? detailResource.images[0]}
+                    alt={`${detailResource.name} photo ${galleryIndex + 1}`}
+                    className="w-full h-64 sm:h-80 object-contain bg-gray-900"
+                  />
+                  {detailResource.images.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => galleryStep(-1, detailResource.images.length)}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+                        aria-label="Previous photo"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => galleryStep(1, detailResource.images.length)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+                        aria-label="Next photo"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+                        {detailResource.images.map((_, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setGalleryIndex(i)}
+                            aria-label={`Go to photo ${i + 1}`}
+                            className={`h-1.5 rounded-full transition-all ${i === galleryIndex ? "w-5 bg-white" : "w-1.5 bg-white/50"}`}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div
+                  className="h-56 w-full flex flex-col items-center justify-center gap-2"
+                  style={{ background: (RESOURCE_ICON[detailResource.type as ResourceType] ?? RESOURCE_ICON.OTHER).bg }}
+                >
+                  <ResourceIcon type={detailResource.type as ResourceType} size="lg" className="!bg-white/70" />
+                  <span className="text-xs font-medium" style={{ color: (RESOURCE_ICON[detailResource.type as ResourceType] ?? RESOURCE_ICON.OTHER).tint }}>
+                    No photos available
+                  </span>
+                </div>
+              )}
+
+              {/* Thumbnail strip */}
+              {detailResource.images && detailResource.images.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto px-5 pt-4 -mb-1">
+                  {detailResource.images.map((img, i) => (
+                    <button
+                      key={img}
+                      type="button"
+                      onClick={() => setGalleryIndex(i)}
+                      className={`relative h-14 w-20 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-colors ${i === galleryIndex ? "border-emerald-500" : "border-transparent opacity-70 hover:opacity-100"}`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={img} alt={`Thumbnail ${i + 1}`} className="h-full w-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Details body */}
+              <div className="p-5 space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-lg font-bold text-gray-900 leading-tight">{detailResource.name}</h2>
+                    <p className="text-sm text-gray-400 mt-0.5">{humanizeEnum(detailResource.type)}</p>
+                  </div>
+                  {detailResource.requiresApproval && (
+                    <Badge variant="secondary" className="text-[10px] bg-amber-50 text-amber-600 border-amber-100 flex-shrink-0">
+                      Needs approval
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-4 text-sm text-gray-500">
+                  {detailResource.location && (
+                    <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" />{detailResource.location.name}</span>
+                  )}
+                  <span className="flex items-center gap-1.5"><Users className="w-4 h-4" />Up to {detailResource.capacity}</span>
+                </div>
+
+                {detailResource.description && (
+                  <p className="text-sm text-gray-600 leading-relaxed">{detailResource.description}</p>
+                )}
+
+                {/* Rates */}
+                <div>
+                  <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Rates</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {detailResource.hourlyRate != null && (
+                      <span className="text-sm bg-gray-50 text-gray-700 px-2.5 py-1 rounded-lg border border-gray-100">{formatCurrency(detailResource.hourlyRate, currency)}/hr</span>
+                    )}
+                    {detailResource.halfDayRate != null && (
+                      <span className="text-sm bg-gray-50 text-gray-700 px-2.5 py-1 rounded-lg border border-gray-100">{formatCurrency(detailResource.halfDayRate, currency)}/half day</span>
+                    )}
+                    {detailResource.fullDayRate != null && (
+                      <span className="text-sm bg-gray-50 text-gray-700 px-2.5 py-1 rounded-lg border border-gray-100">{formatCurrency(detailResource.fullDayRate, currency)}/day</span>
+                    )}
+                    {detailResource.hourlyRate == null && detailResource.halfDayRate == null && detailResource.fullDayRate == null && (
+                      <span className="text-sm text-gray-400">Included with membership</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Amenities */}
+                {detailResource.amenities.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Amenities</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {detailResource.amenities.map((a) => (
+                        <span key={a} className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded-md">
+                          <Check className="w-3 h-3" />{a}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 pt-1">
+                  <Button variant="outline" className="flex-1 text-sm" onClick={() => setDetailResource(null)}>
+                    Close
+                  </Button>
+                  <Button
+                    className="flex-1 text-white text-sm"
+                    style={{ background: "linear-gradient(135deg, #16A34A, #15803D)" }}
+                    onClick={() => bookFromDetail(detailResource)}
+                  >
+                    <Calendar className="w-4 h-4 mr-1.5" /> Book this space
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
