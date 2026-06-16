@@ -33,7 +33,7 @@ const COLUMNS: { heading: string; links: { label: string; href: string }[] }[] =
 
 export function MarketingFooter() {
   return (
-    <footer className="border-t border-zinc-100 bg-white">
+    <footer style={{ background: "#0A0F0A" }} className="text-zinc-400">
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 gap-10 md:grid-cols-4">
           {/* Brand */}
@@ -45,7 +45,7 @@ export function MarketingFooter() {
               >
                 <Building2 className="h-[18px] w-[18px] text-white" />
               </span>
-              <span className="text-[17px] font-semibold tracking-tight text-zinc-900">CoWork Pro</span>
+              <span className="font-heading text-[17px] font-semibold tracking-tight text-white">CoWork Pro</span>
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-zinc-500">
               The operating system for GCC workspace and business-setup operators. Built for the UAE and Saudi Arabia.
@@ -54,11 +54,11 @@ export function MarketingFooter() {
 
           {COLUMNS.map((col) => (
             <div key={col.heading}>
-              <h4 className="text-sm font-semibold text-zinc-900">{col.heading}</h4>
+              <h4 className="font-heading text-sm font-semibold text-white">{col.heading}</h4>
               <ul className="mt-4 space-y-3">
                 {col.links.map((l) => (
                   <li key={l.label}>
-                    <Link href={l.href} className="text-sm text-zinc-500 transition-colors hover:text-zinc-900">
+                    <Link href={l.href} className="text-sm text-zinc-400 transition-colors hover:text-white">
                       {l.label}
                     </Link>
                   </li>
@@ -68,14 +68,14 @@ export function MarketingFooter() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-zinc-100 pt-6 sm:flex-row sm:items-center">
-          <p className="text-sm text-zinc-400">
+        <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-white/10 pt-6 sm:flex-row sm:items-center">
+          <p className="text-sm text-zinc-500">
             {new Date().getFullYear()} CoWork Pro. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
-            <Link href="#" className="text-sm text-zinc-400 hover:text-zinc-700">Privacy</Link>
-            <Link href="#" className="text-sm text-zinc-400 hover:text-zinc-700">Terms</Link>
-            <span className="text-sm text-zinc-400">Dubai · Riyadh</span>
+            <Link href="#" className="text-sm text-zinc-500 hover:text-white">Privacy</Link>
+            <Link href="#" className="text-sm text-zinc-500 hover:text-white">Terms</Link>
+            <span className="text-sm text-zinc-500">Dubai, Riyadh</span>
           </div>
         </div>
       </div>

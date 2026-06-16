@@ -11,11 +11,25 @@ import {
   ArrowRight,
   Check,
   X,
+  CalendarClock,
+  Calculator,
+  Unplug,
+  EyeOff,
+  Shuffle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PricingSection } from "@/components/marketing/pricing-section";
 import { HeroPreview } from "@/components/marketing/hero-preview";
 import { LogoMarquee } from "@/components/marketing/logo-marquee";
+import { SectionEdge } from "@/components/marketing/section-edge";
+import {
+  WorkspaceMock,
+  VirtualOfficeMock,
+  FormationMock,
+  ProMock,
+  InvoiceMock,
+  WhatsAppMock,
+} from "@/components/marketing/feature-mockups";
 import { Reveal, StaggerGroup, StaggerItem } from "@/components/marketing/motion";
 
 export const dynamic = "force-static";
@@ -25,21 +39,18 @@ export const dynamic = "force-static";
 function Eyebrow({
   children,
   center,
-  dark,
+  tone = "light",
 }: {
   children: React.ReactNode;
   center?: boolean;
-  dark?: boolean;
+  tone?: "light" | "dark" | "green";
 }) {
+  const lineCls = tone === "green" ? "bg-white/60" : tone === "dark" ? "bg-emerald-400/50" : "bg-emerald-500/50";
+  const textCls = tone === "green" ? "text-white" : tone === "dark" ? "text-emerald-400" : "text-emerald-600";
   return (
     <div className={cn("flex items-center gap-2.5", center && "justify-center")}>
-      <span className={cn("h-px w-7", dark ? "bg-emerald-400/50" : "bg-emerald-500/50")} />
-      <span
-        className={cn(
-          "font-heading text-xs font-medium uppercase tracking-[0.15em]",
-          dark ? "text-emerald-400" : "text-emerald-600"
-        )}
-      >
+      <span className={cn("h-px w-7", lineCls)} />
+      <span className={cn("font-heading text-xs font-medium uppercase tracking-[0.15em]", textCls)}>
         {children}
       </span>
     </div>
@@ -58,14 +69,41 @@ function PrimaryCta({ href, children }: { href: string; children: React.ReactNod
   );
 }
 
+// Weav-style tonal button: translucent emerald-tint fill, no hard border,
+// low contrast, same size/radius as the primary.
 function SecondaryCta({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <Link
       href={href}
-      className="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-200 bg-white px-6 py-3 text-sm font-semibold text-zinc-900 transition-all hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-sm"
+      className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-600/10 px-6 py-3 text-sm font-semibold text-emerald-700 transition-all hover:-translate-y-0.5 hover:bg-emerald-600/15"
     >
       {children}
     </Link>
+  );
+}
+
+// Feature copy block (icon tile + title + body), paired with a mockup.
+function FeatureCopy({
+  icon: Icon,
+  tileBg,
+  tileFg,
+  title,
+  children,
+}: {
+  icon: any;
+  tileBg: string;
+  tileFg: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <span className={cn("flex h-11 w-11 items-center justify-center rounded-xl", tileBg)}>
+        <Icon className={cn("h-5 w-5", tileFg)} />
+      </span>
+      <h3 className="mt-5 font-heading text-2xl font-bold tracking-[-0.01em] text-zinc-900">{title}</h3>
+      <p className="mt-3 max-w-md text-base leading-relaxed text-zinc-600">{children}</p>
+    </div>
   );
 }
 
@@ -80,12 +118,12 @@ const MODULES = [
 ];
 
 const PROBLEMS = [
-  { title: "Renewals tracked in spreadsheets", body: "Trade licenses, visas, and virtual-office contracts expire on dates nobody is watching." },
-  { title: "Client updates lost in WhatsApp", body: "Status requests pile up in personal chats with no record, no SLA, and no handover." },
-  { title: "VAT done by hand", body: "5 percent in the UAE, 15 percent in Saudi, Arabic invoices, ZATCA. Easy to get wrong, costly to fix." },
-  { title: "Western tools that stop at the desk", body: "Booking software has no idea what a PRO service or a MISA license even is." },
-  { title: "Revenue you cannot see", body: "Formation and PRO fees live outside the system, so you never see what each line really earns." },
-  { title: "A team switching apps all day", body: "Reception, PRO agents, and setup consultants each work in a different tool." },
+  { icon: CalendarClock, title: "Renewals tracked in spreadsheets", body: "Trade licenses, visas, and virtual-office contracts expire on dates nobody is watching." },
+  { icon: MessageCircle, title: "Client updates lost in WhatsApp", body: "Status requests pile up in personal chats with no record, no SLA, and no handover." },
+  { icon: Calculator, title: "VAT done by hand", body: "5 percent in the UAE, 15 percent in Saudi, Arabic invoices, ZATCA. Easy to get wrong, costly to fix." },
+  { icon: Unplug, title: "Western tools that stop at the desk", body: "Booking software has no idea what a PRO service or a MISA license even is." },
+  { icon: EyeOff, title: "Revenue you cannot see", body: "Formation and PRO fees live outside the system, so you never see what each line really earns." },
+  { icon: Shuffle, title: "A team switching apps all day", body: "Reception, PRO agents, and setup consultants each work in a different tool." },
 ];
 
 const COMPARE_ROWS: { cap: string; us: true; them: boolean | string }[] = [
@@ -156,7 +194,26 @@ export default function MarketingPage() {
             </div>
           </Reveal>
 
-          <HeroPreview />
+          {/* Elevated card frame: emerald glow, a peek layer behind, and a
+              faint dot-grid for depth (Ruul/Fun floating-card feel). */}
+          <div className="relative">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -inset-x-8 -top-10 -bottom-6 -z-10 rounded-[2rem] opacity-70 blur-2xl"
+              style={{ background: "radial-gradient(50% 50% at 60% 40%, rgba(34,197,94,0.22), transparent 75%)" }}
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 -z-10 translate-x-5 translate-y-6 rounded-2xl border border-zinc-200/70 bg-white/50"
+            />
+            <HeroPreview />
+            <div className="pointer-events-none absolute -left-4 bottom-8 hidden items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 shadow-lg shadow-zinc-900/5 sm:flex">
+              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-50">
+                <Check className="h-3.5 w-3.5 text-emerald-600" />
+              </span>
+              <span className="text-xs font-medium text-zinc-700">All synced</span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -189,11 +246,11 @@ export default function MarketingPage() {
 
           <StaggerGroup className="mt-14 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {PROBLEMS.map((p) => (
-              <StaggerItem
-                key={p.title}
-                className="rounded-2xl border border-zinc-200 bg-white p-6 transition-all duration-300 hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg hover:shadow-zinc-900/5"
-              >
-                <h3 className="font-heading text-base font-medium text-zinc-900">{p.title}</h3>
+              <StaggerItem key={p.title} className="mk-card p-6">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100">
+                  <p.icon className="h-5 w-5 text-zinc-500" />
+                </span>
+                <h3 className="mt-4 font-heading text-base font-medium text-zinc-900">{p.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-zinc-600">{p.body}</p>
               </StaggerItem>
             ))}
@@ -201,15 +258,22 @@ export default function MarketingPage() {
         </div>
       </section>
 
-      {/* ── 4. THE SOLUTION (dark contrast section) ───────────────────── */}
-      <section className="bg-zinc-950 py-24 text-white sm:py-32">
+      {/* ── 4. THE SOLUTION (full-bleed green drench) ─────────────────── */}
+      <section
+        className="relative isolate py-24 text-white sm:py-32"
+        style={{
+          background:
+            "radial-gradient(60% 55% at 18% 0%, rgba(255,255,255,0.14), transparent 60%), linear-gradient(160deg, #15803D 0%, #16A34A 48%, #22C55E 100%)",
+        }}
+      >
+        <SectionEdge color="#15803D" />
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal className="mx-auto max-w-3xl text-center">
-            <Eyebrow center dark>The platform</Eyebrow>
+            <Eyebrow center tone="green">The platform</Eyebrow>
             <h2 className="mt-4 font-heading text-3xl font-bold tracking-[-0.02em] text-white sm:text-4xl">
               One platform for everything you actually do
             </h2>
-            <p className="mt-4 text-lg leading-relaxed text-zinc-400">
+            <p className="mt-4 text-lg leading-relaxed text-emerald-50/90">
               CoWork Pro unifies the five businesses GCC operators run, with UAE and Saudi compliance built in, not
               bolted on. One login, one bill, one source of truth.
             </p>
@@ -219,14 +283,14 @@ export default function MarketingPage() {
             {MODULES.map((m) => (
               <StaggerItem
                 key={m.label}
-                className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition-all duration-300 hover:-translate-y-1 hover:border-emerald-400/30 hover:bg-white/[0.06]"
+                className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/30 hover:bg-white/[0.16]"
               >
-                <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-500/15">
-                  <m.icon className="h-5 w-5 text-emerald-400" />
+                <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white/15">
+                  <m.icon className="h-5 w-5 text-white" />
                 </span>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-white">{m.label}</p>
-                  <p className="truncate text-xs text-zinc-400">{m.line}</p>
+                  <p className="truncate text-xs text-emerald-50/75">{m.line}</p>
                 </div>
               </StaggerItem>
             ))}
@@ -235,7 +299,8 @@ export default function MarketingPage() {
       </section>
 
       {/* ── 5. FEATURE HIGHLIGHTS (bento with rhythm) ─────────────────── */}
-      <section id="features" className="py-24 sm:py-32">
+      <section id="features" className="relative isolate bg-white py-24 sm:py-32">
+        <SectionEdge color="#FFFFFF" flip />
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal className="max-w-2xl">
             <Eyebrow>What you get</Eyebrow>
@@ -244,116 +309,117 @@ export default function MarketingPage() {
             </h2>
           </Reveal>
 
-          <StaggerGroup className="mt-14 grid grid-cols-1 gap-5 md:grid-cols-3">
-            {/* Workspace - wide spotlight */}
-            <StaggerItem className="rounded-2xl border border-zinc-200 bg-white p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-zinc-900/5 md:col-span-2">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50">
-                <CalendarCheck className="h-5 w-5 text-emerald-700" />
+          <div className="mt-16 space-y-20 lg:space-y-28">
+            {/* Workspace - asymmetric, mockup-led right */}
+            <Reveal className="grid items-center gap-8 lg:grid-cols-12 lg:gap-14">
+              <div className="lg:col-span-5">
+                <FeatureCopy icon={CalendarCheck} tileBg="bg-emerald-50" tileFg="text-emerald-700" title="Workspace that runs itself">
+                  Bookings, desks, meeting rooms, QR check-in, credits, and recurring reservations. Members book and pay
+                  from their own portal, so your front desk stops being a booking clerk.
+                </FeatureCopy>
               </div>
-              <h3 className="mt-4 font-heading text-xl font-medium text-zinc-900">Workspace that runs itself</h3>
-              <p className="mt-2 max-w-xl text-sm leading-relaxed text-zinc-600">
-                Bookings, desks, meeting rooms, QR check-in, credits, and recurring reservations. Members book and pay
-                from their own portal, so your front desk stops being a booking clerk.
-              </p>
-            </StaggerItem>
+              <div className="lg:col-span-7">
+                <WorkspaceMock />
+              </div>
+            </Reveal>
 
-            <StaggerItem className="rounded-2xl border border-zinc-200 bg-white p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-zinc-900/5">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-50">
-                <Mailbox className="h-5 w-5 text-sky-600" />
+            {/* Virtual office - reversed (mockup left, copy right) */}
+            <Reveal className="grid items-center gap-8 lg:grid-cols-12 lg:gap-14">
+              <div className="lg:order-2 lg:col-span-5">
+                <FeatureCopy icon={Mailbox} tileBg="bg-sky-50" tileFg="text-sky-600" title="Virtual office revenue">
+                  Sell registered addresses, log mail and couriers, and auto-bill renewals. High margin, low effort.
+                </FeatureCopy>
               </div>
-              <h3 className="mt-4 font-heading text-xl font-medium text-zinc-900">Virtual office revenue</h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-600">
-                Sell registered addresses, log mail and couriers, and auto-bill renewals. High margin, low effort.
-              </p>
-            </StaggerItem>
+              <div className="lg:order-1 lg:col-span-7">
+                <VirtualOfficeMock />
+              </div>
+            </Reveal>
 
-            <StaggerItem className="rounded-2xl border border-zinc-200 bg-white p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-zinc-900/5">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50">
-                <Landmark className="h-5 w-5 text-violet-600" />
-              </div>
-              <h3 className="mt-4 font-heading text-xl font-medium text-zinc-900">Company formation CRM</h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-600">
-                Track leads from first enquiry to trade license. License catalog, proposals, and application stages for
-                mainland, freezone, and Saudi MISA.
-              </p>
-            </StaggerItem>
+            {/* Formation + PRO - 2-up, breaks the zigzag */}
+            <StaggerGroup className="grid gap-10 md:grid-cols-2 lg:gap-12">
+              <StaggerItem>
+                <FeatureCopy icon={Landmark} tileBg="bg-violet-50" tileFg="text-violet-600" title="Company formation CRM">
+                  Track leads from first enquiry to trade license. License catalog, proposals, and application stages for
+                  mainland, freezone, and Saudi MISA.
+                </FeatureCopy>
+                <div className="mt-6">
+                  <FormationMock />
+                </div>
+              </StaggerItem>
+              <StaggerItem>
+                <FeatureCopy icon={Stamp} tileBg="bg-amber-50" tileFg="text-amber-600" title="PRO and visa tracking">
+                  Manage visas, attestation, Qiwa and Muqeem tasks with SLAs and a client-visible status. Nothing expires
+                  by surprise.
+                </FeatureCopy>
+                <div className="mt-6">
+                  <ProMock />
+                </div>
+              </StaggerItem>
+            </StaggerGroup>
 
-            <StaggerItem className="rounded-2xl border border-zinc-200 bg-white p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-zinc-900/5">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50">
-                <Stamp className="h-5 w-5 text-amber-600" />
-              </div>
-              <h3 className="mt-4 font-heading text-xl font-medium text-zinc-900">PRO and visa tracking</h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-600">
-                Manage visas, attestation, Qiwa and Muqeem tasks with SLAs and a client-visible status. Nothing expires
-                by surprise.
-              </p>
-            </StaggerItem>
-
-            <StaggerItem className="rounded-2xl border border-zinc-200 bg-white p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-zinc-900/5">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50">
-                <MessageCircle className="h-5 w-5 text-emerald-700" />
-              </div>
-              <h3 className="mt-4 font-heading text-xl font-medium text-zinc-900">WhatsApp-native</h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-600">
+            {/* WhatsApp - split */}
+            <Reveal className="grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
+              <FeatureCopy icon={MessageCircle} tileBg="bg-emerald-50" tileFg="text-emerald-700" title="WhatsApp-native">
                 Confirmations, reminders, and two-way support on the channel your members actually read. Email is the
                 backup, not the default.
-              </p>
-            </StaggerItem>
+              </FeatureCopy>
+              <div>
+                <WhatsAppMock />
+              </div>
+            </Reveal>
 
-            {/* Compliance - wide */}
-            <StaggerItem className="rounded-2xl border border-zinc-200 bg-white p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-zinc-900/5 md:col-span-3">
-              <div className="flex items-start gap-5">
-                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50">
-                  <ShieldCheck className="h-5 w-5 text-emerald-700" />
-                </div>
+            {/* Billing / VAT - full-width emerald-tinted spotlight band */}
+            <Reveal className="overflow-hidden rounded-3xl border border-emerald-100 bg-emerald-50/50 p-8 sm:p-10">
+              <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
+                <FeatureCopy icon={ShieldCheck} tileBg="bg-white" tileFg="text-emerald-700" title="VAT and ZATCA compliance, handled">
+                  Every invoice splits subtotal, VAT, and total automatically: 5 percent in the UAE, 15 percent in
+                  Saudi. Arabic tax invoices and ZATCA e-invoicing are built in, so you stay compliant without a
+                  separate accountant in the loop.
+                </FeatureCopy>
                 <div>
-                  <h3 className="font-heading text-xl font-medium text-zinc-900">VAT and ZATCA compliance, handled</h3>
-                  <p className="mt-2 max-w-3xl text-sm leading-relaxed text-zinc-600">
-                    Every invoice splits subtotal, VAT, and total automatically: 5 percent in the UAE, 15 percent in
-                    Saudi. Arabic tax invoices and ZATCA e-invoicing are built in, so you stay compliant without a
-                    separate accountant in the loop.
-                  </p>
+                  <InvoiceMock />
                 </div>
               </div>
-            </StaggerItem>
-          </StaggerGroup>
+            </Reveal>
+          </div>
         </div>
       </section>
 
-      {/* ── 6. WHY COWORK PRO vs WESTERN TOOLS ────────────────────────── */}
-      <section id="compare" className="border-t border-zinc-100 bg-zinc-50/60 py-24 sm:py-32">
+      {/* ── 6. WHY COWORK PRO vs WESTERN TOOLS (dark band #1) ─────────── */}
+      <section id="compare" className="relative isolate py-24 text-white sm:py-32" style={{ background: "#0A0F0A" }}>
+        <SectionEdge color="#0A0F0A" />
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <Reveal className="mx-auto max-w-2xl text-center">
-            <Eyebrow center>Why CoWork Pro</Eyebrow>
-            <h2 className="mt-4 font-heading text-3xl font-bold tracking-[-0.02em] text-zinc-900 sm:text-4xl">
+            <Eyebrow center tone="dark">Why CoWork Pro</Eyebrow>
+            <h2 className="mt-4 font-heading text-3xl font-bold tracking-[-0.02em] text-white sm:text-4xl">
               The difference between built-for-the-GCC and translated-for-it
             </h2>
           </Reveal>
 
-          <Reveal delay={0.1} className="mt-14 overflow-hidden rounded-2xl border border-zinc-200 bg-white">
+          <Reveal delay={0.1} className="mt-14 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-2xl shadow-black/40">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[560px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-100 bg-zinc-50/80">
-                    <th className="px-5 py-4 font-semibold text-zinc-500">Capability</th>
-                    <th className="px-5 py-4 text-center font-semibold text-emerald-700">CoWork Pro</th>
-                    <th className="px-5 py-4 text-center font-semibold text-zinc-500">Western tools</th>
+                  <tr className="border-b border-white/10">
+                    <th className="px-5 py-4 font-semibold text-zinc-400">Capability</th>
+                    <th className="bg-emerald-500/15 px-5 py-4 text-center font-heading font-semibold text-emerald-300">CoWork Pro</th>
+                    <th className="px-5 py-4 text-center font-semibold text-zinc-400">Western tools</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-50">
+                <tbody className="divide-y divide-white/[0.06]">
                   {COMPARE_ROWS.map((row) => (
-                    <tr key={row.cap} className="transition-colors hover:bg-zinc-50/70">
-                      <td className="px-5 py-4 font-medium text-zinc-800">{row.cap}</td>
-                      <td className="px-5 py-4 text-center">
-                        <Check className="mx-auto h-5 w-5 text-emerald-600" />
+                    <tr key={row.cap} className="transition-colors hover:bg-white/[0.03]">
+                      <td className="px-5 py-4 font-medium text-zinc-200">{row.cap}</td>
+                      <td className="bg-emerald-500/[0.08] px-5 py-4 text-center">
+                        <Check className="mx-auto h-5 w-5 text-emerald-400" strokeWidth={2.5} />
                       </td>
                       <td className="px-5 py-4 text-center">
                         {row.them === false ? (
-                          <X className="mx-auto h-5 w-5 text-zinc-300" />
+                          <X className="mx-auto h-5 w-5 text-zinc-600" strokeWidth={2.5} />
                         ) : row.them === "yes" ? (
-                          <Check className="mx-auto h-5 w-5 text-zinc-300" />
+                          <Check className="mx-auto h-5 w-5 text-zinc-500" strokeWidth={2.5} />
                         ) : (
-                          <span className="text-xs font-medium text-zinc-400">{row.them}</span>
+                          <span className="text-xs font-medium text-zinc-500">{row.them}</span>
                         )}
                       </td>
                     </tr>
@@ -362,14 +428,17 @@ export default function MarketingPage() {
               </table>
             </div>
           </Reveal>
-          <p className="mt-4 text-center text-xs text-zinc-400">
+          <p className="mt-4 text-center text-xs text-zinc-500">
             Western tools refers to desk-rental platforms such as Nexudus, OfficeRnD, and Optix.
           </p>
         </div>
       </section>
 
       {/* ── 7. PRICING ────────────────────────────────────────────────── */}
-      <PricingSection />
+      <div className="relative isolate" style={{ background: "#F6FAF7" }}>
+        <SectionEdge color="#F6FAF7" flip />
+        <PricingSection />
+      </div>
 
       {/* ── 8. FAQ ────────────────────────────────────────────────────── */}
       <section id="faq" className="py-24 sm:py-32">
@@ -396,35 +465,48 @@ export default function MarketingPage() {
         </div>
       </section>
 
-      {/* ── 9. FINAL CTA ──────────────────────────────────────────────── */}
-      <section className="px-4 pb-28 sm:px-6 lg:px-8">
-        <Reveal className="mx-auto max-w-6xl">
-          <div
-            className="overflow-hidden rounded-3xl px-6 py-16 text-center sm:px-12"
-            style={{ background: "linear-gradient(135deg, #15803D 0%, #16A34A 55%, #22C55E 100%)" }}
-          >
-            <h2 className="mx-auto max-w-2xl font-heading text-3xl font-bold tracking-[-0.02em] text-white sm:text-4xl">
+      {/* ── 9. CLOSING (dark band #2 + giant wordmark) ────────────────── */}
+      <section className="relative isolate overflow-hidden text-white" style={{ background: "#0A0F0A" }}>
+        <SectionEdge color="#0A0F0A" flip />
+        {/* emerald glow rising from the bottom */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5"
+          style={{ background: "radial-gradient(60% 100% at 50% 100%, rgba(34,197,94,0.22), transparent 72%)" }}
+        />
+        {/* oversized, cropped wordmark anchored to the bottom edge */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-[-0.14em] select-none whitespace-nowrap text-center font-heading font-bold leading-none tracking-[-0.04em] text-white/[0.05]"
+          style={{ fontSize: "clamp(4.5rem, 19vw, 17rem)" }}
+        >
+          CoWork Pro
+        </div>
+
+        <div className="relative z-10 mx-auto max-w-3xl px-4 py-28 text-center sm:px-6 sm:py-36 lg:px-8">
+          <Reveal>
+            <h2 className="font-heading text-4xl font-bold tracking-[-0.03em] text-white sm:text-5xl">
               Stop juggling five businesses across five tools
             </h2>
-            <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-emerald-50">
+            <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-zinc-400">
               Run your whole GCC operation from one platform. Free for 14 days, no card required.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 href="/register"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-emerald-800 transition-all hover:-translate-y-0.5 hover:shadow-md active:translate-y-0"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-emerald-800 shadow-lg shadow-emerald-500/10 transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0"
               >
                 Start free trial <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 href="/register?intent=demo"
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/30 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-white/10 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/[0.16]"
               >
                 Book a demo
               </Link>
             </div>
-          </div>
-        </Reveal>
+          </Reveal>
+        </div>
       </section>
     </>
   );

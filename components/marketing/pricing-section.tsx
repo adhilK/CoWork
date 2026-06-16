@@ -74,7 +74,7 @@ export function PricingSection() {
   const [jurisdiction, setJurisdiction] = useState<Jurisdiction>("UAE");
 
   return (
-    <section id="pricing" className="border-t border-zinc-100 bg-zinc-50/60 py-20 sm:py-28">
+    <section id="pricing" className="py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <div className="flex items-center justify-center gap-2.5">
@@ -117,9 +117,7 @@ export function PricingSection() {
             return (
               <div
                 key={plan.key}
-                className={`relative flex flex-col rounded-2xl border bg-white p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-zinc-900/5 ${
-                  plan.highlight ? "border-emerald-500 shadow-lg shadow-emerald-500/10" : "border-zinc-200"
-                }`}
+                className={`relative flex flex-col p-6 ${plan.highlight ? "mk-card-highlight" : "mk-card"}`}
               >
                 {plan.highlight && (
                   <span className="absolute -top-3 left-6 rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
