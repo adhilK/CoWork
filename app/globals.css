@@ -227,3 +227,41 @@
 .animate-fade-in {
   animation: fade-in 0.25s ease-out both;
 }
+
+/* ─── Marketing landing page ──────────────────────────────────────────────── */
+
+/* Infinite logo marquee. Track holds the logo list duplicated 2x, so a
+   -50% translate loops seamlessly. Pauses on hover. */
+@keyframes marquee-scroll {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+
+.marquee-track {
+  animation: marquee-scroll 38s linear infinite;
+  will-change: transform;
+}
+
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+/* Subtle, light hero backdrop drift (kept gentle). */
+@keyframes hero-drift {
+  0%   { transform: translate3d(0, 0, 0); opacity: 0.9; }
+  50%  { transform: translate3d(2%, -1.5%, 0); opacity: 1; }
+  100% { transform: translate3d(0, 0, 0); opacity: 0.9; }
+}
+
+.hero-aurora {
+  animation: hero-drift 18s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+/* Respect reduced-motion: freeze the marquee and hero drift. */
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track,
+  .hero-aurora {
+    animation: none !important;
+  }
+}
