@@ -141,7 +141,7 @@ export function PricingSection() {
 
                 <Link
                   href={isCustom ? "/register?plan=enterprise" : `/register?plan=${plan.key.toLowerCase()}`}
-                  className={`mt-6 rounded-full px-4 py-2.5 text-center text-sm font-semibold transition-transform active:scale-[0.98] ${
+                  className={`mt-6 rounded-xl px-4 py-2.5 text-center text-sm font-semibold transition-transform active:scale-[0.98] ${
                     plan.highlight
                       ? "text-white"
                       : "border border-zinc-200 text-zinc-900 hover:bg-zinc-50"

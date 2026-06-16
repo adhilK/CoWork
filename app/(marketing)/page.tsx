@@ -61,7 +61,7 @@ function PrimaryCta({ href, children }: { href: string; children: React.ReactNod
   return (
     <Link
       href={href}
-      className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.98]"
+      className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.98]"
       style={{ background: "linear-gradient(135deg, #16A34A, #15803D)" }}
     >
       {children}
@@ -75,7 +75,7 @@ function SecondaryCta({ href, children }: { href: string; children: React.ReactN
   return (
     <Link
       href={href}
-      className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-600/10 px-6 py-3 text-sm font-semibold text-emerald-700 transition-all hover:-translate-y-0.5 hover:bg-emerald-600/15"
+      className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600/10 px-6 py-3 text-sm font-semibold text-emerald-700 transition-all hover:-translate-y-0.5 hover:bg-emerald-600/15"
     >
       {children}
     </Link>
@@ -263,11 +263,24 @@ export default function MarketingPage() {
         className="relative isolate py-24 text-white sm:py-32"
         style={{
           background:
-            "radial-gradient(60% 55% at 18% 0%, rgba(255,255,255,0.14), transparent 60%), linear-gradient(160deg, #15803D 0%, #16A34A 48%, #22C55E 100%)",
+            "radial-gradient(80% 55% at 50% 0%, rgba(255,255,255,0.16), transparent 55%), linear-gradient(150deg, #16A34A 0%, #15803D 55%, #166534 100%)",
         }}
       >
-        <SectionEdge color="#15803D" />
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* Gradient wave: a bright crest rising out of the white section above,
+            deepening into the green body so the two colors blend. */}
+        <SectionEdge from="#34C36B" to="#16A34A" />
+        {/* Dot pattern across the blend zone, fading out downward. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-72"
+          style={{
+            backgroundImage: "radial-gradient(rgba(255,255,255,0.18) 1px, transparent 1.4px)",
+            backgroundSize: "18px 18px",
+            maskImage: "linear-gradient(to bottom, rgba(0,0,0,0.7), transparent)",
+            WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,0.7), transparent)",
+          }}
+        />
+        <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal className="mx-auto max-w-3xl text-center">
             <Eyebrow center tone="green">The platform</Eyebrow>
             <h2 className="mt-4 font-heading text-3xl font-bold tracking-[-0.02em] text-white sm:text-4xl">
@@ -494,13 +507,13 @@ export default function MarketingPage() {
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 href="/register"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-emerald-800 shadow-lg shadow-emerald-500/10 transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-emerald-800 shadow-lg shadow-emerald-500/10 transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0"
               >
                 Start free trial <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 href="/register?intent=demo"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-white/10 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/[0.16]"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-white/10 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/[0.16]"
               >
                 Book a demo
               </Link>
