@@ -36,7 +36,7 @@ function Eyebrow({
       <span className={cn("h-px w-7", dark ? "bg-emerald-400/50" : "bg-emerald-500/50")} />
       <span
         className={cn(
-          "text-xs font-semibold uppercase tracking-[0.18em]",
+          "font-heading text-xs font-medium uppercase tracking-[0.18em]",
           dark ? "text-emerald-400" : "text-emerald-600"
         )}
       >
@@ -141,10 +141,10 @@ export default function MarketingPage() {
         />
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 pt-16 pb-24 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:pt-24 lg:pb-28">
           <Reveal>
-            <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
+            <span className="font-heading inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium uppercase tracking-[0.14em] text-emerald-700">
               For UAE &amp; Saudi operators
             </span>
-            <h1 className="mt-5 text-4xl font-bold leading-[1.05] tracking-[-0.03em] text-zinc-900 sm:text-5xl lg:text-6xl">
+            <h1 className="mt-5 font-heading text-4xl font-bold leading-[1.05] tracking-[-0.03em] text-zinc-900 sm:text-5xl lg:text-6xl">
               Coworking software stops at the desk. GCC operators don&apos;t.
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-zinc-600">
@@ -179,7 +179,7 @@ export default function MarketingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal className="mx-auto max-w-3xl text-center">
             <Eyebrow center>The problem</Eyebrow>
-            <h2 className="mt-4 text-3xl font-bold tracking-[-0.02em] text-zinc-900 sm:text-4xl">
+            <h2 className="mt-4 font-heading text-3xl font-bold tracking-[-0.02em] text-zinc-900 sm:text-4xl">
               One operator. Five businesses. A dozen browser tabs.
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-zinc-600">
@@ -195,7 +195,7 @@ export default function MarketingPage() {
                 key={p.title}
                 className="rounded-2xl border border-zinc-200 bg-white p-6 transition-all duration-300 hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg hover:shadow-zinc-900/5"
               >
-                <h3 className="text-base font-semibold text-zinc-900">{p.title}</h3>
+                <h3 className="font-heading text-base font-medium text-zinc-900">{p.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-zinc-600">{p.body}</p>
               </StaggerItem>
             ))}
@@ -208,7 +208,7 @@ export default function MarketingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal className="mx-auto max-w-3xl text-center">
             <Eyebrow center dark>The platform</Eyebrow>
-            <h2 className="mt-4 text-3xl font-bold tracking-[-0.02em] text-white sm:text-4xl">
+            <h2 className="mt-4 font-heading text-3xl font-bold tracking-[-0.02em] text-white sm:text-4xl">
               One platform for everything you actually do
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-zinc-400">
@@ -241,7 +241,7 @@ export default function MarketingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal className="max-w-2xl">
             <Eyebrow>What you get</Eyebrow>
-            <h2 className="mt-4 text-3xl font-bold tracking-[-0.02em] text-zinc-900 sm:text-4xl">
+            <h2 className="mt-4 font-heading text-3xl font-bold tracking-[-0.02em] text-zinc-900 sm:text-4xl">
               The modules that make you money, not just manage desks
             </h2>
           </Reveal>
@@ -252,7 +252,7 @@ export default function MarketingPage() {
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50">
                 <CalendarCheck className="h-5 w-5 text-emerald-700" />
               </div>
-              <h3 className="mt-4 text-xl font-semibold text-zinc-900">Workspace that runs itself</h3>
+              <h3 className="mt-4 font-heading text-xl font-medium text-zinc-900">Workspace that runs itself</h3>
               <p className="mt-2 max-w-xl text-sm leading-relaxed text-zinc-600">
                 Bookings, desks, meeting rooms, QR check-in, credits, and recurring reservations. Members book and pay
                 from their own portal, so your front desk stops being a booking clerk.
@@ -263,7 +263,7 @@ export default function MarketingPage() {
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-50">
                 <Mailbox className="h-5 w-5 text-sky-600" />
               </div>
-              <h3 className="mt-4 text-xl font-semibold text-zinc-900">Virtual office revenue</h3>
+              <h3 className="mt-4 font-heading text-xl font-medium text-zinc-900">Virtual office revenue</h3>
               <p className="mt-2 text-sm leading-relaxed text-zinc-600">
                 Sell registered addresses, log mail and couriers, and auto-bill renewals. High margin, low effort.
               </p>
@@ -273,7 +273,7 @@ export default function MarketingPage() {
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50">
                 <Landmark className="h-5 w-5 text-violet-600" />
               </div>
-              <h3 className="mt-4 text-xl font-semibold text-zinc-900">Company formation CRM</h3>
+              <h3 className="mt-4 font-heading text-xl font-medium text-zinc-900">Company formation CRM</h3>
               <p className="mt-2 text-sm leading-relaxed text-zinc-600">
                 Track leads from first enquiry to trade license. License catalog, proposals, and application stages for
                 mainland, freezone, and Saudi MISA.
@@ -284,7 +284,7 @@ export default function MarketingPage() {
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50">
                 <Stamp className="h-5 w-5 text-amber-600" />
               </div>
-              <h3 className="mt-4 text-xl font-semibold text-zinc-900">PRO and visa tracking</h3>
+              <h3 className="mt-4 font-heading text-xl font-medium text-zinc-900">PRO and visa tracking</h3>
               <p className="mt-2 text-sm leading-relaxed text-zinc-600">
                 Manage visas, attestation, Qiwa and Muqeem tasks with SLAs and a client-visible status. Nothing expires
                 by surprise.
@@ -295,7 +295,7 @@ export default function MarketingPage() {
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50">
                 <MessageCircle className="h-5 w-5 text-emerald-700" />
               </div>
-              <h3 className="mt-4 text-xl font-semibold text-zinc-900">WhatsApp-native</h3>
+              <h3 className="mt-4 font-heading text-xl font-medium text-zinc-900">WhatsApp-native</h3>
               <p className="mt-2 text-sm leading-relaxed text-zinc-600">
                 Confirmations, reminders, and two-way support on the channel your members actually read. Email is the
                 backup, not the default.
@@ -309,7 +309,7 @@ export default function MarketingPage() {
                   <ShieldCheck className="h-5 w-5 text-emerald-700" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-zinc-900">VAT and ZATCA compliance, handled</h3>
+                  <h3 className="font-heading text-xl font-medium text-zinc-900">VAT and ZATCA compliance, handled</h3>
                   <p className="mt-2 max-w-3xl text-sm leading-relaxed text-zinc-600">
                     Every invoice splits subtotal, VAT, and total automatically: 5 percent in the UAE, 15 percent in
                     Saudi. Arabic tax invoices and ZATCA e-invoicing are built in, so you stay compliant without a
@@ -327,7 +327,7 @@ export default function MarketingPage() {
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <Reveal className="mx-auto max-w-2xl text-center">
             <Eyebrow center>Why CoWork Pro</Eyebrow>
-            <h2 className="mt-4 text-3xl font-bold tracking-[-0.02em] text-zinc-900 sm:text-4xl">
+            <h2 className="mt-4 font-heading text-3xl font-bold tracking-[-0.02em] text-zinc-900 sm:text-4xl">
               The difference between built-for-the-GCC and translated-for-it
             </h2>
           </Reveal>
@@ -378,7 +378,7 @@ export default function MarketingPage() {
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <Reveal className="text-center">
             <Eyebrow center>FAQ</Eyebrow>
-            <h2 className="mt-4 text-3xl font-bold tracking-[-0.02em] text-zinc-900 sm:text-4xl">
+            <h2 className="mt-4 font-heading text-3xl font-bold tracking-[-0.02em] text-zinc-900 sm:text-4xl">
               Questions operators ask us
             </h2>
           </Reveal>
@@ -405,7 +405,7 @@ export default function MarketingPage() {
             className="overflow-hidden rounded-3xl px-6 py-16 text-center sm:px-12"
             style={{ background: "linear-gradient(135deg, #15803D 0%, #16A34A 55%, #22C55E 100%)" }}
           >
-            <h2 className="mx-auto max-w-2xl text-3xl font-bold tracking-[-0.02em] text-white sm:text-4xl">
+            <h2 className="mx-auto max-w-2xl font-heading text-3xl font-bold tracking-[-0.02em] text-white sm:text-4xl">
               Stop juggling five businesses across five tools
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-emerald-50">
