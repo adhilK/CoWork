@@ -79,7 +79,7 @@ export function PricingSection() {
         <div className="mx-auto max-w-2xl text-center">
           <div className="flex items-center justify-center gap-2.5">
             <span className="h-px w-7 bg-emerald-500/50" />
-            <span className="font-heading text-xs font-medium uppercase tracking-[0.18em] text-emerald-600">Pricing</span>
+            <span className="font-heading text-xs font-medium uppercase tracking-[0.15em] text-emerald-600">Pricing</span>
           </div>
           <h2 className="mt-4 font-heading text-3xl font-bold tracking-[-0.02em] text-zinc-900 sm:text-4xl">
             One subscription. Every revenue line.

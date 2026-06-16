@@ -36,7 +36,7 @@ function Eyebrow({
       <span className={cn("h-px w-7", dark ? "bg-emerald-400/50" : "bg-emerald-500/50")} />
       <span
         className={cn(
-          "font-heading text-xs font-medium uppercase tracking-[0.18em]",
+          "font-heading text-xs font-medium uppercase tracking-[0.15em]",
           dark ? "text-emerald-400" : "text-emerald-600"
         )}
       >
@@ -141,9 +141,7 @@ export default function MarketingPage() {
         />
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 pt-16 pb-24 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:pt-24 lg:pb-28">
           <Reveal>
-            <span className="font-heading inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium uppercase tracking-[0.14em] text-emerald-700">
-              For UAE &amp; Saudi operators
-            </span>
+            <Eyebrow>For UAE &amp; Saudi operators</Eyebrow>
             <h1 className="mt-5 font-heading text-4xl font-bold leading-[1.05] tracking-[-0.03em] text-zinc-900 sm:text-5xl lg:text-6xl">
               Coworking software stops at the desk. GCC operators don&apos;t.
             </h1>
