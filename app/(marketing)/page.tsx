@@ -11,7 +11,6 @@ import {
   ArrowRight,
   Check,
   X,
-  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PricingSection } from "@/components/marketing/pricing-section";
@@ -142,11 +141,10 @@ export default function MarketingPage() {
         />
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 pt-16 pb-24 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:pt-24 lg:pb-28">
           <Reveal>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-              <Sparkles className="h-3.5 w-3.5" />
-              Built for the UAE and Saudi, not adapted for it
+            <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
+              For UAE &amp; Saudi operators
             </span>
-            <h1 className="mt-5 text-4xl font-semibold leading-[1.05] tracking-tight text-zinc-900 sm:text-5xl lg:text-6xl">
+            <h1 className="mt-5 text-4xl font-bold leading-[1.05] tracking-[-0.03em] text-zinc-900 sm:text-5xl lg:text-6xl">
               Coworking software stops at the desk. GCC operators don&apos;t.
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-zinc-600">
@@ -181,7 +179,7 @@ export default function MarketingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal className="mx-auto max-w-3xl text-center">
             <Eyebrow center>The problem</Eyebrow>
-            <h2 className="mt-4 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
+            <h2 className="mt-4 text-3xl font-bold tracking-[-0.02em] text-zinc-900 sm:text-4xl">
               One operator. Five businesses. A dozen browser tabs.
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-zinc-600">
@@ -210,7 +208,7 @@ export default function MarketingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal className="mx-auto max-w-3xl text-center">
             <Eyebrow center dark>The platform</Eyebrow>
-            <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+            <h2 className="mt-4 text-3xl font-bold tracking-[-0.02em] text-white sm:text-4xl">
               One platform for everything you actually do
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-zinc-400">
@@ -243,7 +241,7 @@ export default function MarketingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal className="max-w-2xl">
             <Eyebrow>What you get</Eyebrow>
-            <h2 className="mt-4 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
+            <h2 className="mt-4 text-3xl font-bold tracking-[-0.02em] text-zinc-900 sm:text-4xl">
               The modules that make you money, not just manage desks
             </h2>
           </Reveal>
@@ -329,7 +327,7 @@ export default function MarketingPage() {
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <Reveal className="mx-auto max-w-2xl text-center">
             <Eyebrow center>Why CoWork Pro</Eyebrow>
-            <h2 className="mt-4 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
+            <h2 className="mt-4 text-3xl font-bold tracking-[-0.02em] text-zinc-900 sm:text-4xl">
               The difference between built-for-the-GCC and translated-for-it
             </h2>
           </Reveal>
@@ -380,7 +378,7 @@ export default function MarketingPage() {
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <Reveal className="text-center">
             <Eyebrow center>FAQ</Eyebrow>
-            <h2 className="mt-4 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
+            <h2 className="mt-4 text-3xl font-bold tracking-[-0.02em] text-zinc-900 sm:text-4xl">
               Questions operators ask us
             </h2>
           </Reveal>
@@ -407,7 +405,7 @@ export default function MarketingPage() {
             className="overflow-hidden rounded-3xl px-6 py-16 text-center sm:px-12"
             style={{ background: "linear-gradient(135deg, #15803D 0%, #16A34A 55%, #22C55E 100%)" }}
           >
-            <h2 className="mx-auto max-w-2xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+            <h2 className="mx-auto max-w-2xl text-3xl font-bold tracking-[-0.02em] text-white sm:text-4xl">
               Stop juggling five businesses across five tools
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-emerald-50">

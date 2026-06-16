@@ -81,7 +81,7 @@ export function PricingSection() {
             <span className="h-px w-7 bg-emerald-500/50" />
             <span className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">Pricing</span>
           </div>
-          <h2 className="mt-4 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
+          <h2 className="mt-4 text-3xl font-bold tracking-[-0.02em] text-zinc-900 sm:text-4xl">
             One subscription. Every revenue line.
           </h2>
           <p className="mt-4 text-lg text-zinc-600">

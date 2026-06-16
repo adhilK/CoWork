@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { GeistSans } from "geist/font/sans";
 import { MarketingNav } from "@/components/marketing/marketing-nav";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
  */
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-[100dvh] bg-white text-zinc-900 antialiased">
+    <div className={`${GeistSans.className} min-h-[100dvh] bg-white text-zinc-900 antialiased`}>
       <MarketingNav />
       <main>{children}</main>
       <MarketingFooter />
