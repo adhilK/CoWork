@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { getAuthContext } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { BookingsView } from "@/components/bookings/bookings-view";
 
-export const metadata: Metadata = { title: "Bookings — CoWork Pro" };
+export const metadata: Metadata = { title: "Bookings — Maktaby" };
 export const dynamic = "force-dynamic";
 
 export default async function BookingsPage() {

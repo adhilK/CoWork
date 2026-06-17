@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { MaktabyLogo } from "@/components/ui/maktaby-logo";
 
 export const metadata: Metadata = {
   title: "Sign in",
-  description: "Sign in to your CoWork Pro account",
+  description: "Sign in to your Maktaby account",
 };
 
 export default function AuthLayout({
@@ -40,33 +41,14 @@ export default function AuthLayout({
 
         <div className="relative z-10">
           {/* Logo */}
-          <div className="flex items-center gap-3 mb-16">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{
-                background: "linear-gradient(135deg, #15803D, #22C55E)",
-              }}
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="white"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                <polyline points="9,22 9,12 15,12 15,22" stroke="white" strokeWidth="2" fill="none" />
-              </svg>
-            </div>
-            <span className="text-white font-bold text-xl tracking-tight">
-              CoWork<span style={{ color: "#4ADE80" }}>Pro</span>
-            </span>
+          <div className="mb-16">
+            <MaktabyLogo variant="dark" size="md" />
           </div>
 
           {/* Headline */}
           <div className="space-y-4">
             <h1 className="text-4xl font-bold text-white leading-tight">
-              The coworking platform that{" "}
+              The workspace platform built for{" "}
               <span
                 style={{
                   background: "linear-gradient(135deg, #22C55E, #4ADE80)",
@@ -74,13 +56,11 @@ export default function AuthLayout({
                   WebkitTextFillColor: "transparent",
                 }}
               >
-                doesn&apos;t cost more
-              </span>{" "}
-              than your coffee machine.
+                the GCC
+              </span>.
             </h1>
             <p className="text-lg" style={{ color: "#9CA3AF" }}>
-              Bookings, billing, members, and analytics — everything you need
-              to run a coworking space, starting at £49/mo.
+              Workspace, virtual offices, company formation, PRO services, and VAT compliance — all in one platform for UAE and Saudi operators.
             </p>
           </div>
         </div>

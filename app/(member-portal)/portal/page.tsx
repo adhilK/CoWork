@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { startOfDay, endOfDay, startOfMonth } from "date-fns";
 import { MemberDashboard } from "@/components/portal/member-dashboard";
 
-export const metadata: Metadata = { title: "My Dashboard — CoWork Pro" };
+export const metadata: Metadata = { title: "My Dashboard — Maktaby" };
 export const dynamic = "force-dynamic";
 
 export default async function PortalHomePage({

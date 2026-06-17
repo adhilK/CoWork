@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { MemberProServicesView } from "@/components/pro-services/member-pro-services-view";
 
-export const metadata: Metadata = { title: "My PRO Services — CoWork Pro" };
+export const metadata: Metadata = { title: "My PRO Services — Maktaby" };
 export const dynamic = "force-dynamic";
 
 export default async function PortalProServicesPage() {

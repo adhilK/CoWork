@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { ChevronLeft, Users, Clock, MapPin, Banknote, CalendarDays, TrendingUp } from "lucide-react";
@@ -9,7 +9,7 @@ import { ResourceActions } from "@/components/resources/resource-actions";
 import { ResourceIcon } from "@/components/shared/resource-icon";
 import { startOfMonth, startOfWeek, endOfWeek, startOfDay, endOfDay, format } from "date-fns";
 
-export const metadata: Metadata = { title: "Resource — CoWork Pro" };
+export const metadata: Metadata = { title: "Resource â€” Maktaby" };
 export const dynamic = "force-dynamic";
 
 const STATUS: Record<string, { label: string; bg: string; text: string; solid: string }> = {
@@ -68,7 +68,7 @@ export default async function ResourceDetailPage({ params }: { params: { id: str
 
   if (!resource) notFound();
 
-  // Stats — derived from a single source (monthBookings) to avoid double counting
+  // Stats â€” derived from a single source (monthBookings) to avoid double counting
   const todayCount = monthBookings.filter((b) => b.startTime >= todayStart && b.startTime <= todayEnd).length;
   const weekCount = monthBookings.filter((b) => b.startTime >= weekStart && b.startTime <= weekEnd).length;
   const monthHours = monthBookings.reduce((s, b) => s + (b.endTime.getTime() - b.startTime.getTime()) / 3600000, 0);
@@ -99,7 +99,7 @@ export default async function ResourceDetailPage({ params }: { params: { id: str
             <h1 className="text-xl font-bold text-gray-900 truncate">{resource.name}</h1>
             <p className="text-sm text-gray-400 flex items-center gap-2 mt-0.5">
               {humanizeEnum(resource.type)}
-              <span className="text-gray-300">·</span>
+              <span className="text-gray-300">Â·</span>
               <MapPin className="w-3.5 h-3.5" /> {resource.location.name}
             </p>
             <div className="mt-2">
@@ -141,7 +141,7 @@ export default async function ResourceDetailPage({ params }: { params: { id: str
         <div className="lg:col-span-2 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-gray-900">Upcoming bookings</h2>
-            <Link href="/dashboard/bookings" className="text-xs text-indigo-600 hover:underline">Manage in Bookings →</Link>
+            <Link href="/dashboard/bookings" className="text-xs text-indigo-600 hover:underline">Manage in Bookings â†’</Link>
           </div>
           {upcoming.length === 0 ? (
             <div className="dashboard-card p-8 text-center text-gray-400">
@@ -156,7 +156,7 @@ export default async function ResourceDetailPage({ params }: { params: { id: str
                   <div key={b.id} className="flex items-center gap-4 px-4 py-3">
                     <div className="w-14 flex-shrink-0">
                       <p className="text-xs font-semibold text-gray-900">{format(b.startTime, "d MMM")}</p>
-                      <p className="text-xs text-gray-400">{format(b.startTime, "HH:mm")}–{format(b.endTime, "HH:mm")}</p>
+                      <p className="text-xs text-gray-400">{format(b.startTime, "HH:mm")}â€“{format(b.endTime, "HH:mm")}</p>
                     </div>
                     <div className="w-1 self-stretch rounded-full" style={{ background: s.solid }} />
                     <div className="flex-1 min-w-0">

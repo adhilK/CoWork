@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { getAuthContext } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { MembersTable } from "@/components/members/members-table";
 
-export const metadata: Metadata = { title: "Members — CoWork Pro" };
+export const metadata: Metadata = { title: "Members — Maktaby" };
 export const dynamic = "force-dynamic";
 
 export default async function MembersPage({ searchParams }: { searchParams: { page?: string; search?: string; status?: string } }) {

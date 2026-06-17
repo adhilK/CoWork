@@ -1,4 +1,4 @@
-// @react-pdf/renderer — Node.js only. Business-setup proposal document.
+﻿// @react-pdf/renderer — Node.js only. Business-setup proposal document.
 
 import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
 import { format } from "date-fns";
@@ -150,7 +150,7 @@ export function ProposalPdf({ p }: { p: ProposalPdfData }) {
 
         <View style={s.footer} fixed>
           <Text style={s.footerText}>This proposal is an estimate and not a tax invoice.</Text>
-          <Text style={s.footerText}>{p.orgName} · powered by CoWork Pro</Text>
+          <Text style={s.footerText}>{p.orgName} · powered by Maktaby</Text>
         </View>
       </Page>
     </Document>

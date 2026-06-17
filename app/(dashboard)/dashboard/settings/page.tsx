@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { getAuthContext } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { can, homePathForRole } from "@/lib/permissions";
 import { SettingsView } from "@/components/settings/settings-view";
 
-export const metadata: Metadata = { title: "Settings — CoWork Pro" };
+export const metadata: Metadata = { title: "Settings — Maktaby" };
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {

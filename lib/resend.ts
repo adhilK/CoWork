@@ -1,4 +1,4 @@
-import { Resend } from "resend";
+﻿import { Resend } from "resend";
 
 /**
  * Resend client. Intentionally does NOT throw when the key is missing —
@@ -11,4 +11,4 @@ export const resend: Resend | null = process.env.RESEND_API_KEY
   : null;
 
 export const emailFrom =
-  process.env.EMAIL_FROM ?? "CoWork Pro <noreply@coworkpro.io>";
+  process.env.EMAIL_FROM ?? "Maktaby <noreply@Maktaby.io>";

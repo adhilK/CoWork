@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { getAuthContext } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { ResourcesView } from "@/components/resources/resources-view";
 
-export const metadata: Metadata = { title: "Resources — CoWork Pro" };
+export const metadata: Metadata = { title: "Resources — Maktaby" };
 export const dynamic = "force-dynamic";
 
 export default async function ResourcesPage({

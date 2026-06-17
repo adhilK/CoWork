@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { exchangeCodeForTokens } from "@/lib/google-calendar";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://coworkpro.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://Maktaby.vercel.app";
 
 /**
  * GET /api/auth/google-calendar/callback?code=xxx&state=xxx

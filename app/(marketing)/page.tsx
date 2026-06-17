@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import {
   CalendarCheck,
   Mailbox,
@@ -141,7 +141,7 @@ const COMPARE_ROWS: { cap: string; us: true; them: boolean | string }[] = [
 const FAQS = [
   {
     q: "Do I need separate tools for company formation and PRO services?",
-    a: "No. CoWork Pro runs your lead pipeline, license catalog, proposals, and visa and PRO tasks alongside your workspace, so one team works from one system.",
+    a: "No. Maktaby runs your lead pipeline, license catalog, proposals, and visa and PRO tasks alongside your workspace, so one team works from one system.",
   },
   {
     q: "Is it compliant with UAE VAT and Saudi ZATCA?",
@@ -296,7 +296,7 @@ export default function MarketingPage() {
               One platform for everything you actually do
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-emerald-50/90">
-              CoWork Pro unifies the five businesses GCC operators run, with UAE and Saudi compliance built in, not
+              Maktaby unifies the five businesses GCC operators run, with UAE and Saudi compliance built in, not
               bolted on. One login, one bill, one source of truth.
             </p>
           </Reveal>
@@ -407,12 +407,12 @@ export default function MarketingPage() {
         </div>
       </section>
 
-      {/* ── 6. WHY COWORK PRO vs WESTERN TOOLS (dark band #1) ─────────── */}
+      {/* ── 6. WHY Maktaby vs WESTERN TOOLS (dark band #1) ─────────── */}
       <section id="compare" className="relative isolate pt-14 pb-24 text-white sm:pt-16 sm:pb-32" style={{ background: "#0A0F0A" }}>
         <SectionEdge color="#0A0F0A" />
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <Reveal className="mx-auto max-w-2xl text-center">
-            <Eyebrow center tone="dark">Why CoWork Pro</Eyebrow>
+            <Eyebrow center tone="dark">Why Maktaby</Eyebrow>
             <h2 className="mt-4 font-heading text-3xl font-bold tracking-[-0.02em] text-white sm:text-4xl">
               The difference between built-for-the-GCC and translated-for-it
             </h2>
@@ -424,7 +424,7 @@ export default function MarketingPage() {
                 <thead>
                   <tr className="border-b border-white/10">
                     <th className="px-5 py-4 font-semibold text-zinc-400">Capability</th>
-                    <th className="bg-emerald-500/15 px-5 py-4 text-center font-heading font-semibold text-emerald-300">CoWork Pro</th>
+                    <th className="bg-emerald-500/15 px-5 py-4 text-center font-heading font-semibold text-emerald-300">Maktaby</th>
                     <th className="px-5 py-4 text-center font-semibold text-zinc-400">Western tools</th>
                   </tr>
                 </thead>
@@ -501,7 +501,7 @@ export default function MarketingPage() {
             className="absolute inset-x-0 bottom-[-0.14em] select-none whitespace-nowrap text-center font-heading font-bold leading-none tracking-[-0.04em] text-white/[0.05]"
             style={{ fontSize: "clamp(4.5rem, 19vw, 17rem)" }}
           >
-            CoWork Pro
+            Maktaby
           </div>
         </div>
 

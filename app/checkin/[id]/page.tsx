@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { verifyCheckinToken } from "@/lib/checkin-token";
 import { CheckCircle2, XCircle, Clock, Building2 } from "lucide-react";
 import { format } from "date-fns";
 
-export const metadata: Metadata = { title: "Check in — CoWork Pro" };
+export const metadata: Metadata = { title: "Check in â€” Maktaby" };
 export const dynamic = "force-dynamic";
 
 function Frame({ tint, icon, title, message, detail }: {
@@ -20,7 +20,7 @@ function Frame({ tint, icon, title, message, detail }: {
         <p className="text-sm text-gray-500 mt-1.5">{message}</p>
         {detail && <div className="mt-5 dashboard-card p-4 text-left">{detail}</div>}
         <div className="mt-6 flex items-center justify-center gap-1.5 text-xs text-gray-400">
-          <Building2 className="w-3.5 h-3.5" /> CoWork Pro
+          <Building2 className="w-3.5 h-3.5" /> Maktaby
         </div>
       </div>
     </div>
@@ -57,7 +57,7 @@ export default async function CheckinPage({
     <dl className="space-y-2 text-sm">
       <div className="flex justify-between"><dt className="text-gray-400">Space</dt><dd className="font-medium text-gray-800">{booking.resource.name}</dd></div>
       <div className="flex justify-between"><dt className="text-gray-400">Guest</dt><dd className="font-medium text-gray-800">{booking.member?.user?.name ?? "Walk-in"}</dd></div>
-      <div className="flex justify-between"><dt className="text-gray-400">Time</dt><dd className="font-medium text-gray-800">{format(booking.startTime, "HH:mm")} – {format(booking.endTime, "HH:mm")}</dd></div>
+      <div className="flex justify-between"><dt className="text-gray-400">Time</dt><dd className="font-medium text-gray-800">{format(booking.startTime, "HH:mm")} â€“ {format(booking.endTime, "HH:mm")}</dd></div>
     </dl>
   );
 
@@ -78,7 +78,7 @@ export default async function CheckinPage({
     );
   }
 
-  // Only valid within the booking window (15 min early grace → booking end)
+  // Only valid within the booking window (15 min early grace â†’ booking end)
   const nowMs = Date.now();
   if (nowMs < booking.startTime.getTime() - 15 * 60 * 1000) {
     return (
@@ -95,7 +95,7 @@ export default async function CheckinPage({
     );
   }
 
-  // Perform the check-in (CONFIRMED or PENDING → CHECKED_IN)
+  // Perform the check-in (CONFIRMED or PENDING â†’ CHECKED_IN)
   await prisma.booking.update({
     where: { id: booking.id },
     data: { status: "CHECKED_IN", checkedInAt: new Date() },

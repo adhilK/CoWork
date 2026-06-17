@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { MyBookingsView } from "@/components/portal/my-bookings-view";
 
-export const metadata: Metadata = { title: "My Bookings — CoWork Pro" };
+export const metadata: Metadata = { title: "My Bookings — Maktaby" };
 export const dynamic = "force-dynamic";
 
 export default async function MyBookingsPage() {

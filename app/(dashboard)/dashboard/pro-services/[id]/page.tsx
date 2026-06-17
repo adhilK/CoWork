@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { redirect, notFound } from "next/navigation";
 import { getAuthContext } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { can, homePathForRole } from "@/lib/permissions";
 import { ProServiceDetailView } from "@/components/pro-services/pro-service-detail-view";
 
-export const metadata: Metadata = { title: "PRO Service — CoWork Pro" };
+export const metadata: Metadata = { title: "PRO Service â€” Maktaby" };
 export const dynamic = "force-dynamic";
 
 export default async function ProServiceDetailPage({ params }: { params: { id: string } }) {

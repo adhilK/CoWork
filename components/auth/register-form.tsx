@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -232,7 +232,7 @@ export function RegisterForm() {
               {errors.orgName && <p className="text-sm text-danger">{errors.orgName.message}</p>}
               {watch("orgName") && (
                 <p className="text-xs text-gray-400">
-                  URL: coworkpro.io/<strong>{slugify(watch("orgName") ?? "")}</strong>
+                  URL: Maktaby.io/<strong>{slugify(watch("orgName") ?? "")}</strong>
                 </p>
               )}
             </div>

@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { MyInvoicesView } from "@/components/portal/my-invoices-view";
 
-export const metadata: Metadata = { title: "Invoices — CoWork Pro" };
+export const metadata: Metadata = { title: "Invoices — Maktaby" };
 export const dynamic = "force-dynamic";
 
 export default async function InvoicesPage() {

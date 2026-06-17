@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { getAuthContext } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { PlansView } from "@/components/plans/plans-view";
 
-export const metadata: Metadata = { title: "Plans — CoWork Pro" };
+export const metadata: Metadata = { title: "Plans — Maktaby" };
 export const dynamic = "force-dynamic";
 
 export default async function PlansPage() {

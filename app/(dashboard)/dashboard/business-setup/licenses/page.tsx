@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { can, isAdminRole, homePathForRole } from "@/lib/permissions";
 import { LicenseCatalogView } from "@/components/business-setup/license-catalog-view";
 
-export const metadata: Metadata = { title: "License Catalog — CoWork Pro" };
+export const metadata: Metadata = { title: "License Catalog — Maktaby" };
 export const dynamic = "force-dynamic";
 
 export default async function LicenseCatalogPage() {

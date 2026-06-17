@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
@@ -6,7 +6,7 @@ import { getAuthContext } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ResourceForm } from "@/components/resources/resource-form";
 
-export const metadata: Metadata = { title: "Add Resource — CoWork Pro" };
+export const metadata: Metadata = { title: "Add Resource — Maktaby" };
 export const dynamic = "force-dynamic";
 
 export default async function NewResourcePage() {

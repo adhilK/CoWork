@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { jobsEnabled } from "@/lib/jobs";
 import { AutomationsView } from "@/components/automations/automations-view";
 
-export const metadata: Metadata = { title: "Automations — CoWork Pro" };
+export const metadata: Metadata = { title: "Automations — Maktaby" };
 export const dynamic = "force-dynamic";
 
 export default async function AutomationsPage() {

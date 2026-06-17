@@ -1,5 +1,5 @@
-/**
- * Inngest client — the background-job runner for CoWork Pro.
+﻿/**
+ * Inngest client — the background-job runner for Maktaby.
  *
  * Replaces the single Vercel cron with a real queue: scheduled jobs (monthly
  * billing, daily reminders) plus event-driven queues (WhatsApp sends/broadcasts,
@@ -42,6 +42,6 @@ type Events = {
   };
 };
 
-export const inngest = new Inngest({ id: "coworkpro" });
+export const inngest = new Inngest({ id: "Maktaby" });
 
 export type CoworkEvents = Events;

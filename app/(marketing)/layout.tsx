@@ -20,11 +20,11 @@ const ppNeueMontreal = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "CoWork Pro: The operating system for GCC workspace operators",
+  title: "Maktaby: The operating system for GCC workspace operators",
   description:
     "Run workspace, virtual offices, company formation, and PRO services in one platform. Built for the UAE and Saudi Arabia, with VAT, ZATCA, and WhatsApp built in.",
   openGraph: {
-    title: "CoWork Pro for GCC workspace and business-setup operators",
+    title: "Maktaby for GCC workspace and business-setup operators",
     description:
       "One platform for desks, virtual offices, company formation, PRO services, and member billing. UAE and Saudi compliance from day one.",
     type: "website",

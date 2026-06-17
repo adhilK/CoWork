@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { InboxView } from "@/components/whatsapp/inbox-view";
 
-export const metadata: Metadata = { title: "WhatsApp — CoWork Pro" };
+export const metadata: Metadata = { title: "WhatsApp — Maktaby" };
 export const dynamic = "force-dynamic";
 
 export default async function WhatsAppInboxPage() {

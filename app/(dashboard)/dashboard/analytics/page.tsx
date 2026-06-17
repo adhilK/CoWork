@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { getAuthContext } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { AnalyticsView } from "@/components/analytics/analytics-view";
 import { startOfMonth, subMonths, endOfMonth } from "date-fns";
 
-export const metadata: Metadata = { title: "Analytics — CoWork Pro" };
+export const metadata: Metadata = { title: "Analytics — Maktaby" };
 export const dynamic = "force-dynamic";
 
 export default async function AnalyticsPage() {

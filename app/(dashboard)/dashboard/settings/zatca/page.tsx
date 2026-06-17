@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ZATCA_API_URL, ZATCA_SANDBOX_URL } from "@/lib/zatca";
 import { ZatcaSettingsView } from "@/components/zatca/zatca-settings-view";
 
-export const metadata: Metadata = { title: "ZATCA E-Invoicing — CoWork Pro" };
+export const metadata: Metadata = { title: "ZATCA E-Invoicing — Maktaby" };
 export const dynamic = "force-dynamic";
 
 export default async function ZatcaSettingsPage() {

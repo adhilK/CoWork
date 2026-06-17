@@ -12,24 +12,24 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "CoWork Pro — Coworking Space Management",
-    template: "%s | CoWork Pro",
+    default: "Maktaby — GCC Workspace Management",
+    template: "%s | Maktaby",
   },
   description:
-    "The most affordable coworking space management platform. Bookings, billing, members, and analytics — all in one clean dashboard.",
-  keywords: ["coworking", "space management", "booking system", "member management"],
-  authors: [{ name: "CoWork Pro" }],
-  creator: "CoWork Pro",
+    "The operating system for GCC coworking and business-setup operators. Workspace, virtual offices, company formation, and PRO services — all in one platform.",
+  keywords: ["coworking", "space management", "virtual office", "company formation", "UAE", "Saudi Arabia", "GCC"],
+  authors: [{ name: "Maktaby" }],
+  creator: "Maktaby",
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
   ),
   openGraph: {
     type: "website",
-    locale: "en_GB",
-    title: "CoWork Pro — Coworking Space Management",
+    locale: "en_AE",
+    title: "Maktaby — GCC Workspace Management",
     description:
-      "The most affordable coworking space management platform. No bloat. No $400/month bills.",
-    siteName: "CoWork Pro",
+      "The operating system for GCC workspace and business-setup operators. Built for UAE and Saudi Arabia.",
+    siteName: "Maktaby",
   },
   robots: { index: true, follow: true },
 };

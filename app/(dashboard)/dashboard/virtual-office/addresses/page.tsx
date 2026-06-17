@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AddressesView } from "@/components/virtual-office/addresses-view";
 
-export const metadata: Metadata = { title: "Addresses — Virtual Office — CoWork Pro" };
+export const metadata: Metadata = { title: "Addresses — Virtual Office — Maktaby" };
 export const dynamic = "force-dynamic";
 
 export default async function AddressesPage() {

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Google Calendar integration helpers.
  *
  * Used for:
@@ -86,8 +86,8 @@ export async function createCalendarEvent(
           timeZone: input.timezone,
         },
         source: {
-          title: "CoWork Pro",
-          url: process.env.NEXT_PUBLIC_APP_URL ?? "https://coworkpro.vercel.app",
+          title: "Maktaby",
+          url: process.env.NEXT_PUBLIC_APP_URL ?? "https://Maktaby.vercel.app",
         },
       },
     });

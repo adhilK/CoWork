@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { getAuthContext } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { InvoicesView } from "@/components/invoices/invoices-view";
 import { getVatRate } from "@/lib/jurisdiction";
 
-export const metadata: Metadata = { title: "Invoices — CoWork Pro" };
+export const metadata: Metadata = { title: "Invoices — Maktaby" };
 export const dynamic = "force-dynamic";
 
 export default async function InvoicesPage({ searchParams }: { searchParams: { page?: string; status?: string } }) {

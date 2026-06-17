@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { apiError, apiSuccess } from "@/lib/utils";
 import { resend, emailFrom } from "@/lib/resend";
@@ -32,12 +32,12 @@ export async function POST(req: NextRequest) {
       await resend.emails.send({
         from: emailFrom,
         to: email,
-        subject: "Reset your CoWork Pro password",
+        subject: "Reset your Maktaby password",
         html: `
           <div style="font-family:-apple-system,Segoe UI,sans-serif;background:#f8fafc;padding:32px 0;">
             <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;">
               <div style="background:linear-gradient(135deg,#0f172a,#15803d);padding:20px 28px;">
-                <span style="color:#fff;font-weight:700;font-size:16px;">CoWork Pro</span>
+                <span style="color:#fff;font-weight:700;font-size:16px;">Maktaby</span>
               </div>
               <div style="padding:28px;">
                 <h1 style="font-size:18px;color:#0f172a;margin:0 0 16px;">Reset your password</h1>

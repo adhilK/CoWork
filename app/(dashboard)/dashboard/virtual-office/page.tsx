@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { VOOverview } from "@/components/virtual-office/vo-overview";
 
-export const metadata: Metadata = { title: "Virtual Office — CoWork Pro" };
+export const metadata: Metadata = { title: "Virtual Office — Maktaby" };
 export const dynamic = "force-dynamic";
 
 export default async function VirtualOfficePage() {

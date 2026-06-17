@@ -1,4 +1,4 @@
-import { resend, emailFrom } from "@/lib/resend";
+﻿import { resend, emailFrom } from "@/lib/resend";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -30,7 +30,7 @@ function shell(orgName: string, title: string, bodyHtml: string) {
         ${bodyHtml}
       </div>
       <div style="padding:16px 28px;border-top:1px solid #f1f5f9;color:#94a3b8;font-size:12px;">
-        Sent by ${orgName} · powered by CoWork Pro
+        Sent by ${orgName} · powered by Maktaby
       </div>
     </div>
   </div>`;
@@ -70,7 +70,7 @@ export function sendMemberInvite(o: {
 }) {
   const body = `
     <p style="color:#475569;font-size:14px;margin:0 0 18px;">
-      Hi ${o.memberName ?? "there"} 👋 — you've been invited to join <strong>${o.orgName}</strong> on CoWork Pro.
+      Hi ${o.memberName ?? "there"} 👋 — you've been invited to join <strong>${o.orgName}</strong> on Maktaby.
     </p>
     <p style="color:#475569;font-size:14px;margin:0 0 24px;">
       Click the button below to accept your invitation and access your member portal — book desks, view invoices, and more.
@@ -84,7 +84,7 @@ export function sendMemberInvite(o: {
     </p>`;
   return safeSend({
     to: o.to,
-    subject: `You've been invited to ${o.orgName} on CoWork Pro`,
+    subject: `You've been invited to ${o.orgName} on Maktaby`,
     html: shell(o.orgName, `Welcome to ${o.orgName}!`, body),
   });
 }
@@ -94,7 +94,7 @@ export function sendStaffInvite(o: {
 }) {
   const body = `
     <p style="color:#475569;font-size:14px;margin:0 0 18px;">
-      Hi ${o.staffName ?? "there"} 👋 — you've been invited to join the <strong>${o.orgName}</strong> team on CoWork Pro as
+      Hi ${o.staffName ?? "there"} 👋 — you've been invited to join the <strong>${o.orgName}</strong> team on Maktaby as
       <strong>${o.roleLabel}</strong>.
     </p>
     <p style="color:#475569;font-size:14px;margin:0 0 24px;">
@@ -109,7 +109,7 @@ export function sendStaffInvite(o: {
     </p>`;
   return safeSend({
     to: o.to,
-    subject: `You've been added to ${o.orgName} on CoWork Pro`,
+    subject: `You've been added to ${o.orgName} on Maktaby`,
     html: shell(o.orgName, `Join the ${o.orgName} team`, body),
   });
 }

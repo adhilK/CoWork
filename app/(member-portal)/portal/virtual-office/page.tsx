@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { MemberVOView } from "@/components/virtual-office/member-vo-view";
 
-export const metadata: Metadata = { title: "Virtual Office — CoWork Pro" };
+export const metadata: Metadata = { title: "Virtual Office — Maktaby" };
 export const dynamic = "force-dynamic";
 
 export default async function PortalVirtualOfficePage() {

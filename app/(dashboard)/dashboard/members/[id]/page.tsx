@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { ChevronLeft, Mail, Phone, Building, Briefcase, CreditCard, CalendarDays, Banknote, Receipt, MessageCircle, Globe, IdCard } from "lucide-react";
@@ -9,7 +9,7 @@ import { decryptField } from "@/lib/encryption";
 import { MemberDetailActions } from "@/components/members/member-detail-actions";
 import { format } from "date-fns";
 
-export const metadata: Metadata = { title: "Member — CoWork Pro" };
+export const metadata: Metadata = { title: "Member â€” Maktaby" };
 export const dynamic = "force-dynamic";
 
 const MEMBER_STATUS: Record<string, { label: string; bg: string; text: string }> = {
@@ -106,7 +106,7 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
               <span className={cn("text-xs font-semibold px-2.5 py-1 rounded-full", status.bg, status.text)}>{status.label}</span>
               {member.membershipPlan && (
                 <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-600">
-                  {member.membershipPlan.name} · {formatCurrency(Number(member.membershipPlan.price), currency)}/{member.membershipPlan.billingCycle.toLowerCase()}
+                  {member.membershipPlan.name} Â· {formatCurrency(Number(member.membershipPlan.price), currency)}/{member.membershipPlan.billingCycle.toLowerCase()}
                 </span>
               )}
             </div>
@@ -189,7 +189,7 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold text-gray-900">Invoices</h2>
-              <Link href="/dashboard/invoices" className="text-xs text-indigo-600 hover:underline">All invoices →</Link>
+              <Link href="/dashboard/invoices" className="text-xs text-indigo-600 hover:underline">All invoices â†’</Link>
             </div>
             {invoices.length === 0 ? (
               <div className="dashboard-card p-8 text-center text-gray-400">

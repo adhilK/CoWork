@@ -8,6 +8,7 @@ import {
   Settings, LogOut, Menu, Building2, Bell,
   CreditCard, UserCheck, MessageSquare, Search, Tag, X, Mailbox, MessageCircle, FolderLock, MapPin, Zap, Landmark, Stamp, Handshake,
 } from "lucide-react";
+import { MaktabyLogo } from "@/components/ui/maktaby-logo";
 import { cn, initials } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -131,12 +132,8 @@ export function DashboardShell({ user, organization, role, children }: Props) {
   const sidebar = () => (
     <div className="flex flex-col h-full px-3 py-4">
       {/* Brand */}
-      <div className="flex items-center gap-2.5 px-2 mb-4 flex-shrink-0">
-        <div className="w-7 h-7 rounded-[9px] flex items-center justify-center flex-shrink-0"
-          style={{ background: "linear-gradient(135deg, #22C55E, #15803D)" }}>
-          <Building2 className="w-4 h-4 text-white" />
-        </div>
-        <span className="text-white font-semibold text-[15px] tracking-tight">CoWork Pro</span>
+      <div className="flex items-center justify-center px-2 mb-5 flex-shrink-0">
+        <MaktabyLogo variant="sidebar" size="sm" />
       </div>
 
       {/* Workspace card */}

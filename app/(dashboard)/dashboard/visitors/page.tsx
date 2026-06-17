@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { getAuthContext } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -6,7 +6,7 @@ import { VisitorsView } from "@/components/visitors/visitors-view";
 import { decryptField } from "@/lib/encryption";
 import { startOfDay, endOfDay } from "date-fns";
 
-export const metadata: Metadata = { title: "Visitors — CoWork Pro" };
+export const metadata: Metadata = { title: "Visitors — Maktaby" };
 export const dynamic = "force-dynamic";
 
 export default async function VisitorsPage() {

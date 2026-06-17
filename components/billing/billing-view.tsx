@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Check, Sparkles, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -103,18 +103,18 @@ export function BillingView({ currentPlan, trialDaysLeft, hasSubscription, juris
 
   function handleSelect(tier: Plan) {
     if (tier === currentPlan) return;
-    toast.info("Online checkout is coming soon — email billing@coworkpro.io and we'll switch your plan.");
+    toast.info("Online checkout is coming soon — email billing@Maktaby.io and we'll switch your plan.");
   }
 
   function handleAddon() {
-    toast.info("To add a module, email billing@coworkpro.io with your org name.");
+    toast.info("To add a module, email billing@Maktaby.io with your org name.");
   }
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Billing &amp; Plan</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Manage your CoWork Pro subscription.</p>
+        <p className="text-sm text-gray-500 mt-0.5">Manage your Maktaby subscription.</p>
       </div>
 
       {/* Current status banner */}
@@ -277,8 +277,8 @@ export function BillingView({ currentPlan, trialDaysLeft, hasSubscription, juris
 
       <p className="text-xs text-gray-400 text-center">
         Prices in {currency}, billed monthly. Questions? Email{" "}
-        <a href="mailto:billing@coworkpro.io" className="underline">
-          billing@coworkpro.io
+        <a href="mailto:billing@Maktaby.io" className="underline">
+          billing@Maktaby.io
         </a>
       </p>
     </div>

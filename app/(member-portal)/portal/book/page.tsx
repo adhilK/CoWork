@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { ResourceBrowser } from "@/components/portal/resource-browser";
 
-export const metadata: Metadata = { title: "Book a Space — CoWork Pro" };
+export const metadata: Metadata = { title: "Book a Space — Maktaby" };
 export const dynamic = "force-dynamic";
 
 export default async function BookPage() {

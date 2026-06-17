@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { MailView } from "@/components/virtual-office/mail-view";
 
-export const metadata: Metadata = { title: "Mail Log — Virtual Office — CoWork Pro" };
+export const metadata: Metadata = { title: "Mail Log — Virtual Office — Maktaby" };
 export const dynamic = "force-dynamic";
 
 export default async function MailPage() {

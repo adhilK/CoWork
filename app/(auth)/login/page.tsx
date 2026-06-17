@@ -1,9 +1,9 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { LoginForm } from "@/components/auth/login-form";
 
 export const metadata: Metadata = {
-  title: "Sign in — CoWork Pro",
-  description: "Sign in to your CoWork Pro account to manage your coworking space.",
+  title: "Sign in — Maktaby",
+  description: "Sign in to your Maktaby account to manage your coworking space.",
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -37,7 +37,7 @@ export default function LoginPage({
           Welcome back
         </h1>
         <p className="mt-2 text-gray-500">
-          Sign in to your CoWork Pro account
+          Sign in to your Maktaby account
         </p>
       </div>
 

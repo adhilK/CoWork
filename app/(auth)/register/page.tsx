@@ -1,8 +1,8 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { RegisterForm } from "@/components/auth/register-form";
 
 export const metadata: Metadata = {
-  title: "Create your space — CoWork Pro",
+  title: "Create your space — Maktaby",
   description: "Start your 14-day free trial. No credit card required.",
 };
 
@@ -14,7 +14,7 @@ export default function RegisterPage() {
           Start your coworking space
         </h1>
         <p className="mt-2 text-gray-500">
-          For operators setting up a new space on CoWork Pro · 14-day free trial, no card required
+          For operators setting up a new space on Maktaby · 14-day free trial, no card required
         </p>
       </div>
       <RegisterForm />

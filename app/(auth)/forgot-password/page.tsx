@@ -1,7 +1,7 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 
-export const metadata: Metadata = { title: "Reset password — CoWork Pro" };
+export const metadata: Metadata = { title: "Reset password — Maktaby" };
 
 export default function ForgotPasswordPage() {
   return (

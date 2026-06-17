@@ -2,14 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Building2, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useScroll, useMotionValueEvent } from "motion/react";
 import { cn } from "@/lib/utils";
+import { MaktabyLogo } from "@/components/ui/maktaby-logo";
 
 const LINKS = [
   { href: "#problem", label: "The problem" },
   { href: "#features", label: "Platform" },
-  { href: "#compare", label: "Why CoWork Pro" },
+  { href: "#compare", label: "Why Maktaby" },
   { href: "#pricing", label: "Pricing" },
   { href: "#faq", label: "FAQ" },
 ];
@@ -35,14 +36,8 @@ export function MarketingNav() {
           )}
         >
           {/* Brand */}
-          <Link href="/" className="flex items-center gap-2.5">
-            <span
-              className="flex h-8 w-8 items-center justify-center rounded-[10px]"
-              style={{ background: "linear-gradient(135deg, #22C55E, #15803D)" }}
-            >
-              <Building2 className="h-[18px] w-[18px] text-white" />
-            </span>
-            <span className="font-heading text-[17px] font-semibold tracking-tight text-zinc-900">CoWork Pro</span>
+          <Link href="/" className="flex items-center">
+            <MaktabyLogo variant="light" size="xs" />
           </Link>
 
           {/* Desktop links */}
