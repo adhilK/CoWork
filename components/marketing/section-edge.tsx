@@ -1,13 +1,14 @@
 import { cn } from "@/lib/utils";
 
 /**
- * Signature section divider: a soft asymmetric wave edge, full-bleed, rendered
- * in the INCOMING section's color and pulled up so the new band "rises into"
- * the previous one. Placed as the first child of a colored section.
+ * Signature section divider: a soft asymmetric wave, full-bleed, in the
+ * INCOMING section's color. Positioned ABOVE the section (bottom-full) so the
+ * new band physically rises into the previous one, rather than sitting inside
+ * its own padded background as a flat strip.
  *
  * Pass `color` for a solid wave, or `from`/`to` for a vertical gradient wave
- * (used to blend one section's color into the next). Reserved height (no CLS).
- * `flip` mirrors the wave so consecutive boundaries alternate direction.
+ * (blends one color into the next). The parent section must be `relative` and
+ * must NOT clip overflow at the top. Reserved height keeps layout stable.
  */
 export function SectionEdge({
   color,
@@ -24,21 +25,20 @@ export function SectionEdge({
 }) {
   const gradient = from && to;
   const gid = gradient ? `mkedge-${(from + to).replace(/[^a-zA-Z0-9]/g, "")}` : undefined;
-  const path =
-    "M0,64 L0,30 C240,2 470,2 720,22 C960,42 1210,52 1440,18 L1440,64 Z";
+  const path = "M0,80 L0,46 C300,12 560,12 760,34 C980,58 1180,66 1440,30 L1440,80 Z";
 
   return (
     <div
       aria-hidden
       className={cn(
-        "pointer-events-none relative z-[1] -mt-10 w-full overflow-hidden leading-[0] sm:-mt-16",
+        "pointer-events-none absolute inset-x-0 bottom-full z-[1] h-12 w-full overflow-hidden leading-[0] sm:h-20",
         className
       )}
     >
       <svg
-        viewBox="0 0 1440 64"
+        viewBox="0 0 1440 80"
         preserveAspectRatio="none"
-        className={cn("block h-10 w-full sm:h-16", flip && "-scale-x-100")}
+        className={cn("block h-full w-full", flip && "-scale-x-100")}
       >
         {gradient && (
           <defs>

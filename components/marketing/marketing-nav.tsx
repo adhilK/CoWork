@@ -66,7 +66,7 @@ export function MarketingNav() {
             </Link>
             <Link
               href="/register"
-              className="rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.98]"
+              className="rounded-[10px] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.98]"
               style={{ background: "linear-gradient(135deg, #16A34A, #15803D)" }}
             >
               Start free trial
@@ -101,12 +101,12 @@ export function MarketingNav() {
             ))}
           </div>
           <div className="mt-3 flex flex-col gap-2 border-t border-zinc-100 pt-3">
-            <Link href="/login" className="rounded-xl border border-zinc-200 px-4 py-2.5 text-center text-sm font-semibold text-zinc-800">
+            <Link href="/login" className="rounded-[10px] border border-zinc-200 px-4 py-2.5 text-center text-sm font-semibold text-zinc-800">
               Sign in
             </Link>
             <Link
               href="/register"
-              className="rounded-xl px-4 py-2.5 text-center text-sm font-semibold text-white"
+              className="rounded-[10px] px-4 py-2.5 text-center text-sm font-semibold text-white"
               style={{ background: "linear-gradient(135deg, #16A34A, #15803D)" }}
             >
               Start free trial

@@ -61,7 +61,7 @@ function PrimaryCta({ href, children }: { href: string; children: React.ReactNod
   return (
     <Link
       href={href}
-      className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.98]"
+      className="inline-flex items-center justify-center gap-2 rounded-[10px] px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.98]"
       style={{ background: "linear-gradient(135deg, #16A34A, #15803D)" }}
     >
       {children}
@@ -75,7 +75,7 @@ function SecondaryCta({ href, children }: { href: string; children: React.ReactN
   return (
     <Link
       href={href}
-      className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600/10 px-6 py-3 text-sm font-semibold text-emerald-700 transition-all hover:-translate-y-0.5 hover:bg-emerald-600/15"
+      className="inline-flex items-center justify-center gap-2 rounded-[10px] bg-emerald-600/10 px-6 py-3 text-sm font-semibold text-emerald-700 transition-all hover:-translate-y-0.5 hover:bg-emerald-600/15"
     >
       {children}
     </Link>
@@ -230,8 +230,15 @@ export default function MarketingPage() {
       </section>
 
       {/* ── 3. THE PROBLEM ────────────────────────────────────────────── */}
-      <section id="problem" className="py-24 sm:py-32">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section id="problem" className="relative py-24 sm:py-32">
+        {/* Soft green bleed at the bottom so the next section's wave rises out
+            of a tinted zone instead of a hard white edge. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-44"
+          style={{ background: "radial-gradient(60% 100% at 50% 100%, rgba(34,197,94,0.12), transparent 72%)" }}
+        />
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal className="mx-auto max-w-3xl text-center">
             <Eyebrow center>The problem</Eyebrow>
             <h2 className="mt-4 font-heading text-3xl font-bold tracking-[-0.02em] text-zinc-900 sm:text-4xl">
@@ -263,21 +270,21 @@ export default function MarketingPage() {
         className="relative isolate py-24 text-white sm:py-32"
         style={{
           background:
-            "radial-gradient(80% 55% at 50% 0%, rgba(255,255,255,0.16), transparent 55%), linear-gradient(150deg, #16A34A 0%, #15803D 55%, #166534 100%)",
+            "radial-gradient(70% 45% at 50% 0%, rgba(255,255,255,0.08), transparent 55%), linear-gradient(160deg, #15803D 0%, #166534 52%, #14532D 100%)",
         }}
       >
-        {/* Gradient wave: a bright crest rising out of the white section above,
-            deepening into the green body so the two colors blend. */}
-        <SectionEdge from="#34C36B" to="#16A34A" />
+        {/* Gradient wave: a brighter crest rising out of the white section
+            above, deepening to the section's dark top so the colors blend. */}
+        <SectionEdge from="#2FB85F" to="#15803D" />
         {/* Dot pattern across the blend zone, fading out downward. */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 h-72"
           style={{
-            backgroundImage: "radial-gradient(rgba(255,255,255,0.18) 1px, transparent 1.4px)",
+            backgroundImage: "radial-gradient(rgba(255,255,255,0.12) 1px, transparent 1.4px)",
             backgroundSize: "18px 18px",
-            maskImage: "linear-gradient(to bottom, rgba(0,0,0,0.7), transparent)",
-            WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,0.7), transparent)",
+            maskImage: "linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)",
+            WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)",
           }}
         />
         <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -479,21 +486,21 @@ export default function MarketingPage() {
       </section>
 
       {/* ── 9. CLOSING (dark band #2 + giant wordmark) ────────────────── */}
-      <section className="relative isolate overflow-hidden text-white" style={{ background: "#0A0F0A" }}>
+      <section className="relative isolate text-white" style={{ background: "#0A0F0A" }}>
         <SectionEdge color="#0A0F0A" flip />
-        {/* emerald glow rising from the bottom */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5"
-          style={{ background: "radial-gradient(60% 100% at 50% 100%, rgba(34,197,94,0.22), transparent 72%)" }}
-        />
-        {/* oversized, cropped wordmark anchored to the bottom edge */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-[-0.14em] select-none whitespace-nowrap text-center font-heading font-bold leading-none tracking-[-0.04em] text-white/[0.05]"
-          style={{ fontSize: "clamp(4.5rem, 19vw, 17rem)" }}
-        >
-          CoWork Pro
+        {/* Glow + oversized wordmark, clipped to the section (the section itself
+            stays overflow-visible so the top wave is not cut off). */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div
+            className="absolute inset-x-0 bottom-0 h-3/5"
+            style={{ background: "radial-gradient(60% 100% at 50% 100%, rgba(34,197,94,0.22), transparent 72%)" }}
+          />
+          <div
+            className="absolute inset-x-0 bottom-[-0.14em] select-none whitespace-nowrap text-center font-heading font-bold leading-none tracking-[-0.04em] text-white/[0.05]"
+            style={{ fontSize: "clamp(4.5rem, 19vw, 17rem)" }}
+          >
+            CoWork Pro
+          </div>
         </div>
 
         <div className="relative z-10 mx-auto max-w-3xl px-4 py-28 text-center sm:px-6 sm:py-36 lg:px-8">
@@ -507,13 +514,13 @@ export default function MarketingPage() {
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 href="/register"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-emerald-800 shadow-lg shadow-emerald-500/10 transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0"
+                className="inline-flex items-center justify-center gap-2 rounded-[10px] bg-white px-6 py-3 text-sm font-semibold text-emerald-800 shadow-lg shadow-emerald-500/10 transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0"
               >
                 Start free trial <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 href="/register?intent=demo"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-white/10 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/[0.16]"
+                className="inline-flex items-center justify-center gap-2 rounded-[10px] bg-white/10 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/[0.16]"
               >
                 Book a demo
               </Link>
