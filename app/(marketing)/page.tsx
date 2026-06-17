@@ -269,24 +269,14 @@ export default function MarketingPage() {
       <section
         className="relative isolate pt-16 pb-28 text-white sm:pt-20 sm:pb-40"
         style={{
-          background:
-            "radial-gradient(70% 42% at 50% 0%, rgba(255,255,255,0.06), transparent 55%), linear-gradient(165deg, #136234 0%, #0F4429 55%, #0B3520 100%)",
+          // One smooth vertical gradient; the wave below deepens to the exact
+          // top color (#14663B) so there is no seam between wave and body.
+          background: "linear-gradient(180deg, #14663B 0%, #0F4429 50%, #0B3520 100%)",
         }}
       >
         {/* Gradient wave: a brighter crest rising out of the white section
-            above, deepening to the section's dark top so the colors blend. */}
-        <SectionEdge from="#2BA85A" to="#136234" />
-        {/* Dot pattern across the blend zone, fading out downward. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-72"
-          style={{
-            backgroundImage: "radial-gradient(rgba(255,255,255,0.12) 1px, transparent 1.4px)",
-            backgroundSize: "18px 18px",
-            maskImage: "linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)",
-            WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)",
-          }}
-        />
+            above, deepening to the section's exact top color (seamless join). */}
+        <SectionEdge from="#2BA85A" to="#14663B" />
         <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal className="mx-auto max-w-3xl text-center">
             <Eyebrow center tone="green">The platform</Eyebrow>
