@@ -51,7 +51,7 @@ export function MaktabyLogo({
   // light (green logo): slightly more breathing room.
   // dark/sidebar (white logo): noticeably more — they were touching.
   const gap: Record<Variant, string> = {
-    light: "0.42em",
+    light: "0.55em",
     dark: "0.52em",
     sidebar: "0.48em",
   };
