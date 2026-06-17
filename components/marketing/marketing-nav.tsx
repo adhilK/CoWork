@@ -37,7 +37,13 @@ export function MarketingNav() {
         >
           {/* Brand */}
           <Link href="/" className="flex items-center">
-            <MaktabyLogo variant="light" size="xs" />
+            <div style={{
+              transform: scrolled ? "scale(0.75)" : "scale(1)",
+              transformOrigin: "left center",
+              transition: "transform 0.3s ease-out",
+            }}>
+              <MaktabyLogo variant="light" size="xs" />
+            </div>
           </Link>
 
           {/* Desktop links */}
