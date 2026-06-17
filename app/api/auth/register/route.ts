@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { addDays } from "date-fns";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  // Throttle org creation per IP to curb automated signup abuse.
+  const limit = rateLimit(request, { key: "register", limit: 10, windowMs: 60 * 60_000 });
+  if (!limit.ok) return rateLimitResponse(limit);
+
   try {
     const { userId, name, email, orgName, orgSlug, orgTimezone, orgCurrency, orgJurisdiction } =
       await request.json();

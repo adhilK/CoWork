@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { apiError, apiSuccess } from "@/lib/utils";
 import { startOfDay, endOfDay } from "date-fns";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 /**
  * GET /api/public/[orgSlug]/availability?resourceId=xxx&date=2026-06-15
@@ -12,6 +13,9 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { orgSlug: string } }
 ) {
+  const limit = rateLimit(req, { key: "public-availability", limit: 60, windowMs: 60_000 });
+  if (!limit.ok) return rateLimitResponse(limit);
+
   const sp = req.nextUrl.searchParams;
   const resourceId = sp.get("resourceId");
   const date = sp.get("date"); // YYYY-MM-DD

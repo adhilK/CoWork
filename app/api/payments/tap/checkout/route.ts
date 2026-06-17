@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { apiError, apiSuccess } from "@/lib/utils";
 import { createTapCharge } from "@/lib/tap";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   const supabase = createClient();
@@ -10,6 +11,10 @@ export async function POST(req: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return apiError("Unauthorized", 401);
+
+  // Throttle charge creation per user to prevent hammering the payment gateway.
+  const limit = rateLimit(req, { key: "tap-checkout", limit: 15, windowMs: 60_000, identifier: user.id });
+  if (!limit.ok) return rateLimitResponse(limit);
 
   const body = await req.json().catch(() => null);
   const invoiceId: string = body?.invoiceId;

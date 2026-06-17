@@ -177,6 +177,14 @@ export function getBaseUrl(): string {
 // ── API response helpers ──────────────────────────────────────────────────────
 
 export function apiError(message: string, status = 400) {
+  // Surface server-side failures (5xx) to the observability seam. Client
+  // errors (4xx) are expected validation/auth and are not captured.
+  if (status >= 500) {
+    // Lazy import avoids pulling the module into client bundles that use utils.
+    import("@/lib/observability")
+      .then((m) => m.captureServerError(new Error(message), { status }))
+      .catch(() => {});
+  }
   return Response.json({ error: message }, { status });
 }
 

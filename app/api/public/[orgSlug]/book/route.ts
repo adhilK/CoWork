@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { apiError, apiSuccess } from "@/lib/utils";
 import { z } from "zod";
 import { computeCharge } from "@/lib/booking-pricing";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 const publicBookingSchema = z.object({
   resourceId: z.string().min(1),
@@ -28,6 +29,11 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { orgSlug: string } }
 ) {
+  // Throttle unauthenticated booking creation per IP — prevents flooding an
+  // org's calendar with junk PENDING bookings.
+  const limit = rateLimit(req, { key: `public-book:${params.orgSlug}`, limit: 8, windowMs: 60_000 });
+  if (!limit.ok) return rateLimitResponse(limit);
+
   const org = await prisma.organization.findUnique({
     where: { slug: params.orgSlug },
     select: { id: true, name: true, currency: true, timezone: true },

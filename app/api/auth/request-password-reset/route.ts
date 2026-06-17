@@ -2,8 +2,13 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { apiError, apiSuccess } from "@/lib/utils";
 import { resend, emailFrom } from "@/lib/resend";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
+  // Throttle to prevent password-reset email bombing of a victim's inbox.
+  const limit = rateLimit(req, { key: "password-reset", limit: 5, windowMs: 15 * 60_000 });
+  if (!limit.ok) return rateLimitResponse(limit);
+
   const { email } = await req.json();
   if (!email || typeof email !== "string") return apiError("Email required");
 
