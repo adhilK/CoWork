@@ -15,14 +15,14 @@ export function MaktabyLogo({
   const FONT = "'Arian LT', 'Scheherazade New', 'Traditional Arabic', serif";
 
   const arabicSize: Record<Size, string> = {
-    xs: "1.35rem",   // nav: bumped up from 1.1rem
+    xs: "2rem",
     sm: "1.5rem",
     md: "2rem",
     lg: "3.2rem",
   };
 
   const latinSize: Record<Size, string> = {
-    xs: "0.5rem",
+    xs: "1rem",
     sm: "0.62rem",
     md: "0.78rem",
     lg: "1.05rem",
@@ -51,7 +51,7 @@ export function MaktabyLogo({
   // light (green logo): slightly more breathing room.
   // dark/sidebar (white logo): noticeably more — they were touching.
   const gap: Record<Variant, string> = {
-    light: "0.32em",
+    light: "0.42em",
     dark: "0.52em",
     sidebar: "0.48em",
   };
