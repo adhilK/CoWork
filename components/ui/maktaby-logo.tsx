@@ -3,20 +3,6 @@ import { cn } from "@/lib/utils";
 type Variant = "light" | "dark" | "sidebar";
 type Size = "xs" | "sm" | "md" | "lg";
 
-/**
- * Maktaby brand mark rendered in Arian LT — the exact font used in the
- * identity.  Arabic "مكتبي" sits above the Latin "MAKTABY" with the same
- * proportions and letter-spacing as the supplied logo files.
- *
- * Variants:  light  → dark-green on white/light bg
- *            dark   → white Arabic + silver Latin on dark bg
- *            sidebar → white Arabic + muted Latin on the near-black sidebar
- *
- * Sizes:     xs → compact nav pill
- *            sm → sidebar / footer
- *            md → medium placement
- *            lg → auth panel / hero-scale
- */
 export function MaktabyLogo({
   variant = "light",
   size = "md",
@@ -29,7 +15,7 @@ export function MaktabyLogo({
   const FONT = "'Arian LT', 'Scheherazade New', 'Traditional Arabic', serif";
 
   const arabicSize: Record<Size, string> = {
-    xs: "1.1rem",
+    xs: "1.35rem",   // nav: bumped up from 1.1rem
     sm: "1.5rem",
     md: "2rem",
     lg: "3.2rem",
@@ -54,8 +40,6 @@ export function MaktabyLogo({
     sidebar: "rgba(255,255,255,0.5)",
   };
 
-  // Letter-spacing matches the wide-tracked "MAKTABY" in the supplied logo.
-  // The Arabic sits above with no extra tracking (Arian LT handles it).
   const latinTracking: Record<Size, string> = {
     xs: "0.38em",
     sm: "0.4em",
@@ -63,8 +47,20 @@ export function MaktabyLogo({
     lg: "0.44em",
   };
 
+  // Gap between Arabic and Latin rows.
+  // light (green logo): slightly more breathing room.
+  // dark/sidebar (white logo): noticeably more — they were touching.
+  const gap: Record<Variant, string> = {
+    light: "0.32em",
+    dark: "0.52em",
+    sidebar: "0.48em",
+  };
+
   return (
-    <div className={cn("flex flex-col items-center leading-none", className)} style={{ gap: "0.22em" }}>
+    <div
+      className={cn("flex flex-col items-center leading-none", className)}
+      style={{ gap: gap[variant] }}
+    >
       {/* Arabic wordmark */}
       <span
         style={{
@@ -87,7 +83,6 @@ export function MaktabyLogo({
           color: latinColor[variant],
           fontSize: latinSize[size],
           letterSpacing: latinTracking[size],
-          // Compensate for tracking so the text reads as visually centred.
           paddingLeft: latinTracking[size],
           fontWeight: 400,
           lineHeight: 1,
