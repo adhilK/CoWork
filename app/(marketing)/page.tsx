@@ -267,15 +267,15 @@ export default function MarketingPage() {
 
       {/* ── 4. THE SOLUTION (full-bleed green drench) ─────────────────── */}
       <section
-        className="relative isolate py-24 text-white sm:py-32"
+        className="relative isolate pt-16 pb-28 text-white sm:pt-20 sm:pb-40"
         style={{
           background:
-            "radial-gradient(70% 45% at 50% 0%, rgba(255,255,255,0.08), transparent 55%), linear-gradient(160deg, #15803D 0%, #166534 52%, #14532D 100%)",
+            "radial-gradient(70% 42% at 50% 0%, rgba(255,255,255,0.06), transparent 55%), linear-gradient(165deg, #136234 0%, #0F4429 55%, #0B3520 100%)",
         }}
       >
         {/* Gradient wave: a brighter crest rising out of the white section
             above, deepening to the section's dark top so the colors blend. */}
-        <SectionEdge from="#2FB85F" to="#15803D" />
+        <SectionEdge from="#2BA85A" to="#136234" />
         {/* Dot pattern across the blend zone, fading out downward. */}
         <div
           aria-hidden
@@ -303,14 +303,14 @@ export default function MarketingPage() {
             {MODULES.map((m) => (
               <StaggerItem
                 key={m.label}
-                className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/30 hover:bg-white/[0.16]"
+                className="flex items-center gap-3.5 rounded-2xl border border-white/20 bg-white/[0.09] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_14px_34px_-16px_rgba(0,0,0,0.6)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/40 hover:bg-white/[0.15]"
               >
-                <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white/15">
-                  <m.icon className="h-5 w-5 text-white" />
+                <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+                  <m.icon className="h-5 w-5 text-emerald-700" />
                 </span>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-white">{m.label}</p>
-                  <p className="truncate text-xs text-emerald-50/75">{m.line}</p>
+                  <p className="truncate text-xs text-emerald-50/85">{m.line}</p>
                 </div>
               </StaggerItem>
             ))}
