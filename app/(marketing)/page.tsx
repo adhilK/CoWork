@@ -277,6 +277,18 @@ export default function MarketingPage() {
         {/* Gradient wave: a brighter crest rising out of the white section
             above, deepening to the section's exact top color (seamless join). */}
         <SectionEdge from="#2BA85A" to="#14663B" />
+        {/* Uniform dot texture across the whole band (starting right at the
+            wave), faded only at the very bottom so it never reads as a strip. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage: "radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1.4px)",
+            backgroundSize: "20px 20px",
+            maskImage: "linear-gradient(to bottom, black 72%, transparent)",
+            WebkitMaskImage: "linear-gradient(to bottom, black 72%, transparent)",
+          }}
+        />
         <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal className="mx-auto max-w-3xl text-center">
             <Eyebrow center tone="green">The platform</Eyebrow>
@@ -396,7 +408,7 @@ export default function MarketingPage() {
       </section>
 
       {/* ── 6. WHY COWORK PRO vs WESTERN TOOLS (dark band #1) ─────────── */}
-      <section id="compare" className="relative isolate py-24 text-white sm:py-32" style={{ background: "#0A0F0A" }}>
+      <section id="compare" className="relative isolate pt-14 pb-24 text-white sm:pt-16 sm:pb-32" style={{ background: "#0A0F0A" }}>
         <SectionEdge color="#0A0F0A" />
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <Reveal className="mx-auto max-w-2xl text-center">

@@ -22,8 +22,8 @@ import { CountUp } from "@/components/marketing/motion";
  */
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
-const container: Variants = { hidden: {}, show: { transition: { staggerChildren: 0.07, delayChildren: 0.12 } } };
-const item: Variants = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE } } };
+const container: Variants = { hidden: {}, show: { transition: { staggerChildren: 0.12, delayChildren: 0.18 } } };
+const item: Variants = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: EASE } } };
 
 /** Stagger props for a container, disabled under reduced motion. */
 function useStagger() {
@@ -199,7 +199,7 @@ export function ProMock() {
                     <motion.span
                       className="absolute inset-0 rounded-full ring-2 ring-emerald-500"
                       animate={{ scale: [1, 1.6], opacity: [0.6, 0] }}
-                      transition={{ duration: 1.8, repeat: Infinity, ease: "easeOut" }}
+                      transition={{ duration: 2.4, repeat: Infinity, ease: "easeOut" }}
                     />
                   )}
                 </>
@@ -272,7 +272,7 @@ export function WhatsAppMock() {
                 key={i}
                 className="h-1.5 w-1.5 rounded-full bg-zinc-300"
                 animate={reduce ? undefined : { y: [0, -3, 0], opacity: [0.4, 1, 0.4] }}
-                transition={reduce ? undefined : { duration: 1, repeat: Infinity, delay: i * 0.18, ease: "easeInOut" }}
+                transition={reduce ? undefined : { duration: 1.3, repeat: Infinity, delay: i * 0.22, ease: "easeInOut" }}
               />
             ))}
           </span>
