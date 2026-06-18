@@ -15,6 +15,7 @@ import {
   Menu,
   Building2,
   Sparkles,
+  Package,
 } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -40,6 +41,7 @@ const ALL_NAV_ITEMS: { href: string; label: string; icon: any; exact?: boolean; 
   { href: "/portal", label: "Home", icon: LayoutDashboard, exact: true },
   { href: "/portal/book", label: "Book a space", icon: CalendarPlus },
   { href: "/portal/my-bookings", label: "My bookings", icon: Clock },
+  { href: "/portal/plans", label: "Plans", icon: Package },
   { href: "/portal/invoices", label: "Invoices", icon: FileText },
   { href: "/portal/documents", label: "Documents", icon: FolderLock },
   { href: "/portal/pro-services", label: "PRO Services", icon: Stamp, key: "proServices" },

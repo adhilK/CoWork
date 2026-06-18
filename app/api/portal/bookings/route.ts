@@ -8,6 +8,9 @@ import { sendBookingConfirmation } from "@/lib/email";
 import { apiError, apiSuccess, getBaseUrl } from "@/lib/utils";
 import { createCalendarEvent } from "@/lib/google-calendar";
 import { checkinUrl } from "@/lib/checkin-token";
+import { computeInvoiceTotals } from "@/lib/jurisdiction";
+import { createTapCharge } from "@/lib/tap";
+import { format } from "date-fns";
 
 async function getMember(userId: string) {
   return prisma.member.findFirst({
@@ -69,6 +72,10 @@ const createPortalBookingSchema = z
   .refine(
     (d) => (d.endTime.getTime() - d.startTime.getTime()) >= 30 * 60 * 1000,
     { message: "Minimum booking duration is 30 minutes", path: ["endTime"] }
+  )
+  .refine(
+    (d) => d.startTime > new Date(),
+    { message: "Booking start time must be in the future", path: ["startTime"] }
   );
 
 export async function POST(req: NextRequest) {
@@ -90,7 +97,6 @@ export async function POST(req: NextRequest) {
   const { resourceId, startTime, endTime, title, attendees } = parsed.data;
 
   // Verify resource belongs to the member's organization and is active.
-  // Include location hours + timezone for the opening-hours check.
   const resource = await prisma.resource.findFirst({
     where: {
       id: resourceId,
@@ -100,20 +106,19 @@ export async function POST(req: NextRequest) {
     },
     include: {
       location: { select: { openingHours: true, timezone: true } },
-      organization: { select: { timezone: true } },
+      organization: {
+        select: { timezone: true, currency: true, jurisdiction: true, paymentProvider: true },
+      },
     },
   });
   if (!resource) return apiError("Resource not found", 404);
 
   // Capacity check
   if (attendees > resource.capacity) {
-    return apiError(
-      `This resource holds up to ${resource.capacity} people`,
-      400
-    );
+    return apiError(`This resource holds up to ${resource.capacity} people`, 400);
   }
 
-  // Opening-hours check — members can't book a closed day or outside hours
+  // Opening-hours check
   const hoursError = validateWithinOpeningHours(
     resource.location?.openingHours,
     resource.location?.timezone ?? resource.organization.timezone,
@@ -144,21 +149,24 @@ export async function POST(req: NextRequest) {
     return apiError("Resource already booked for that time", 409);
   }
 
-  // Pricing + credit settlement (same rules as the admin app)
+  // Pricing + credit settlement
   const { amount, creditsNeeded } = computeCharge(resource, startTime, endTime);
   const { creditsUsed, amountCharged } = settleBooking({
     amount, creditsNeeded, memberCredits: member.credits,
   });
 
-  // Fetch user's Google Calendar refresh token (if connected)
+  // Fetch user's Google Calendar token
   const userRow = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { googleCalendarRefreshToken: true },
+    select: { googleCalendarRefreshToken: true, name: true, email: true },
   });
 
   const booking = await prisma.$transaction(async (tx) => {
     if (creditsUsed > 0) {
-      await tx.member.update({ where: { id: member.id }, data: { credits: { decrement: creditsUsed } } });
+      await tx.member.update({
+        where: { id: member.id },
+        data: { credits: { decrement: creditsUsed } },
+      });
     }
     return tx.booking.create({
       data: {
@@ -186,7 +194,7 @@ export async function POST(req: NextRequest) {
     });
   });
 
-  // Google Calendar event (fire-and-forget, only for CONFIRMED bookings)
+  // Google Calendar event (fire-and-forget)
   if (userRow?.googleCalendarRefreshToken && booking.status === "CONFIRMED") {
     void createCalendarEvent(userRow.googleCalendarRefreshToken, {
       title: booking.title ?? booking.resource.name,
@@ -205,7 +213,7 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Confirmation email to the member (fire-and-forget)
+  // Confirmation email (fire-and-forget)
   if (user.email) {
     void sendBookingConfirmation({
       to: user.email,
@@ -221,11 +229,89 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Surface a signed check-in URL so the portal can render a QR on the
-  // confirmation screen. Only meaningful once the booking is CONFIRMED;
-  // for approval-pending bookings the QR activates after approval.
-  return apiSuccess(
-    { ...booking, checkinUrl: checkinUrl(booking.id, getBaseUrl()) },
-    201
-  );
+  const baseUrl = getBaseUrl();
+  const qrUrl = checkinUrl(booking.id, baseUrl);
+
+  // If there's a cash charge, create an invoice and initiate payment
+  if (Number(amountCharged) > 0) {
+    try {
+      const org = resource.organization;
+      const durationHours = (endTime.getTime() - startTime.getTime()) / 3600000;
+      const totals = computeInvoiceTotals(Number(amountCharged), org.jurisdiction);
+
+      const count = await prisma.invoice.count({ where: { organizationId: member.organizationId } });
+      const invoiceNumber = `INV-${new Date().getFullYear()}-${String(count + 1).padStart(4, "0")}`;
+      const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+      const invoice = await prisma.invoice.create({
+        data: {
+          organizationId: member.organizationId,
+          memberId: member.id,
+          invoiceNumber,
+          amount: totals.totalAmount,
+          subtotal: totals.subtotal,
+          vatRate: totals.vatRate,
+          vatAmount: totals.vatAmount,
+          totalAmount: totals.totalAmount,
+          currency: org.currency ?? "AED",
+          status: "PENDING",
+          dueDate,
+          lineItems: [
+            {
+              description: `${booking.resource.name}${booking.title ? ` — ${booking.title}` : ""} (${format(startTime, "d MMM yyyy, HH:mm")}, ${durationHours.toFixed(1)}h)`,
+              quantity: 1,
+              unitPrice: Number(amountCharged),
+              total: Number(amountCharged),
+              bookingId: booking.id,
+            },
+          ],
+        },
+      });
+
+      // Link booking to this invoice
+      await prisma.booking.update({
+        where: { id: booking.id },
+        data: { invoiceId: invoice.id },
+      });
+
+      // Create Tap or Moyasar charge
+      let checkoutUrl: string | null = null;
+
+      if (org.paymentProvider !== "MOYASAR") {
+        const charge = await createTapCharge({
+          amount: totals.totalAmount,
+          currency: org.currency ?? "AED",
+          description: `Booking — ${booking.resource.name}`,
+          metadata: {
+            invoiceId: invoice.id,
+            organizationId: member.organizationId,
+            memberId: member.id,
+            bookingId: booking.id,
+          },
+          customerEmail: userRow?.email ?? user.email ?? "",
+          customerName: userRow?.name ?? user.user_metadata?.name ?? "Member",
+          redirectUrl: `${baseUrl}/portal/invoices?tap_id={id}&tap_status={status}`,
+          postUrl: `${baseUrl}/api/webhooks/tap`,
+          referenceTransaction: `bk_${invoice.id.slice(-8)}`,
+        });
+
+        await prisma.invoice.update({
+          where: { id: invoice.id },
+          data: { tapChargeId: charge.id },
+        });
+
+        checkoutUrl = charge.transaction.url;
+      }
+
+      return apiSuccess(
+        { ...booking, checkinUrl: qrUrl, invoiceId: invoice.id, checkoutUrl },
+        201
+      );
+    } catch (err) {
+      console.error("[portal/bookings] Failed to create invoice/charge:", err);
+      // Fall through — booking is created, member can pay from invoices page
+    }
+  }
+
+  return apiSuccess({ ...booking, checkinUrl: qrUrl }, 201);
 }

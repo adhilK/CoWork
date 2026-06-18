@@ -1,8 +1,10 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { MyBookingsView } from "@/components/portal/my-bookings-view";
+import { checkinUrl } from "@/lib/checkin-token";
+import { getBaseUrl } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "My Bookings — Maktaby" };
 export const dynamic = "force-dynamic";
@@ -21,6 +23,7 @@ export default async function MyBookingsPage() {
   if (!member) redirect("/login");
 
   const now = new Date();
+  const baseUrl = getBaseUrl();
 
   const [upcoming, past] = await Promise.all([
     prisma.booking.findMany({
@@ -54,12 +57,15 @@ export default async function MyBookingsPage() {
     }),
   ]);
 
-  // Serialize dates for client component
   const serialize = (b: typeof upcoming[0]) => ({
     ...b,
     startTime: b.startTime.toISOString(),
     endTime: b.endTime.toISOString(),
     amountCharged: Number(b.amountCharged),
+    checkinUrl:
+      b.status === "CONFIRMED" || b.status === "CHECKED_IN"
+        ? checkinUrl(b.id, baseUrl)
+        : null,
   });
 
   return (

@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyTapWebhook } from "@/lib/tap";
 
-// Tap sends the full charge object as JSON. No auth header — identity is
-// confirmed via the HMAC hashstring field inside the body.
+// Tap sends the full charge object as JSON. Identity confirmed via HMAC hashstring.
 export async function POST(req: NextRequest) {
   let body: Record<string, unknown>;
   try {
@@ -21,7 +20,6 @@ export async function POST(req: NextRequest) {
   const status = body.status as string;
   const chargeId = body.id as string;
 
-  // Only act on successful captures
   if (status !== "CAPTURED") {
     return NextResponse.json({ received: true });
   }
@@ -29,8 +27,6 @@ export async function POST(req: NextRequest) {
   const metadata = body.metadata as Record<string, string> | undefined;
   const invoiceId = metadata?.invoiceId;
 
-  // Primary lookup: by invoiceId from metadata
-  // Fallback: by tapChargeId (in case metadata was stripped)
   const invoice = invoiceId
     ? await prisma.invoice.findFirst({ where: { id: invoiceId, deletedAt: null } })
     : await prisma.invoice.findFirst({ where: { tapChargeId: chargeId, deletedAt: null } });
@@ -43,13 +39,26 @@ export async function POST(req: NextRequest) {
   if (invoice.status !== "PAID") {
     await prisma.invoice.update({
       where: { id: invoice.id },
-      data: {
-        status: "PAID",
-        paidAt: new Date(),
-        tapChargeId: chargeId,
-      },
+      data: { status: "PAID", paidAt: new Date(), tapChargeId: chargeId },
     });
+
+    // If this invoice is for a plan subscription, assign the plan to the member
+    const planId = metadata?.planId ?? extractPlanFromNotes(invoice.notes);
+    if (planId && invoice.memberId) {
+      await prisma.member.update({
+        where: { id: invoice.memberId },
+        data: { membershipPlanId: planId },
+      }).catch((err) => {
+        console.error("[tap webhook] Failed to assign plan:", err);
+      });
+    }
   }
 
   return NextResponse.json({ received: true });
+}
+
+function extractPlanFromNotes(notes: string | null): string | null {
+  if (!notes) return null;
+  const match = notes.match(/^PLAN_SUBSCRIPTION:(.+)$/);
+  return match?.[1] ?? null;
 }
