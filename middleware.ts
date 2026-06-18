@@ -42,9 +42,11 @@ export async function middleware(request: NextRequest) {
     "/auth-callback",  // client-side handler for magic/invite link hash fragments
     "/api/webhooks",
     "/api/auth",
-    "/api/cron",     // protected by CRON_SECRET, not session
-    "/api/inngest",  // Inngest sync/invoke — verified by INNGEST_SIGNING_KEY, not session
-    "/checkin",      // QR check-in, protected by a per-booking token
+    "/api/cron",         // protected by CRON_SECRET, not session
+    "/api/inngest",      // Inngest sync/invoke — verified by INNGEST_SIGNING_KEY, not session
+    "/api/health",       // uptime monitor ping — no auth by design
+    "/api/csp-report",   // browsers POST violation reports unauthenticated
+    "/checkin",          // QR check-in, protected by a per-booking token
   ];
   // "/" is the public marketing homepage. Matched exactly, because a
   // startsWith("/") test would make every route public.

@@ -26,6 +26,7 @@ type Invoice = {
 
 type Props = {
   invoices: Invoice[];
+  paymentProvider: "TAP" | "MOYASAR";
 };
 
 const STATUS_STYLES: Record<string, string> = {
@@ -43,13 +44,17 @@ const STATUS_ICON: Record<string, React.ReactElement> = {
   PENDING: <Clock className="w-3.5 h-3.5 text-amber-500" />,
 };
 
-function PayNowButton({ invoiceId }: { invoiceId: string }) {
+function PayNowButton({ invoiceId, paymentProvider }: { invoiceId: string; paymentProvider: "TAP" | "MOYASAR" }) {
   const [loading, setLoading] = useState(false);
 
   async function handlePay() {
     setLoading(true);
     try {
-      const res = await fetch("/api/payments/tap/checkout", {
+      const endpoint =
+        paymentProvider === "MOYASAR"
+          ? "/api/payments/moyasar/checkout"
+          : "/api/payments/tap/checkout";
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ invoiceId }),
@@ -87,15 +92,27 @@ function PayNowButton({ invoiceId }: { invoiceId: string }) {
   );
 }
 
-export function MyInvoicesView({ invoices }: Props) {
+export function MyInvoicesView({ invoices, paymentProvider }: Props) {
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    // Tap return URL: ?tap_id=<id>&tap_status=<STATUS>
     const tapStatus = searchParams.get("tap_status");
     if (tapStatus === "CAPTURED") {
       toast.success("Payment received! Your invoice will be marked as paid shortly.");
     } else if (tapStatus && tapStatus !== "INITIATED") {
       toast.error(`Payment ${tapStatus.toLowerCase()}. Please try again or contact support.`);
+    }
+
+    // Moyasar return URL: ?gateway=moyasar&id=<id>&status=<status>
+    const gateway = searchParams.get("gateway");
+    if (gateway === "moyasar") {
+      const moyasarStatus = searchParams.get("status");
+      if (moyasarStatus === "paid") {
+        toast.success("Payment received! Your invoice will be marked as paid shortly.");
+      } else if (moyasarStatus && moyasarStatus !== "initiated") {
+        toast.error(`Payment ${moyasarStatus}. Please try again or contact support.`);
+      }
     }
   }, [searchParams]);
 
@@ -194,7 +211,7 @@ export function MyInvoicesView({ invoices }: Props) {
                     </td>
                     <td className="px-3 py-3.5">
                       {(inv.status === "PENDING" || inv.status === "OVERDUE") && (
-                        <PayNowButton invoiceId={inv.id} />
+                        <PayNowButton invoiceId={inv.id} paymentProvider={paymentProvider} />
                       )}
                     </td>
                     <td className="px-3 py-3.5">

@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Save, Loader2, User, Calendar, CheckCircle2, XCircle } from "lucide-react";
+import { Save, Loader2, Calendar, CheckCircle2, Bell, Mail, MessageCircle, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { initials, formatDate } from "@/lib/utils";
 
 type ProfileData = {
@@ -19,6 +20,10 @@ type ProfileData = {
   bio: string;
   company: string;
   jobTitle: string;
+  whatsAppNumber: string;
+  language: string;
+  notifyByEmail: boolean;
+  notifyByWhatsApp: boolean;
   memberSince: string;
   planName: string | null;
   credits: number;
@@ -30,6 +35,36 @@ type Props = {
   profile: ProfileData;
 };
 
+/** Minimal accessible toggle — no Switch primitive exists in the UI kit. */
+function Toggle({
+  checked,
+  onChange,
+  disabled,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
+        checked ? "bg-emerald-500" : "bg-gray-200"
+      }`}
+    >
+      <span
+        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+          checked ? "translate-x-[22px]" : "translate-x-0.5"
+        }`}
+      />
+    </button>
+  );
+}
+
 export function ProfileView({ profile }: Props) {
   const [form, setForm] = useState({
     name: profile.name,
@@ -38,6 +73,13 @@ export function ProfileView({ profile }: Props) {
     company: profile.company,
     jobTitle: profile.jobTitle,
   });
+  const [prefs, setPrefs] = useState({
+    whatsAppNumber: profile.whatsAppNumber,
+    language: profile.language,
+    notifyByEmail: profile.notifyByEmail,
+    notifyByWhatsApp: profile.notifyByWhatsApp,
+  });
+  const [savingPrefs, setSavingPrefs] = useState(false);
   const [saving, setSaving] = useState(false);
   const [calendarConnected, setCalendarConnected] = useState(profile.googleCalendarConnected);
   const [disconnecting, setDisconnecting] = useState(false);
@@ -106,6 +148,32 @@ export function ProfileView({ profile }: Props) {
       toast.error("Something went wrong");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleSavePrefs() {
+    setSavingPrefs(true);
+    try {
+      const res = await fetch("/api/portal/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          whatsAppNumber: prefs.whatsAppNumber.trim() || null,
+          language: prefs.language,
+          notifyByEmail: prefs.notifyByEmail,
+          notifyByWhatsApp: prefs.notifyByWhatsApp,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "Failed to save preferences");
+        return;
+      }
+      toast.success("Preferences saved");
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setSavingPrefs(false);
     }
   }
 
@@ -320,6 +388,115 @@ export function ProfileView({ profile }: Props) {
             </Button>
           </div>
         </form>
+      </div>
+
+      {/* Notification preferences + language */}
+      <div className="dashboard-card p-5">
+        <div className="flex items-start gap-3 mb-5">
+          <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center flex-shrink-0">
+            <Bell className="w-4.5 h-4.5 text-violet-500" />
+          </div>
+          <div>
+            <h2 className="section-title">Notifications &amp; language</h2>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Choose how we reach you and your preferred language.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {/* WhatsApp number */}
+          <div className="space-y-1.5">
+            <Label htmlFor="pref-whatsapp" className="text-sm font-medium text-gray-700">
+              WhatsApp number
+            </Label>
+            <Input
+              id="pref-whatsapp"
+              value={prefs.whatsAppNumber}
+              onChange={(e) => setPrefs((p) => ({ ...p, whatsAppNumber: e.target.value }))}
+              placeholder="+971 50 000 0000"
+              className="text-sm border-gray-200"
+            />
+            <p className="text-[11px] text-gray-400">Used for booking reminders and updates over WhatsApp.</p>
+          </div>
+
+          {/* Channel toggles */}
+          <div className="rounded-xl border border-gray-100 divide-y divide-gray-50">
+            <div className="flex items-center justify-between gap-3 p-3.5">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                  <Mail className="w-4 h-4 text-blue-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-800">Email notifications</p>
+                  <p className="text-[11px] text-gray-400">Booking confirmations, invoices, and reminders</p>
+                </div>
+              </div>
+              <Toggle
+                checked={prefs.notifyByEmail}
+                onChange={(v) => setPrefs((p) => ({ ...p, notifyByEmail: v }))}
+                disabled={savingPrefs}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3 p-3.5">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                  <MessageCircle className="w-4 h-4 text-emerald-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-800">WhatsApp notifications</p>
+                  <p className="text-[11px] text-gray-400">Instant updates to your WhatsApp number</p>
+                </div>
+              </div>
+              <Toggle
+                checked={prefs.notifyByWhatsApp}
+                onChange={(v) => setPrefs((p) => ({ ...p, notifyByWhatsApp: v }))}
+                disabled={savingPrefs}
+              />
+            </div>
+          </div>
+
+          {/* Preferred language */}
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+              <Languages className="w-3.5 h-3.5 text-gray-400" /> Preferred language
+            </Label>
+            <Select
+              value={prefs.language}
+              onValueChange={(v) => setPrefs((p) => ({ ...p, language: v ?? "en" }))}
+            >
+              <SelectTrigger className="text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="en">English</SelectItem>
+                <SelectItem value="ar">العربية (Arabic)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex justify-end pt-1">
+            <Button
+              type="button"
+              onClick={handleSavePrefs}
+              disabled={savingPrefs}
+              className="text-white text-sm"
+              style={{ background: "linear-gradient(135deg, #16A34A, #15803D)" }}
+            >
+              {savingPrefs ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-3.5 h-3.5 mr-2" />
+                  Save preferences
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

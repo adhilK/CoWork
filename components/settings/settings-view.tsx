@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +15,7 @@ import { formatDate } from "@/lib/utils";
 import { Controller } from "react-hook-form";
 import type { Organization } from "@prisma/client";
 
-type Props = { organization: Organization };
+type Props = { organization: Organization; role: string };
 
 const TIMEZONES = [
   "Asia/Dubai", "Asia/Riyadh", "Asia/Bahrain", "Asia/Qatar", "Asia/Kuwait",
@@ -29,7 +30,11 @@ const CURRENCIES = [
   { value: "GBP", label: "£ GBP" },
 ];
 
-export function SettingsView({ organization }: Props) {
+export function SettingsView({ organization, role }: Props) {
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [confirmName, setConfirmName] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const { register, handleSubmit, control, formState: { errors, isSubmitting, isDirty } } =
     useForm<UpdateOrganizationInput>({
       resolver: zodResolver(updateOrganizationSchema),
@@ -56,6 +61,21 @@ export function SettingsView({ organization }: Props) {
       toast.success("Settings saved");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save settings");
+    }
+  }
+
+  async function handleDeleteAccount() {
+    setIsDeleting(true);
+    try {
+      const res = await fetch("/api/account/delete", { method: "DELETE" });
+      if (!res.ok) {
+        const e = await res.json();
+        throw new Error(e.error ?? "Failed to delete account");
+      }
+      window.location.href = "/register?message=account-deleted";
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete account");
+      setIsDeleting(false);
     }
   }
 
@@ -175,6 +195,81 @@ export function SettingsView({ organization }: Props) {
           Configure ZATCA →
         </Button>
       </div>
+
+      {/* Danger Zone — OWNER only */}
+      {role === "OWNER" && (
+        <div className="dashboard-card p-6 border border-red-200">
+          <h2 className="text-base font-semibold text-red-700">Danger Zone</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Permanently delete your organization and all associated data. This cannot be undone.
+          </p>
+          <Button
+            variant="outline"
+            className="mt-4 border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400"
+            onClick={() => setShowDeleteModal(true)}
+          >
+            Delete account and all data
+          </Button>
+        </div>
+      )}
+
+      {/* Delete account modal */}
+      {showDeleteModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.55)" }}
+          onClick={(e) => { if (e.target === e.currentTarget && !isDeleting) { setShowDeleteModal(false); setConfirmName(""); } }}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 text-lg leading-tight">
+                  Delete account and all data
+                </h3>
+                <p className="text-sm text-gray-500 mt-1.5">
+                  This will permanently delete your organization, all members, bookings, invoices,
+                  documents, and your account.{" "}
+                  <strong className="text-gray-700">This cannot be undone.</strong>
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm text-gray-700">
+                Type <strong>{organization.name}</strong> to confirm
+              </Label>
+              <Input
+                value={confirmName}
+                onChange={(e) => setConfirmName(e.target.value)}
+                placeholder={organization.name}
+                className="h-11"
+                disabled={isDeleting}
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => { setShowDeleteModal(false); setConfirmName(""); }}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white border-0"
+                disabled={confirmName !== organization.name || isDeleting}
+                onClick={handleDeleteAccount}
+              >
+                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete everything"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -10,7 +10,9 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   // Default to root so the server routes by role (MEMBER → /portal,
   // OWNER/ADMIN → /dashboard) instead of dropping everyone on the admin shell.
-  const next = searchParams.get("next") ?? "/";
+  // Default to /onboarding — that page's bypass logic routes the user to
+  // /dashboard, /portal, or the wizard based on their org state.
+  const next = searchParams.get("next") ?? "/onboarding";
 
   if (code) {
     const supabase = createClient();

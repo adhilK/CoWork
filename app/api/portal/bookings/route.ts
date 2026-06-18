@@ -5,8 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { computeCharge, settleBooking } from "@/lib/booking-pricing";
 import { validateWithinOpeningHours } from "@/lib/opening-hours";
 import { sendBookingConfirmation } from "@/lib/email";
-import { apiError, apiSuccess } from "@/lib/utils";
+import { apiError, apiSuccess, getBaseUrl } from "@/lib/utils";
 import { createCalendarEvent } from "@/lib/google-calendar";
+import { checkinUrl } from "@/lib/checkin-token";
 
 async function getMember(userId: string) {
   return prisma.member.findFirst({
@@ -220,5 +221,11 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  return apiSuccess(booking, 201);
+  // Surface a signed check-in URL so the portal can render a QR on the
+  // confirmation screen. Only meaningful once the booking is CONFIRMED;
+  // for approval-pending bookings the QR activates after approval.
+  return apiSuccess(
+    { ...booking, checkinUrl: checkinUrl(booking.id, getBaseUrl()) },
+    201
+  );
 }

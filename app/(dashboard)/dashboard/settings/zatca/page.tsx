@@ -1,8 +1,8 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { ZATCA_API_URL, ZATCA_SANDBOX_URL } from "@/lib/zatca";
+import { isWafeqConfigured } from "@/lib/zatca/wafeq";
 import { ZatcaSettingsView } from "@/components/zatca/zatca-settings-view";
 
 export const metadata: Metadata = { title: "ZATCA E-Invoicing — Maktaby" };
@@ -16,7 +16,16 @@ export default async function ZatcaSettingsPage() {
   const [org, config, recent, statusCounts] = await Promise.all([
     prisma.organization.findUnique({
       where: { id: orgId },
-      select: { jurisdiction: true, taxRegistrationNumber: true, name: true },
+      select: {
+        jurisdiction: true,
+        taxRegistrationNumber: true,
+        name: true,
+        wafeqAccountId: true,
+        zatcaDeviceId: true,
+        zatcaCrNumber: true,
+        zatcaVatNumber: true,
+        zatcaAddress: true,
+      },
     }),
     prisma.jurisdictionConfig.findUnique({
       where: { organizationId: orgId },
@@ -38,15 +47,28 @@ export default async function ZatcaSettingsPage() {
   const counts: Record<string, number> = {};
   for (const c of statusCounts) if (c.zatcaStatus) counts[c.zatcaStatus] = c._count;
 
+  type ZatcaAddress = {
+    street?: string;
+    buildingNumber?: string;
+    district?: string;
+    city?: string;
+    postalCode?: string;
+  };
+
   return (
     <ZatcaSettingsView
       isOwner={ctx.role === "OWNER"}
       jurisdiction={org?.jurisdiction ?? "UAE"}
-      vatNumber={org?.taxRegistrationNumber ?? null}
       sellerName={org?.name ?? null}
+      crNumber={org?.zatcaCrNumber ?? null}
+      zatcaVatNumber={org?.zatcaVatNumber ?? null}
+      zatcaAddress={(org?.zatcaAddress as ZatcaAddress | null) ?? null}
+      wafeqConfigured={isWafeqConfigured()}
+      wafeqAccountId={org?.wafeqAccountId ?? null}
+      deviceRegistered={!!org?.zatcaDeviceId}
       zatcaEnabled={config?.zatcaEnabled ?? false}
       arabicInvoices={config?.arabicInvoices ?? false}
-      providerConfigured={!!(ZATCA_API_URL || ZATCA_SANDBOX_URL)}
+      zatcaEnv={process.env.ZATCA_ENV ?? "simulation"}
       counts={counts}
       recent={recent.map((r) => ({
         id: r.id,
@@ -56,7 +78,7 @@ export default async function ZatcaSettingsPage() {
         currency: r.currency,
         zatcaStatus: r.zatcaStatus,
         createdAt: r.createdAt.toISOString(),
-      })) as any}
+      }))}
     />
   );
 }

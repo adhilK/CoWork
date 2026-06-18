@@ -55,11 +55,30 @@ export function MemberDocumentsView({ documents, requests }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [dragActive, setDragActive] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const MAX_BYTES = 20 * 1024 * 1024; // 20 MB
+  const ACCEPTED = [".pdf", ".jpg", ".jpeg", ".png", ".webp", ".heic", ".doc", ".docx"];
+
+  function acceptFile(f: File | null | undefined) {
+    if (!f) return;
+    const ext = "." + (f.name.split(".").pop() ?? "").toLowerCase();
+    if (!ACCEPTED.includes(ext)) {
+      toast.error("Unsupported file type — use PDF, image, or Word");
+      return;
+    }
+    if (f.size > MAX_BYTES) {
+      toast.error("File is too large (max 20 MB)");
+      return;
+    }
+    setFile(f);
+  }
 
   function openUpload(forType?: string) {
     setForm({ ...uploadEmpty, documentType: forType ?? "PASSPORT" });
     setFile(null);
+    setDragActive(false);
     setUploadOpen(true);
   }
 
@@ -106,8 +125,8 @@ export function MemberDocumentsView({ documents, requests }: Props) {
     <div className="space-y-6 animate-fade-in max-w-6xl">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">My Documents</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Upload and manage your identity and company documents</p>
+          <h1 className="page-title">My Documents</h1>
+          <p className="page-subtitle">Upload and manage your identity and company documents</p>
         </div>
         <Button onClick={() => openUpload()} className="text-white" style={{ background: "linear-gradient(135deg, #15803D, #22C55E)" }}>
           <Upload className="w-4 h-4 mr-1.5" /> Upload
@@ -146,7 +165,7 @@ export function MemberDocumentsView({ documents, requests }: Props) {
 
       {/* Documents */}
       {documents.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center shadow-sm">
+        <div className="dashboard-card p-12 text-center">
           <FileText className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <p className="text-sm font-medium text-gray-500">No documents yet</p>
           <p className="text-xs text-gray-400 mt-1 mb-4">Upload your passport, visa, Emirates ID, or company documents</p>
@@ -157,7 +176,7 @@ export function MemberDocumentsView({ documents, requests }: Props) {
           {documents.map((d) => {
             const exp = EXPIRY_BADGE[expiryBucket(d.expiryDate)]!;
             return (
-              <div key={d.id} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm flex items-start gap-3">
+              <div key={d.id} className="dashboard-card p-4 flex items-start gap-3 hover:shadow-md transition-shadow">
                 <div className="w-11 h-11 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0 text-xl">
                   {documentTypeGlyph(d.documentType)}
                 </div>
@@ -206,9 +225,24 @@ export function MemberDocumentsView({ documents, requests }: Props) {
               <Label>File *</Label>
               <input ref={fileRef} type="file" className="hidden"
                 accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-              <button type="button" onClick={() => fileRef.current?.click()}
-                className="w-full border-2 border-dashed border-gray-200 rounded-xl px-4 py-6 text-center hover:border-emerald-300 hover:bg-emerald-50/30 transition-colors">
+                onChange={(e) => acceptFile(e.target.files?.[0])} />
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+                onDragEnter={(e) => { e.preventDefault(); setDragActive(true); }}
+                onDragLeave={(e) => { e.preventDefault(); setDragActive(false); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragActive(false);
+                  acceptFile(e.dataTransfer.files?.[0]);
+                }}
+                className={`w-full border-2 border-dashed rounded-xl px-4 py-7 text-center transition-colors ${
+                  dragActive
+                    ? "border-emerald-400 bg-emerald-50/60"
+                    : "border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/30"
+                }`}
+              >
                 {file ? (
                   <div className="flex items-center justify-center gap-2 text-sm text-gray-700">
                     <FileText className="w-4 h-4 text-emerald-500" />
@@ -216,8 +250,11 @@ export function MemberDocumentsView({ documents, requests }: Props) {
                   </div>
                 ) : (
                   <div className="text-sm text-gray-400">
-                    <Upload className="w-5 h-5 mx-auto mb-1 text-gray-300" />
-                    Click to choose a file — PDF, image, or Word (max 20 MB)
+                    <Upload className={`w-5 h-5 mx-auto mb-1.5 ${dragActive ? "text-emerald-500" : "text-gray-300"}`} />
+                    <span className="font-medium text-gray-500">
+                      {dragActive ? "Drop your file here" : "Drag & drop or click to choose"}
+                    </span>
+                    <p className="text-[11px] mt-0.5">PDF, image, or Word — max 20 MB</p>
                   </div>
                 )}
               </button>

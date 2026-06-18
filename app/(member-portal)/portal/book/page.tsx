@@ -16,7 +16,7 @@ export default async function BookPage() {
 
   const member = await prisma.member.findFirst({
     where: { userId: user.id, deletedAt: null },
-    select: { organizationId: true, organization: { select: { currency: true } } },
+    select: { organizationId: true, credits: true, organization: { select: { currency: true } } },
   });
   if (!member) redirect("/login");
 
@@ -39,6 +39,7 @@ export default async function BookPage() {
     hourlyRate: r.hourlyRate == null ? null : Number(r.hourlyRate),
     halfDayRate: r.halfDayRate == null ? null : Number(r.halfDayRate),
     fullDayRate: r.fullDayRate == null ? null : Number(r.fullDayRate),
+    monthlyRate: r.monthlyRate == null ? null : Number(r.monthlyRate),
     amenities: r.amenities,
     images: r.images,
     requiresApproval: r.requiresApproval,
@@ -49,6 +50,7 @@ export default async function BookPage() {
   return (
     <ResourceBrowser
       currency={member.organization.currency}
+      credits={member.credits}
       initialResources={initialResources}
     />
   );

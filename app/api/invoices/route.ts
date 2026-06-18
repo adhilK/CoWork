@@ -2,10 +2,11 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/auth";
 import { createInvoiceSchema } from "@/lib/validations";
-import { apiError, apiSuccess, buildPaginationMeta, getPaginationParams } from "@/lib/utils";
+import { apiError, apiSuccess, buildPaginationMeta, getPaginationParams, formatCurrency } from "@/lib/utils";
 import { computeInvoiceTotals } from "@/lib/jurisdiction";
 import { stampInvoiceForZatca } from "@/lib/zatca";
-import { enqueue } from "@/lib/jobs";
+import { enqueue, dispatchWhatsAppText } from "@/lib/jobs";
+import { createPaymentLink } from "@/lib/payments";
 import { nanoid } from "nanoid";
 
 export async function GET(req: NextRequest) {
@@ -90,6 +91,56 @@ export async function POST(req: NextRequest) {
   if (zatca) {
     await enqueue("zatca/invoice.submit", { organizationId: orgId, invoiceId: invoice.id });
   }
+
+  // WhatsApp delivery with payment link — fire-and-forget, never blocks the response.
+  void (async () => {
+    try {
+      const memberFull = await prisma.member.findUnique({
+        where: { id: memberId },
+        select: {
+          whatsAppNumber: true,
+          organization: { select: { paymentProvider: true, name: true } },
+        },
+      });
+      if (!memberFull?.whatsAppNumber) return;
+
+      const invoiceUser = invoice.member.user;
+      const currency = invoice.currency;
+      const total = Number(invoice.totalAmount);
+
+      let paymentUrl: string | null = null;
+      try {
+        const link = await createPaymentLink({
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          totalAmount: total,
+          currency,
+          organizationId: orgId,
+          memberId,
+          customerEmail: invoiceUser.email,
+          customerName: invoiceUser.name,
+          paymentProvider: memberFull.organization.paymentProvider,
+        });
+        paymentUrl = link.checkoutUrl;
+      } catch {
+        // Payment link failure must not prevent the invoice notification.
+      }
+
+      const dueStr = invoice.dueDate.toLocaleDateString("en-GB");
+      const payLine = paymentUrl ? `\n\nPay now: ${paymentUrl}` : "";
+      await dispatchWhatsAppText({
+        organizationId: orgId,
+        to: memberFull.whatsAppNumber,
+        memberId,
+        messageType: "INVOICE_ISSUED",
+        relatedEntityType: "invoice",
+        relatedEntityId: invoice.id,
+        body: `Hi ${invoiceUser.name ?? "there"}, your invoice ${invoice.invoiceNumber} for ${formatCurrency(total, currency)} is ready. Due ${dueStr}.${payLine}`,
+      });
+    } catch (err) {
+      console.error("[invoices] WhatsApp notification failed:", err);
+    }
+  })();
 
   return apiSuccess(zatca ? { ...invoice, ...zatca } : invoice, 201);
 }

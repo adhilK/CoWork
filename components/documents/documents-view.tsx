@@ -17,6 +17,7 @@ import { formatDate, formatRelative } from "@/lib/utils";
 import {
   DOCUMENT_TYPE_GROUPS, documentTypeLabel, documentTypeGlyph, formatFileSize, expiryBucket, ALL_DOCUMENT_TYPES,
 } from "@/lib/document-meta";
+import { EmptyState } from "@/components/shared/empty-state";
 
 type Member = { id: string; name: string | null; email: string };
 
@@ -335,12 +336,25 @@ export function DocumentsView({ documents, members, requests, stats }: Props) {
           </div>
 
           {filtered.length === 0 ? (
-            <div className="dashboard-card p-12 text-center">
-              <FileText className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-              <p className="text-sm font-medium text-gray-500">No documents found</p>
-              <p className="text-xs text-gray-400 mt-1 mb-4">Upload identity, license, and company documents for your members</p>
-              <Button onClick={() => openUpload()} variant="outline">Upload a document</Button>
-            </div>
+            documents.length === 0 ? (
+              <EmptyState
+                icon={FileText}
+                title="Keep member documents secure"
+                description="Store passports, Emirates IDs, Iqamas, trade licenses, and company papers — encrypted, with expiry tracking and version history."
+                steps={[
+                  "Upload a document and tag it to a member.",
+                  "Set an expiry date — we'll remind you before it lapses.",
+                  "Or request a document and members upload it from their portal.",
+                ]}
+                primary={{ label: "Upload a document", onClick: () => openUpload() }}
+              />
+            ) : (
+              <div className="dashboard-card p-12 text-center">
+                <FileText className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+                <p className="text-sm font-medium text-gray-500">No documents match these filters</p>
+                <p className="text-xs text-gray-400 mt-1">Try clearing the search or filters.</p>
+              </div>
+            )
           ) : (
             <div className="dashboard-card overflow-hidden">
               <table className="w-full text-sm">

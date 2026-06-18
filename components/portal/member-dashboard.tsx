@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
-  Calendar, Clock, CreditCard, ArrowRight, Pin, Megaphone, CalendarPlus, Sparkles,
-  FileText, FolderLock, Stamp, User,
+  Calendar, Clock, ArrowRight, Pin, Megaphone, CalendarPlus, Sparkles,
+  FileText, FolderLock, Stamp, User, Sunrise, Sun, Moon, PartyPopper, BadgeCheck,
 } from "lucide-react";
 import { formatDate, formatDateTime, formatTime, humanizeEnum } from "@/lib/utils";
 import { ResourceIcon } from "@/components/shared/resource-icon";
@@ -27,6 +27,9 @@ type Announcement = {
 type Props = {
   memberName: string | null;
   credits: number;
+  creditsIncluded: number;
+  planName: string | null;
+  memberStatus: string;
   todayBookings: Booking[];
   upcomingBookings: Booking[];
   announcements: Announcement[];
@@ -34,6 +37,13 @@ type Props = {
   isNewMember?: boolean;
   hasDocuments?: boolean;
   hasProServices?: boolean;
+};
+
+const MEMBER_STATUS_STYLES: Record<string, string> = {
+  ACTIVE: "bg-green-50 text-green-700 border-green-200/60",
+  PAUSED: "bg-amber-50 text-amber-700 border-amber-200/60",
+  CANCELLED: "bg-gray-50 text-gray-500 border-gray-200/60",
+  PENDING: "bg-blue-50 text-blue-700 border-blue-200/60",
 };
 
 const STATUS_STYLES: Record<string, string> = {
@@ -47,9 +57,9 @@ const STATUS_STYLES: Record<string, string> = {
 
 function getGreeting() {
   const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 17) return "Good afternoon";
-  return "Good evening";
+  if (h < 12) return { text: "Good morning", Icon: Sunrise, color: "#D97706", bg: "rgba(217,119,6,0.1)" };
+  if (h < 17) return { text: "Good afternoon", Icon: Sun, color: "#16A34A", bg: "rgba(22,163,74,0.1)" };
+  return { text: "Good evening", Icon: Moon, color: "#6366F1", bg: "rgba(99,102,241,0.1)" };
 }
 
 function BookingCard({ booking }: { booking: Booking }) {
@@ -80,6 +90,9 @@ function BookingCard({ booking }: { booking: Booking }) {
 export function MemberDashboard({
   memberName,
   credits,
+  creditsIncluded,
+  planName,
+  memberStatus,
   todayBookings,
   upcomingBookings,
   announcements,
@@ -89,6 +102,10 @@ export function MemberDashboard({
   hasProServices,
 }: Props) {
   const nextBooking = upcomingBookings[0];
+  const greeting = getGreeting();
+  // Credits meter — fill against the plan's monthly allowance when there is one.
+  const creditsPct =
+    creditsIncluded > 0 ? Math.min(100, Math.round((credits / creditsIncluded) * 100)) : null;
 
   const quickActions = [
     { href: "/portal/book", label: "Book a space", desc: "Reserve a desk or room", icon: CalendarPlus, color: "#15803D", bg: "rgba(21,128,61,0.1)", primary: true, show: true },
@@ -104,7 +121,9 @@ export function MemberDashboard({
       {/* Welcome banner for first-time invited members */}
       {isNewMember && (
         <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3.5">
-          <span className="text-xl leading-none">🎉</span>
+          <span className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
+            <PartyPopper className="w-4.5 h-4.5 text-emerald-600" />
+          </span>
           <div className="flex-1">
             <p className="font-semibold text-emerald-900 text-sm">Welcome to your member portal!</p>
             <p className="text-sm text-emerald-700 mt-0.5">
@@ -120,11 +139,34 @@ export function MemberDashboard({
 
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="page-title">
-            {getGreeting()}, {memberName?.split(" ")[0] ?? "there"} 👋
-          </h1>
-          <p className="page-subtitle">{formatDate(new Date())}</p>
+        <div className="min-w-0 flex items-center gap-3">
+          <span
+            className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
+            style={{ background: greeting.bg }}
+          >
+            <greeting.Icon style={{ width: 20, height: 20, color: greeting.color }} />
+          </span>
+          <div className="min-w-0">
+            <h1 className="page-title truncate">
+              {greeting.text}, {memberName?.split(" ")[0] ?? "there"}
+            </h1>
+            <div className="flex items-center gap-2 flex-wrap mt-0.5">
+              <p className="page-subtitle !mt-0">{formatDate(new Date())}</p>
+              {planName && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border border-emerald-200/60 bg-emerald-50 text-emerald-700">
+                  <BadgeCheck className="w-3 h-3" />
+                  {planName}
+                </span>
+              )}
+              <span
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${
+                  MEMBER_STATUS_STYLES[memberStatus] ?? "bg-gray-50 text-gray-500 border-gray-200/60"
+                }`}
+              >
+                {humanizeEnum(memberStatus)}
+              </span>
+            </div>
+          </div>
         </div>
         <Link
           href="/portal/book"
@@ -138,19 +180,41 @@ export function MemberDashboard({
 
       {/* KPI row — matches dashboard card system */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-        {/* Credits — hero accent card */}
+        {/* Credits — hero accent card with usage meter */}
         <div className="kpi-card kpi-card-accent rounded-2xl p-4 sm:p-5">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <p className="text-[11px] sm:text-xs font-medium mb-1.5 sm:mb-2" style={{ color: "rgba(255,255,255,0.6)" }}>
                 Credits left
               </p>
-              <p className="text-2xl sm:text-3xl font-bold tracking-tight text-white leading-none">{credits}</p>
+              <p className="text-2xl sm:text-3xl font-bold tracking-tight text-white leading-none">
+                {credits}
+                {creditsIncluded > 0 && (
+                  <span className="text-sm font-semibold" style={{ color: "rgba(255,255,255,0.55)" }}> / {creditsIncluded}</span>
+                )}
+              </p>
             </div>
             <div className="hidden sm:flex w-9 h-9 rounded-xl items-center justify-center flex-shrink-0" style={{ background: "rgba(255,255,255,0.15)" }}>
               <Sparkles className="w-4 h-4 text-white" />
             </div>
           </div>
+          {creditsPct !== null ? (
+            <div className="mt-3 sm:mt-4">
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.2)" }}>
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${creditsPct}%`, background: "rgba(255,255,255,0.9)" }}
+                />
+              </div>
+              <p className="text-[11px] mt-1.5 font-medium" style={{ color: "rgba(255,255,255,0.6)" }}>
+                {creditsPct}% of your monthly allowance
+              </p>
+            </div>
+          ) : (
+            <p className="text-[11px] mt-3 sm:mt-4 font-medium" style={{ color: "rgba(255,255,255,0.6)" }}>
+              1 credit = 1 hour of booking
+            </p>
+          )}
         </div>
 
         {/* Bookings this month */}

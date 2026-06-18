@@ -1,20 +1,16 @@
 "use client";
 
 /**
- * Client-side auth callback — handles invite and magic-link sign-ins.
+ * Client-side auth callback — handles invite links and magic-link sign-ins.
  *
- * Instead of relying on Supabase's redirect (which requires whitelisting
- * URLs and uses an unreadable hash fragment), we build our own link:
+ * After verifying the OTP, we always send the user to /onboarding.
+ * That page has its own bypass logic:
+ *   - Org with ≥1 location  → /dashboard (setup complete)
+ *   - Member role           → /portal
+ *   - No org or no location → show the 6-step wizard
  *
- *   /auth-callback?token_hash=<hashed_token>&type=<verification_type>
- *
- * The hashed_token comes from supabase.auth.admin.generateLink().
- * We then call supabase.auth.verifyOtp() CLIENT-SIDE, which can set
- * cookies correctly and doesn't need hash fragments.
- *
- * Routing after sign-in:
- *   - User has a member record  → /portal
- *   - User has no member record → /dashboard (admin/owner)
+ * This covers all cases: new user confirming email, returning user
+ * using a magic link, and team members accepting an invite.
  */
 
 import { useEffect, useState } from "react";
@@ -30,7 +26,6 @@ export default function AuthCallbackPage() {
     const supabase = createClient();
 
     async function handleCallback() {
-      // Read token_hash and type from our custom query params
       const params = new URLSearchParams(window.location.search);
       const token_hash = params.get("token_hash");
       const type = params.get("type") as
@@ -47,7 +42,6 @@ export default function AuthCallbackPage() {
         return;
       }
 
-      // Verify the OTP client-side — Supabase sets session cookies here
       const { error } = await supabase.auth.verifyOtp({ token_hash, type });
       if (error) {
         console.error("[auth-callback] verifyOtp failed:", error.message);
@@ -55,17 +49,8 @@ export default function AuthCallbackPage() {
         return;
       }
 
-      // Determine where to send the user
-      try {
-        const res = await fetch("/api/portal/me");
-        if (res.ok) {
-          router.replace("/portal?welcome=1");
-        } else {
-          router.replace("/dashboard");
-        }
-      } catch {
-        router.replace("/dashboard");
-      }
+      // /onboarding handles all post-auth routing via its bypass check.
+      router.replace("/onboarding");
     }
 
     handleCallback();

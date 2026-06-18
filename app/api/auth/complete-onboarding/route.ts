@@ -90,10 +90,9 @@ export async function POST(request: Request) {
       data: { userId: user.id, organizationId: org.id, role: "OWNER" },
     });
 
-    // Default location (non-critical — failures won't block onboarding)
-    await prisma.location.create({
-      data: { organizationId: org.id, name: "Main Floor" },
-    }).catch((e) => console.warn("[onboarding] location create skipped:", e.message));
+    // The first location is created by the onboarding wizard
+    // (POST /api/onboarding/complete) — a location-less org keeps the operator
+    // in the /onboarding flow until setup is finished.
 
     return NextResponse.json({ success: true });
   } catch (error) {

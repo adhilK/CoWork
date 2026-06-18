@@ -17,7 +17,11 @@ export default async function InvoicesPage() {
 
   const member = await prisma.member.findFirst({
     where: { userId: user.id, deletedAt: null },
-    select: { id: true, organizationId: true },
+    select: {
+      id: true,
+      organizationId: true,
+      organization: { select: { paymentProvider: true } },
+    },
   });
   if (!member) redirect("/login");
 
@@ -45,7 +49,10 @@ export default async function InvoicesPage() {
 
   return (
     <Suspense>
-      <MyInvoicesView invoices={serialized} />
+      <MyInvoicesView
+        invoices={serialized}
+        paymentProvider={member.organization.paymentProvider}
+      />
     </Suspense>
   );
 }

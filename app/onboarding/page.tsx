@@ -1,138 +1,70 @@
-"use client";
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { OnboardingWizard } from "@/components/onboarding/onboarding-wizard";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { Loader2, Building2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+export const metadata: Metadata = { title: "Set up your space — Maktaby" };
+export const dynamic = "force-dynamic";
 
-const schema = z.object({
-  orgName: z.string().min(2, "Space name must be at least 2 characters").max(100),
-  orgJurisdiction: z.enum(["UAE", "KSA"]),
-});
+/**
+ * Onboarding wizard entry point.
+ *
+ * Reached after registration (no-confirmation flow) OR after clicking the
+ * email-confirmation link (org not yet created). The wizard's completion
+ * endpoint handles both: it creates the org if missing, then provisions the
+ * first location, resources, plans, and payments.
+ *
+ * Bypass: a returning operator whose org already has at least one location
+ * has finished setup — send them straight to the dashboard.
+ */
+export default async function OnboardingPage() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
 
-type FormInput = z.infer<typeof schema>;
-
-function slugify(text: string) {
-  return text.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-}
-
-export default function OnboardingPage() {
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormInput>({
-    resolver: zodResolver(schema),
-    defaultValues: { orgJurisdiction: "UAE" },
+  const link = await prisma.userOrganization.findFirst({
+    where: { userId: user.id },
+    orderBy: { createdAt: "asc" },
+    select: {
+      role: true,
+      organization: {
+        select: {
+          id: true,
+          name: true,
+          jurisdiction: true,
+          phone: true,
+          whatsappNumber: true,
+          businessType: true,
+          _count: { select: { locations: { where: { deletedAt: null } } } },
+        },
+      },
+    },
   });
 
-  async function onSubmit(data: FormInput) {
-    setIsLoading(true);
-    try {
-      const res = await fetch("/api/auth/complete-onboarding", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orgName: data.orgName,
-          orgSlug: slugify(data.orgName),
-          orgJurisdiction: data.orgJurisdiction,
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error ?? "Failed to create organization");
-      }
-
-      toast.success("Your coworking space is ready!");
-      router.push("/dashboard");
-      router.refresh();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setIsLoading(false);
-    }
+  // Returning operator with a configured location → setup is already done.
+  if (link?.organization && link.organization._count.locations > 0) {
+    // Members never see the operator wizard.
+    if (link.role === "MEMBER") redirect("/portal");
+    redirect("/dashboard");
   }
 
+  const org = link?.organization ?? null;
+  const prefillName =
+    org?.name && org.name !== "My Space"
+      ? org.name
+      : ((user.user_metadata?.name as string | undefined)?.split(" ")[0]
+          ? `${(user.user_metadata?.name as string).split(" ")[0]}'s Space`
+          : "");
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0D1712] to-[#1a2e1f]">
-      <div className="w-full max-w-md mx-4">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-4">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #15803D, #22C55E)" }}>
-              <Building2 className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-white">CoWork<span className="text-green-400">Pro</span></span>
-          </div>
-          <h1 className="text-3xl font-bold text-white">Set up your space</h1>
-          <p className="text-gray-400 mt-2">Almost there — tell us about your coworking space</p>
-        </div>
-
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="orgName" className="text-gray-700 font-medium">
-                Space name
-              </Label>
-              <Input
-                id="orgName"
-                placeholder="e.g. LaunchHub Coworking"
-                className="h-11 border-gray-200"
-                {...register("orgName")}
-              />
-              {errors.orgName && (
-                <p className="text-sm text-red-500">{errors.orgName.message}</p>
-              )}
-              {watch("orgName") && (
-                <p className="text-xs text-gray-400">
-                  URL slug: <strong>{slugify(watch("orgName") ?? "")}</strong>
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-gray-700 font-medium">Jurisdiction</Label>
-              <Select
-                defaultValue="UAE"
-                onValueChange={(v) => setValue("orgJurisdiction", (v as "UAE" | "KSA") ?? "UAE")}
-              >
-                <SelectTrigger className="h-11 border-gray-200">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="UAE">🇦🇪 United Arab Emirates</SelectItem>
-                  <SelectItem value="KSA">🇸🇦 Saudi Arabia</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-400">
-                Sets your VAT rate ({watch("orgJurisdiction") === "KSA" ? "15%" : "5%"}) and currency
-                ({watch("orgJurisdiction") === "KSA" ? "SAR" : "AED"}).
-              </p>
-            </div>
-
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full h-11 font-semibold text-white"
-              style={{ background: "linear-gradient(135deg, #15803D, #22C55E)" }}
-            >
-              {isLoading ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating your space…</>
-              ) : (
-                "Launch my space →"
-              )}
-            </Button>
-          </form>
-        </div>
-      </div>
-    </div>
+    <OnboardingWizard
+      initial={{
+        spaceName: org?.name ?? prefillName,
+        jurisdiction: (org?.jurisdiction as "UAE" | "KSA") ?? "UAE",
+        businessType: org?.businessType ?? "",
+        phone: org?.phone ?? "",
+        whatsappNumber: org?.whatsappNumber ?? "",
+      }}
+    />
   );
 }

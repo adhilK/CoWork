@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Loader2, TrendingUp, Users, Trophy, GripVertical } from "lucide-react";
+import { Plus, Loader2, TrendingUp, Users, Trophy, GripVertical, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { cn, formatCurrency } from "@/lib/utils";
 import { BsTabs } from "@/components/business-setup/bs-tabs";
+import { EmptyState } from "@/components/shared/empty-state";
 import {
   PIPELINE_STAGES, LEAD_STAGE_LABELS, LEAD_STAGE_COLORS, LEAD_PRIORITY_META, LEAD_SOURCES,
   type LeadStageValue,
@@ -147,6 +148,19 @@ export function PipelineBoard({ leads, staff, catalog, currency, currentUserId }
       </div>
 
       {/* Board */}
+      {localLeads.length === 0 ? (
+        <EmptyState
+          icon={Briefcase}
+          title="Start your company-formation pipeline"
+          description="Business setup is the highest-LTV service you can offer. Track every lead from first enquiry to license issued, with proposals and stage-by-stage progress."
+          steps={[
+            "Add a lead with their license type and estimated fee.",
+            "Drag leads across stages as they progress.",
+            "Send a proposal and convert won deals into applications.",
+          ]}
+          primary={{ label: "Add your first lead", onClick: () => { setForm({ ...emptyForm, assignedTo: currentUserId }); setOpen(true); } }}
+        />
+      ) : (
       <div className="overflow-x-auto pb-3 -mx-1 px-1">
         <div className="flex gap-3" style={{ minWidth: "max-content" }}>
           {BOARD_STAGES.map((stage) => {
@@ -208,6 +222,7 @@ export function PipelineBoard({ leads, staff, catalog, currency, currentUserId }
           })}
         </div>
       </div>
+      )}
 
       {/* New lead dialog */}
       <Dialog open={open} onOpenChange={setOpen}>

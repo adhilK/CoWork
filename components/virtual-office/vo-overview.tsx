@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Building2, Users, Mail, AlertTriangle, TrendingUp, Clock } from "lucide-react";
 import { formatCurrency, formatDate, formatRelative, humanizeEnum } from "@/lib/utils";
+import { EmptyState } from "@/components/shared/empty-state";
 
 type Address = {
   id: string;
@@ -69,6 +70,32 @@ export function VOOverview({ addresses, subscriptions, recentMail, currency, sta
   const renewingSoon = subscriptions.filter(
     (s) => s.renewalDate && new Date(s.renewalDate) <= new Date(Date.now() + 30 * 86400000)
   );
+
+  // First-run: nothing set up yet → guide the operator to create their first address.
+  const isFirstRun =
+    stats.totalAddresses === 0 && subscriptions.length === 0 && recentMail.length === 0;
+
+  if (isFirstRun) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="page-title">Virtual Office</h1>
+          <p className="page-subtitle">Manage registered addresses, subscriptions, and mail</p>
+        </div>
+        <EmptyState
+          icon={Building2}
+          title="Sell registered business addresses"
+          description="Virtual office is one of the highest-margin services for GCC operators. Offer a prestigious registered address, then manage client subscriptions and incoming mail from here."
+          steps={[
+            "Add a registered address (mainland, freezone, or premium district).",
+            "Subscribe clients and set their monthly renewal.",
+            "Log mail and packages — clients get notified to collect.",
+          ]}
+          primary={{ label: "Add your first address", href: "/dashboard/virtual-office/addresses" }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

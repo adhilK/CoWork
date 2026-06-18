@@ -34,6 +34,10 @@ export async function GET() {
     jobTitle: member.jobTitle,
     bio: member.bio,
     phone: member.phone,
+    whatsAppNumber: member.whatsAppNumber,
+    language: member.language,
+    notifyByEmail: member.notifyByEmail,
+    notifyByWhatsApp: member.notifyByWhatsApp,
     user: {
       id: member.user.id,
       name: member.user.name,
@@ -51,6 +55,10 @@ const updateProfileSchema = z.object({
   bio: z.string().max(500).nullable().optional(),
   company: z.string().max(100).nullable().optional(),
   jobTitle: z.string().max(100).nullable().optional(),
+  whatsAppNumber: z.string().max(20).nullable().optional(),
+  language: z.enum(["en", "ar"]).optional(),
+  notifyByEmail: z.boolean().optional(),
+  notifyByWhatsApp: z.boolean().optional(),
 });
 
 export async function PATCH(req: NextRequest) {
@@ -69,7 +77,8 @@ export async function PATCH(req: NextRequest) {
     return apiError(parsed.error.issues[0]?.message ?? "Invalid input");
   }
 
-  const { name, phone, bio, company, jobTitle } = parsed.data;
+  const { name, phone, bio, company, jobTitle, whatsAppNumber, language, notifyByEmail, notifyByWhatsApp } =
+    parsed.data;
 
   // Update User and Member in parallel
   const [updatedUser, updatedMember] = await Promise.all([
@@ -86,6 +95,10 @@ export async function PATCH(req: NextRequest) {
         ...(bio !== undefined && { bio: bio ?? null }),
         ...(company !== undefined && { company: company ?? null }),
         ...(jobTitle !== undefined && { jobTitle: jobTitle ?? null }),
+        ...(whatsAppNumber !== undefined && { whatsAppNumber: whatsAppNumber ?? null }),
+        ...(language !== undefined && { language }),
+        ...(notifyByEmail !== undefined && { notifyByEmail }),
+        ...(notifyByWhatsApp !== undefined && { notifyByWhatsApp }),
       },
     }),
   ]);
@@ -96,6 +109,10 @@ export async function PATCH(req: NextRequest) {
     bio: updatedMember.bio,
     company: updatedMember.company,
     jobTitle: updatedMember.jobTitle,
+    whatsAppNumber: updatedMember.whatsAppNumber,
+    language: updatedMember.language,
+    notifyByEmail: updatedMember.notifyByEmail,
+    notifyByWhatsApp: updatedMember.notifyByWhatsApp,
     user: {
       id: updatedUser!.id,
       name: updatedUser!.name,

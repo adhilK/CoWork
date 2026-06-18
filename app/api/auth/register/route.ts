@@ -3,6 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { addDays } from "date-fns";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
+function getClientIp(req: Request): string | null {
+  const fwd = req.headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0]?.trim() ?? null;
+  return req.headers.get("x-real-ip") ?? null;
+}
+
 export async function POST(request: Request) {
   // Throttle org creation per IP to curb automated signup abuse.
   const limit = rateLimit(request, { key: "register", limit: 10, windowMs: 60 * 60_000 });
@@ -15,9 +21,20 @@ export async function POST(request: Request) {
     // GCC jurisdiction — default UAE (Phase 1 primary market)
     const jurisdiction = orgJurisdiction === "KSA" ? "KSA" : "UAE";
 
-    // Unique slug
-    const existing = await prisma.organization.findUnique({ where: { slug: orgSlug } });
-    const finalSlug = existing ? `${orgSlug}-${Date.now()}` : orgSlug;
+    // Unique slug — try the base, then random 4-char suffixes, then timestamp fallback.
+    const baseSlug = orgSlug || "space";
+    let finalSlug = baseSlug;
+    const existingBase = await prisma.organization.findUnique({ where: { slug: baseSlug } });
+    if (existingBase) {
+      let found = false;
+      for (let i = 0; i < 5; i++) {
+        const suffix = Math.random().toString(36).slice(2, 6);
+        const candidate = `${baseSlug}-${suffix}`;
+        const taken = await prisma.organization.findUnique({ where: { slug: candidate } });
+        if (!taken) { finalSlug = candidate; found = true; break; }
+      }
+      if (!found) finalSlug = `${baseSlug}-${Date.now()}`;
+    }
 
     // Sequential operations — no $transaction() (pgbouncer incompatible)
     await prisma.user.upsert({
@@ -65,9 +82,23 @@ export async function POST(request: Request) {
       data: { userId, organizationId: org.id, role: "OWNER" },
     });
 
-    await prisma.location.create({
-      data: { organizationId: org.id, name: "Main Floor" },
-    }).catch((e) => console.warn("[register] location create skipped:", e.message));
+    // PDPL consent: log data-processing consent at registration.
+    // The user implicitly consents to data processing by creating an account.
+    await prisma.consentLog.create({
+      data: {
+        userId,
+        organizationId: org.id,
+        consentType: "DATA_PROCESSING",
+        consentGiven: true,
+        ipAddress: getClientIp(request),
+        userAgent: request.headers.get("user-agent") ?? null,
+        version: "1.0",
+      },
+    }).catch((e: unknown) => console.warn("[register] consentLog create skipped:", (e as Error).message));
+
+    // NOTE: the first location is created by the onboarding wizard
+    // (POST /api/onboarding/complete), not here — a location-less org is the
+    // signal that setup is still pending, which routes the user into /onboarding.
 
     return NextResponse.json({ success: true });
   } catch (error) {

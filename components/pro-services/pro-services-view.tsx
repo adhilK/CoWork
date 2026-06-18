@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
+import { EmptyState } from "@/components/shared/empty-state";
 import {
   SERVICE_TYPE_GROUPS, SERVICE_TYPE_LABELS, serviceTypeLabel, PRO_STAGES, OPEN_STAGES,
   PRO_STAGE_LABELS, PRO_STAGE_META, URGENCIES, URGENCY_META, GOVERNING_BODIES, slaStatus,
@@ -164,12 +165,25 @@ export function ProServicesView({ requests, members, staff, staffMap, currency, 
 
       {/* Queue */}
       {filtered.length === 0 ? (
-        <div className="dashboard-card p-12 text-center">
-          <FileCheck2 className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-          <p className="text-sm font-medium text-gray-500">No requests</p>
-          <p className="text-xs text-gray-400 mt-1 mb-4">Create a government-liaison request for a member</p>
-          <Button onClick={() => setOpen(true)} variant="outline">New request</Button>
-        </div>
+        requests.length === 0 ? (
+          <EmptyState
+            icon={FileCheck2}
+            title="Track government-liaison work"
+            description="PRO Services tracks visa applications, attestations, Qiwa/Muqeem updates, and other government processes — with SLA deadlines and client-portal visibility."
+            steps={[
+              "Create a request for a member and pick the service type.",
+              "Assign an agent and set the SLA / due date.",
+              "Move it through stages — the member can follow progress in their portal.",
+            ]}
+            primary={{ label: "Create a request", onClick: () => setOpen(true) }}
+          />
+        ) : (
+          <div className="dashboard-card p-12 text-center">
+            <FileCheck2 className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+            <p className="text-sm font-medium text-gray-500">No requests match these filters</p>
+            <p className="text-xs text-gray-400 mt-1">Try clearing the search or stage filter.</p>
+          </div>
+        )
       ) : (
         <div className="dashboard-card overflow-hidden">
           <div className="overflow-x-auto">

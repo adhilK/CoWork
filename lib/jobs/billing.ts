@@ -14,6 +14,7 @@ import { computeInvoiceTotals } from "@/lib/jurisdiction";
 import { sendInvoiceEmail } from "@/lib/email";
 import { dispatchWhatsAppText, enqueue } from "@/lib/jobs";
 import { stampInvoiceForZatca } from "@/lib/zatca";
+import { createPaymentLink } from "@/lib/payments";
 import { formatCurrency } from "@/lib/utils";
 import { startOfMonth, endOfMonth, addDays } from "date-fns";
 
@@ -31,7 +32,7 @@ export async function runMonthlyBilling(): Promise<BillingResult> {
     include: {
       user: { select: { email: true, name: true } },
       membershipPlan: true,
-      organization: { select: { name: true, currency: true, jurisdiction: true } },
+      organization: { select: { name: true, currency: true, jurisdiction: true, paymentProvider: true } },
     },
   });
 
@@ -94,8 +95,29 @@ export async function runMonthlyBilling(): Promise<BillingResult> {
       });
     }
 
+    // Generate a payment link so the WhatsApp message includes a direct pay URL.
+    let paymentUrl: string | null = null;
+    try {
+      const link = await createPaymentLink({
+        invoiceId: invoice.id,
+        invoiceNumber,
+        totalAmount: totals.totalAmount,
+        currency,
+        organizationId: m.organizationId,
+        memberId: m.id,
+        customerEmail: m.user.email ?? "",
+        customerName: m.user.name,
+        paymentProvider: m.organization.paymentProvider,
+      });
+      paymentUrl = link.checkoutUrl;
+    } catch (err) {
+      // Payment link failure must not block invoice delivery.
+      console.error("[billing] createPaymentLink failed for invoice", invoice.id, err);
+    }
+
     // WhatsApp "invoice issued" — queued via Inngest when available.
     if (m.whatsAppNumber) {
+      const payLine = paymentUrl ? `\n\nPay now: ${paymentUrl}` : "";
       await dispatchWhatsAppText({
         organizationId: m.organizationId,
         to: m.whatsAppNumber,
@@ -103,7 +125,7 @@ export async function runMonthlyBilling(): Promise<BillingResult> {
         messageType: "INVOICE_ISSUED",
         relatedEntityType: "invoice",
         relatedEntityId: invoice.id,
-        body: `Hi ${m.user.name ?? "there"}, your invoice ${invoiceNumber} for ${formatCurrency(totals.totalAmount, currency)} is ready. Due ${dueDate.toLocaleDateString("en-GB")}.`,
+        body: `Hi ${m.user.name ?? "there"}, your invoice ${invoiceNumber} for ${formatCurrency(totals.totalAmount, currency)} is ready. Due ${dueDate.toLocaleDateString("en-GB")}.${payLine}`,
       });
     }
   }

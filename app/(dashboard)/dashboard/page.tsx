@@ -120,18 +120,24 @@ async function getDashboardData(orgId: string) {
 }
 
 async function getSetupSteps(orgId: string): Promise<{ steps: SetupStep[]; essentialsDone: boolean }> {
-  const [resourceCount, planCount, memberCount, bookingCount, waConfig, staffCount] = await Promise.all([
+  const [locationCount, resourceCount, planCount, memberCount, bookingCount, waConfig, staffCount, org] = await Promise.all([
+    prisma.location.count({ where: { organizationId: orgId, deletedAt: null } }),
     prisma.resource.count({ where: { organizationId: orgId, deletedAt: null } }),
     prisma.membershipPlan.count({ where: { organizationId: orgId, isActive: true } }),
     prisma.member.count({ where: { organizationId: orgId, deletedAt: null } }),
     prisma.booking.count({ where: { organizationId: orgId, deletedAt: null } }),
     prisma.whatsAppConfig.findUnique({ where: { organizationId: orgId }, select: { isActive: true } }),
     prisma.userOrganization.count({ where: { organizationId: orgId, role: { not: "MEMBER" } } }),
+    prisma.organization.findUnique({ where: { id: orgId }, select: { tapSecretKey: true, moyasarApiKey: true, bankTransferDetails: true } }),
   ]);
 
+  const paymentsDone = !!(org?.tapSecretKey || org?.moyasarApiKey || org?.bankTransferDetails);
+
   const steps: SetupStep[] = [
+    { title: "Add your first location", desc: "Set where members check in and book.", href: "/dashboard/locations", cta: "Add location", done: locationCount > 0 },
     { title: "Add desks & meeting rooms", desc: "Create the spaces members can book.", href: "/dashboard/resources", cta: "Add resources", done: resourceCount > 0 },
     { title: "Create a membership plan", desc: "Set the pricing your members are billed on.", href: "/dashboard/plans", cta: "Create plan", done: planCount > 0 },
+    { title: "Set up payments", desc: "Connect Tap, Moyasar, or bank transfer to get paid.", href: "/dashboard/settings", cta: "Set up", done: paymentsDone },
     { title: "Add your members", desc: "Invite the people who use your space.", href: "/dashboard/members", cta: "Add members", done: memberCount > 0 },
     { title: "Take your first booking", desc: "Reserve a space to see the calendar in action.", href: "/dashboard/bookings", cta: "Open calendar", done: bookingCount > 0 },
     { title: "Connect WhatsApp", desc: "Message members and automate reminders.", href: "/dashboard/whatsapp/settings", cta: "Connect", done: !!waConfig?.isActive, optional: true },

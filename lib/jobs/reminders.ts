@@ -20,6 +20,8 @@ import { dispatchWhatsAppText } from "@/lib/jobs";
 import { sendReminderEmail } from "@/lib/email";
 import { decryptField } from "@/lib/encryption";
 import { documentTypeLabel } from "@/lib/document-meta";
+import { createPaymentLink } from "@/lib/payments";
+import { formatCurrency } from "@/lib/utils";
 
 const REMINDER_DAYS = Number(process.env.REMINDER_DAYS ?? 30);
 const DEDUPE_DAYS = Number(process.env.REMINDER_DEDUPE_DAYS ?? 14);
@@ -30,6 +32,7 @@ export type ReminderResult = {
   virtualOfficeRenewal: number;
   licenseExpiry: number;
   overdueRequests: number;
+  overdueInvoices: number;
   total: number;
 };
 
@@ -106,7 +109,7 @@ export async function runDailyReminders(): Promise<ReminderResult> {
   const horizon = new Date(now.getTime() + REMINDER_DAYS * 24 * 60 * 60 * 1000);
   const result: ReminderResult = {
     visaExpiry: 0, documentExpiry: 0, virtualOfficeRenewal: 0,
-    licenseExpiry: 0, overdueRequests: 0, total: 0,
+    licenseExpiry: 0, overdueRequests: 0, overdueInvoices: 0, total: 0,
   };
 
   // ── 1. Visa / residency expiry ────────────────────────────────────────────
@@ -237,8 +240,75 @@ export async function runDailyReminders(): Promise<ReminderResult> {
     if (sent) result.overdueRequests++;
   }
 
+  // ── 6. Overdue invoice reminders ─────────────────────────────────────────
+  // First transition any PENDING invoices past their due date → OVERDUE.
+  await prisma.invoice.updateMany({
+    where: { status: "PENDING", dueDate: { lt: now }, deletedAt: null },
+    data: { status: "OVERDUE" },
+  });
+
+  // Find OVERDUE invoices that still need reminders (max 3 per invoice).
+  const overdueInvoices = await prisma.invoice.findMany({
+    where: { status: "OVERDUE", deletedAt: null, remindersSent: { lt: 3 } },
+    include: {
+      member: {
+        include: {
+          user: { select: { email: true, name: true } },
+          organization: { select: { name: true, paymentProvider: true } },
+        },
+      },
+    },
+  });
+
+  for (const inv of overdueInvoices) {
+    const m = inv.member;
+    if (!m.whatsAppNumber) continue;
+
+    // Generate a fresh payment link for the reminder.
+    let paymentUrl: string | null = null;
+    try {
+      const link = await createPaymentLink({
+        invoiceId: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        totalAmount: Number(inv.totalAmount),
+        currency: inv.currency,
+        organizationId: inv.organizationId,
+        memberId: m.id,
+        customerEmail: m.user.email ?? "",
+        customerName: m.user.name,
+        paymentProvider: m.organization.paymentProvider,
+      });
+      paymentUrl = link.checkoutUrl;
+    } catch (err) {
+      console.error("[reminders] createPaymentLink failed for overdue invoice", inv.id, err);
+    }
+
+    const ref = inv.invoiceNumber ?? `INV-${inv.id.slice(-8).toUpperCase()}`;
+    const amount = formatCurrency(Number(inv.totalAmount), inv.currency);
+    const due = inv.dueDate.toLocaleDateString("en-GB");
+    const payLine = paymentUrl ? `\n\nPay now: ${paymentUrl}` : "";
+    const attempt = inv.remindersSent + 1;
+
+    await dispatchWhatsAppText({
+      organizationId: inv.organizationId,
+      to: m.whatsAppNumber,
+      memberId: m.id,
+      messageType: "PAYMENT_REMINDER",
+      relatedEntityType: "invoice",
+      relatedEntityId: inv.id,
+      body: `Reminder ${attempt}/3: invoice ${ref} for ${amount} was due ${due} and remains unpaid. Please settle at your earliest convenience.${payLine}`,
+    });
+
+    await prisma.invoice.update({
+      where: { id: inv.id },
+      data: { remindersSent: { increment: 1 }, lastReminderAt: now },
+    });
+
+    result.overdueInvoices++;
+  }
+
   result.total =
     result.visaExpiry + result.documentExpiry + result.virtualOfficeRenewal +
-    result.licenseExpiry + result.overdueRequests;
+    result.licenseExpiry + result.overdueRequests + result.overdueInvoices;
   return result;
 }

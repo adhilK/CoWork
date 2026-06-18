@@ -1,21 +1,24 @@
 /**
- * Lightweight server error capture.
+ * Server error capture seam.
  *
- * Emits a single structured JSON line per error so it is greppable in Vercel
- * logs immediately, with no external dependency. It is also the single seam to
- * forward to a real provider (Sentry, Axiom, etc.): when you add one, call it
- * from `captureServerError` — every server error already routes through here.
+ * Emits a structured JSON line to stdout (always — greppable in Vercel logs)
+ * and, in production, forwards to Sentry for alerting + grouping.
  *
- * Why not @sentry/nextjs now: it needs a DSN/account and changes the build
- * (instrumentation + source-map upload). Wiring the provider is a one-line
- * follow-up once the DSN is available; this seam means no call sites change.
+ * Serverless note: Sentry.flush() is called as fire-and-forget after every
+ * captureException. This gives the SDK a head-start on sending before the
+ * function exits. It is NOT guaranteed delivery — for critical paths (e.g.
+ * the sentry-test route) call `await Sentry.flush(2000)` explicitly after
+ * this function returns.
  */
+
+import * as Sentry from "@sentry/nextjs";
 
 type ErrorContext = Record<string, string | number | boolean | null | undefined>;
 
 export function captureServerError(error: unknown, context?: ErrorContext): void {
   const err = error instanceof Error ? error : new Error(String(error));
-  // Structured, single-line — easy to filter in Vercel/CloudWatch.
+
+  // Structured, single-line — easy to filter in Vercel logs.
   console.error(
     JSON.stringify({
       level: "error",
@@ -27,6 +30,13 @@ export function captureServerError(error: unknown, context?: ErrorContext): void
     })
   );
 
-  // Provider forwarding seam (add when a DSN is configured):
-  //   if (process.env.SENTRY_DSN) Sentry.captureException(err, { extra: context });
+  // Forward to Sentry in production only. No DSN guard here — if Sentry.init
+  // wasn't called (no DSN configured), captureException is already a no-op.
+  if (process.env.NODE_ENV === "production") {
+    Sentry.captureException(err, { extra: context });
+    // Fire-and-forget flush: gives the SDK time to send before the serverless
+    // function exits. Does not block the caller. For guaranteed delivery, the
+    // caller should await Sentry.flush(2000) after calling this function.
+    Sentry.flush(2000).catch(() => {});
+  }
 }

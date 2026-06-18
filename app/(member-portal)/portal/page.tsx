@@ -21,7 +21,11 @@ export default async function PortalHomePage({
 
   const member = await prisma.member.findFirst({
     where: { userId: user.id, deletedAt: null },
-    include: { user: true, organization: true, membershipPlan: true },
+    include: {
+      user: true,
+      organization: true,
+      membershipPlan: { select: { name: true, includedCredits: true } },
+    },
   });
   if (!member) redirect("/login");
 
@@ -81,6 +85,9 @@ export default async function PortalHomePage({
     <MemberDashboard
       memberName={member.user.name}
       credits={member.credits}
+      creditsIncluded={member.membershipPlan?.includedCredits ?? 0}
+      planName={member.membershipPlan?.name ?? null}
+      memberStatus={member.status}
       todayBookings={todayBookings as any}
       upcomingBookings={upcomingBookings as any}
       bookingsThisMonth={bookingsThisMonth}

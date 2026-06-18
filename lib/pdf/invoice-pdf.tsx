@@ -175,6 +175,26 @@ const s = StyleSheet.create({
   zatcaTitle: { fontSize: 9, fontFamily: "Helvetica-Bold", color: DARK, marginBottom: 3 },
   zatcaLine: { fontSize: 7.5, color: GRAY, marginBottom: 1.5 },
   zatcaMono: { fontSize: 7, color: GRAY, fontFamily: "Helvetica" },
+  zatcaClearedBadge: {
+    backgroundColor: "#DCFCE7",
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginTop: 4,
+    alignSelf: "flex-start",
+  },
+  zatcaClearedText: { fontSize: 7, fontFamily: "Helvetica-Bold", color: GREEN },
+  zatcaPendingBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderStyle: "dashed",
+    borderRadius: 4,
+    padding: 10,
+    marginBottom: 16,
+  },
+  zatcaPendingText: { fontSize: 7.5, color: GRAY, fontFamily: "Helvetica" },
 
   // ── Footer ─────────────────────────────────────────────────────────────────
   footer: {
@@ -407,7 +427,7 @@ export function InvoicePdf({
         )}
 
         {/* ── ZATCA QR (KSA e-invoice) ── */}
-        {invoice.zatcaQrDataUrl && (
+        {invoice.zatcaQrDataUrl ? (
           <View style={s.zatcaBox}>
             <Image style={s.zatcaQr} src={invoice.zatcaQrDataUrl} />
             <View style={s.zatcaInfo}>
@@ -417,9 +437,20 @@ export function InvoicePdf({
               </Text>
               {invoice.zatcaUuid && <Text style={s.zatcaMono}>UUID: {invoice.zatcaUuid}</Text>}
               {invoice.zatcaStatus && <Text style={s.zatcaMono}>Status: {invoice.zatcaStatus}</Text>}
+              {invoice.zatcaStatus === "CLEARED" && (
+                <View style={s.zatcaClearedBadge}>
+                  <Text style={s.zatcaClearedText}>ZATCA CLEARED</Text>
+                </View>
+              )}
             </View>
           </View>
-        )}
+        ) : org.jurisdiction === "KSA" ? (
+          <View style={s.zatcaPendingBox}>
+            <Text style={s.zatcaPendingText}>
+              ZATCA e-invoice — QR pending submission to ZATCA
+            </Text>
+          </View>
+        ) : null}
 
         {/* ── Footer ── */}
         <View style={s.footer} fixed>

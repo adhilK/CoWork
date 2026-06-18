@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Calendar,
   Users,
   Search,
-  Filter,
   Clock,
   MapPin,
   Loader2,
@@ -15,11 +14,15 @@ import {
   ChevronRight,
   Check,
   ImageIcon,
+  Zap,
+  ShieldCheck,
+  Sparkles,
+  Wallet,
+  CalendarCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -27,7 +30,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { formatCurrency, humanizeEnum } from "@/lib/utils";
+import { formatCurrency, formatDate, formatTime, humanizeEnum } from "@/lib/utils";
 import { ResourceIcon, RESOURCE_ICON } from "@/components/shared/resource-icon";
 import type { ResourceType } from "@prisma/client";
 
@@ -40,6 +43,7 @@ type Resource = {
   hourlyRate: number | null;
   halfDayRate: number | null;
   fullDayRate: number | null;
+  monthlyRate: number | null;
   amenities: string[];
   images: string[];
   requiresApproval: boolean;
@@ -53,6 +57,16 @@ type BookingFormState = {
   endTime: string;
   title: string;
   attendees: number;
+};
+
+type Confirmation = {
+  resourceName: string;
+  resourceType: string;
+  date: Date;
+  start: Date;
+  end: Date;
+  status: string;
+  checkinUrl: string | null;
 };
 
 const RESOURCE_TYPE_ORDER = [
@@ -70,11 +84,46 @@ function todayString() {
   return new Date().toISOString().split("T")[0]!;
 }
 
+/**
+ * Client-side mirror of lib/booking-pricing.ts so the member sees the exact
+ * price/credit outcome before confirming. The server remains the source of
+ * truth — this only previews it.
+ */
+function previewCharge(
+  resource: Resource,
+  start: Date,
+  end: Date,
+  memberCredits: number
+) {
+  const durationHours = (end.getTime() - start.getTime()) / 3600000;
+  let amount = 0;
+  if (resource.hourlyRate) {
+    amount = durationHours * resource.hourlyRate;
+  } else if (resource.fullDayRate && durationHours >= 7) {
+    amount = resource.fullDayRate;
+  } else if (resource.halfDayRate && durationHours >= 3.5) {
+    amount = resource.halfDayRate;
+  }
+  amount = Math.round(amount * 100) / 100;
+  const creditsNeeded = Math.ceil(durationHours);
+  const canUseCredits = amount > 0 && creditsNeeded > 0 && memberCredits >= creditsNeeded;
+  return { durationHours, amount, creditsNeeded, canUseCredits };
+}
+
+function formatDuration(hours: number) {
+  if (!isFinite(hours) || hours <= 0) return "—";
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  return [h > 0 ? `${h}h` : null, m > 0 ? `${m}m` : null].filter(Boolean).join(" ") || "0m";
+}
+
 export function ResourceBrowser({
   currency,
+  credits,
   initialResources,
 }: {
   currency: string;
+  credits: number;
   initialResources?: Resource[];
 }) {
   const router = useRouter();
@@ -95,6 +144,8 @@ export function ResourceBrowser({
     attendees: 1,
   });
   const [submitting, setSubmitting] = useState(false);
+  // Post-booking confirmation screen (with QR check-in).
+  const [confirmed, setConfirmed] = useState<Confirmation | null>(null);
 
   useEffect(() => {
     // Resources are supplied by the server component; only fall back to the
@@ -110,6 +161,7 @@ export function ResourceBrowser({
             hourlyRate: r.hourlyRate ? Number(r.hourlyRate) : null,
             halfDayRate: r.halfDayRate ? Number(r.halfDayRate) : null,
             fullDayRate: r.fullDayRate ? Number(r.fullDayRate) : null,
+            monthlyRate: r.monthlyRate ? Number(r.monthlyRate) : null,
           }))
         );
       })
@@ -119,10 +171,7 @@ export function ResourceBrowser({
 
   const filtered = resources
     .filter((r) => r.isActive)
-    .filter(
-      (r) =>
-        typeFilter === "ALL" || r.type === typeFilter
-    )
+    .filter((r) => typeFilter === "ALL" || r.type === typeFilter)
     .filter(
       (r) =>
         !search ||
@@ -149,6 +198,15 @@ export function ResourceBrowser({
     setGalleryIndex((i) => (i + dir + total) % total);
   }
 
+  // Live preview for the open booking dialog.
+  const preview = (() => {
+    if (!selectedResource || !form.date || !form.startTime || !form.endTime) return null;
+    const start = new Date(`${form.date}T${form.startTime}:00`);
+    const end = new Date(`${form.date}T${form.endTime}:00`);
+    if (!(end > start)) return null;
+    return previewCharge(selectedResource, start, end, credits);
+  })();
+
   async function handleSubmit() {
     if (!selectedResource) return;
     const { date, startTime, endTime, title, attendees } = form;
@@ -162,7 +220,7 @@ export function ResourceBrowser({
       toast.error("End time must be after start time");
       return;
     }
-    if ((end.getTime() - start.getTime()) < 30 * 60 * 1000) {
+    if (end.getTime() - start.getTime() < 30 * 60 * 1000) {
       toast.error("Minimum booking duration is 30 minutes");
       return;
     }
@@ -189,13 +247,18 @@ export function ResourceBrowser({
         toast.error(data.error ?? "Failed to create booking");
         return;
       }
-      toast.success(
-        selectedResource.requiresApproval
-          ? "Booking request submitted — awaiting approval"
-          : "Booking confirmed!"
-      );
+      const booking = data.data ?? data;
+      // Swap the form dialog for the confirmation screen (with QR).
       setSelectedResource(null);
-      router.push("/portal/my-bookings");
+      setConfirmed({
+        resourceName: selectedResource.name,
+        resourceType: selectedResource.type,
+        date: start,
+        start,
+        end,
+        status: booking.status ?? (selectedResource.requiresApproval ? "PENDING" : "CONFIRMED"),
+        checkinUrl: booking.checkinUrl ?? null,
+      });
     } catch {
       toast.error("Something went wrong");
     } finally {
@@ -283,113 +346,145 @@ export function ResourceBrowser({
                       <ImageIcon className="w-3 h-3" /> {resource.images.length}
                     </span>
                   )}
+                  {/* Availability indicator */}
+                  <span
+                    className={`absolute top-2 left-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold backdrop-blur-sm ${
+                      resource.requiresApproval
+                        ? "bg-amber-500/90 text-white"
+                        : "bg-emerald-500/90 text-white"
+                    }`}
+                  >
+                    {resource.requiresApproval ? (
+                      <><ShieldCheck className="w-3 h-3" /> Approval</>
+                    ) : (
+                      <><Zap className="w-3 h-3" /> Instant</>
+                    )}
+                  </span>
                 </div>
               ) : (
                 <div
-                  className="h-44 w-full flex flex-col items-center justify-center gap-1.5 flex-shrink-0"
+                  className="relative h-44 w-full flex flex-col items-center justify-center gap-1.5 flex-shrink-0"
                   style={{ background: (RESOURCE_ICON[resource.type as ResourceType] ?? RESOURCE_ICON.OTHER).bg }}
                 >
                   <ResourceIcon type={resource.type as ResourceType} size="lg" className="!bg-white/70" />
                   <span className="text-[10px] font-medium" style={{ color: (RESOURCE_ICON[resource.type as ResourceType] ?? RESOURCE_ICON.OTHER).tint }}>
                     No photos yet
                   </span>
+                  <span
+                    className={`absolute top-2 left-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                      resource.requiresApproval
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-emerald-100 text-emerald-700"
+                    }`}
+                  >
+                    {resource.requiresApproval ? (
+                      <><ShieldCheck className="w-3 h-3" /> Approval</>
+                    ) : (
+                      <><Zap className="w-3 h-3" /> Instant</>
+                    )}
+                  </span>
                 </div>
               )}
 
               <div className="p-5 flex flex-col flex-1">
-              <div className="flex items-start gap-3 mb-3">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-gray-900 text-sm leading-tight">
-                    {resource.name}
-                  </h3>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {humanizeEnum(resource.type)}
-                  </p>
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 text-sm leading-tight">
+                      {resource.name}
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {humanizeEnum(resource.type)}
+                    </p>
+                  </div>
                 </div>
-                {resource.requiresApproval && (
-                  <Badge
-                    variant="secondary"
-                    className="text-[10px] bg-amber-50 text-amber-600 border-amber-100 flex-shrink-0"
-                  >
-                    Approval
-                  </Badge>
-                )}
-              </div>
 
-              {resource.description && (
-                <p className="text-xs text-gray-400 mb-3 line-clamp-2 leading-relaxed">
-                  {resource.description}
-                </p>
-              )}
+                {resource.description && (
+                  <p className="text-xs text-gray-400 mb-3 line-clamp-2 leading-relaxed">
+                    {resource.description}
+                  </p>
+                )}
 
-              <div className="flex items-center gap-3 mb-4 text-xs text-gray-400">
-                {resource.location && (
-                  <span className="flex items-center gap-1">
-                    <MapPin className="w-3 h-3" />
-                    {resource.location.name}
-                  </span>
-                )}
-                <span className="flex items-center gap-1">
-                  <Users className="w-3 h-3" />
-                  {resource.capacity}
-                </span>
-              </div>
-
-              {/* Rates */}
-              <div className="flex gap-2 flex-wrap mb-4">
-                {resource.hourlyRate != null && (
-                  <span className="text-xs bg-gray-50 text-gray-600 px-2 py-1 rounded-lg border border-gray-100">
-                    {formatCurrency(resource.hourlyRate, currency)}/hr
-                  </span>
-                )}
-                {resource.halfDayRate != null && (
-                  <span className="text-xs bg-gray-50 text-gray-600 px-2 py-1 rounded-lg border border-gray-100">
-                    {formatCurrency(resource.halfDayRate, currency)}/half day
-                  </span>
-                )}
-                {resource.fullDayRate != null && (
-                  <span className="text-xs bg-gray-50 text-gray-600 px-2 py-1 rounded-lg border border-gray-100">
-                    {formatCurrency(resource.fullDayRate, currency)}/day
-                  </span>
-                )}
-              </div>
-
-              {/* Amenities */}
-              {resource.amenities.length > 0 && (
-                <div className="flex flex-wrap gap-1 mb-4">
-                  {resource.amenities.slice(0, 3).map((a) => (
-                    <span
-                      key={a}
-                      className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-md"
-                    >
-                      {a}
-                    </span>
-                  ))}
-                  {resource.amenities.length > 3 && (
-                    <span className="text-[10px] text-gray-400">
-                      +{resource.amenities.length - 3} more
+                <div className="flex items-center gap-3 mb-4 text-xs text-gray-400">
+                  {resource.location && (
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3 h-3" />
+                      {resource.location.name}
                     </span>
                   )}
+                  <span className="flex items-center gap-1">
+                    <Users className="w-3 h-3" />
+                    {resource.capacity}
+                  </span>
                 </div>
-              )}
 
-              <div className="mt-auto flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1 text-sm"
-                  onClick={(e) => { e.stopPropagation(); openDetail(resource); }}
-                >
-                  Details
-                </Button>
-                <Button
-                  className="flex-1 text-white text-sm"
-                  style={{ background: "linear-gradient(135deg, #16A34A, #15803D)" }}
-                  onClick={(e) => { e.stopPropagation(); setSelectedResource(resource); }}
-                >
-                  <Calendar className="w-3.5 h-3.5 mr-1.5" />
-                  Book
-                </Button>
-              </div>
+                {/* Rates */}
+                <div className="flex gap-2 flex-wrap mb-4">
+                  {resource.hourlyRate != null && (
+                    <span className="text-xs bg-gray-50 text-gray-600 px-2 py-1 rounded-lg border border-gray-100">
+                      {formatCurrency(resource.hourlyRate, currency)}/hr
+                    </span>
+                  )}
+                  {resource.halfDayRate != null && (
+                    <span className="text-xs bg-gray-50 text-gray-600 px-2 py-1 rounded-lg border border-gray-100">
+                      {formatCurrency(resource.halfDayRate, currency)}/half day
+                    </span>
+                  )}
+                  {resource.fullDayRate != null && (
+                    <span className="text-xs bg-gray-50 text-gray-600 px-2 py-1 rounded-lg border border-gray-100">
+                      {formatCurrency(resource.fullDayRate, currency)}/day
+                    </span>
+                  )}
+                  {resource.monthlyRate != null && (
+                    <span className="text-xs bg-gray-50 text-gray-600 px-2 py-1 rounded-lg border border-gray-100">
+                      {formatCurrency(resource.monthlyRate, currency)}/mo
+                    </span>
+                  )}
+                  {resource.hourlyRate == null &&
+                    resource.halfDayRate == null &&
+                    resource.fullDayRate == null &&
+                    resource.monthlyRate == null && (
+                      <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg border border-emerald-100">
+                        Included with membership
+                      </span>
+                    )}
+                </div>
+
+                {/* Amenities */}
+                {resource.amenities.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-4">
+                    {resource.amenities.slice(0, 3).map((a) => (
+                      <span
+                        key={a}
+                        className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-md"
+                      >
+                        {a}
+                      </span>
+                    ))}
+                    {resource.amenities.length > 3 && (
+                      <span className="text-[10px] text-gray-400">
+                        +{resource.amenities.length - 3} more
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <div className="mt-auto flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 text-sm"
+                    onClick={(e) => { e.stopPropagation(); openDetail(resource); }}
+                  >
+                    Details
+                  </Button>
+                  <Button
+                    className="flex-1 text-white text-sm"
+                    style={{ background: "linear-gradient(135deg, #16A34A, #15803D)" }}
+                    onClick={(e) => { e.stopPropagation(); setSelectedResource(resource); }}
+                  >
+                    <Calendar className="w-3.5 h-3.5 mr-1.5" />
+                    Book
+                  </Button>
+                </div>
               </div>
             </div>
           ))}
@@ -401,7 +496,7 @@ export function ResourceBrowser({
         open={!!selectedResource}
         onOpenChange={(open) => !open && setSelectedResource(null)}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {selectedResource && (
@@ -495,9 +590,66 @@ export function ResourceBrowser({
               )}
             </div>
 
+            {/* Price / credit preview — exactly what the booking will cost */}
+            {preview && (
+              <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-400 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" /> Duration
+                  </span>
+                  <span className="font-medium text-gray-700">{formatDuration(preview.durationHours)}</span>
+                </div>
+
+                {preview.amount === 0 ? (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-400 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5" /> Cost
+                    </span>
+                    <span className="font-semibold text-emerald-600">Included with membership</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-400 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5" /> Credit cost
+                      </span>
+                      <span className="font-medium text-gray-700">
+                        {preview.creditsNeeded} credit{preview.creditsNeeded !== 1 ? "s" : ""}
+                        <span className="text-gray-400 font-normal"> (you have {credits})</span>
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-400 flex items-center gap-1.5">
+                        <Wallet className="w-3.5 h-3.5" /> Cash price
+                      </span>
+                      <span className="font-medium text-gray-700">{formatCurrency(preview.amount, currency)}</span>
+                    </div>
+                    <div className="pt-2 border-t border-gray-200/70 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-gray-700">You pay</span>
+                      {preview.canUseCredits ? (
+                        <span className="inline-flex items-center gap-1.5 text-sm font-bold text-emerald-600">
+                          <Sparkles className="w-4 h-4" />
+                          {preview.creditsNeeded} credit{preview.creditsNeeded !== 1 ? "s" : ""}
+                        </span>
+                      ) : (
+                        <span className="text-sm font-bold text-gray-900">
+                          {formatCurrency(preview.amount, currency)}
+                        </span>
+                      )}
+                    </div>
+                    {!preview.canUseCredits && preview.creditsNeeded > credits && (
+                      <p className="text-[11px] text-amber-600">
+                        Not enough credits ({preview.creditsNeeded} needed) — this booking will be charged in cash.
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
             {selectedResource?.requiresApproval && (
               <div className="rounded-lg bg-amber-50 border border-amber-100 p-3 text-xs text-amber-700">
-                This space requires admin approval. Your booking will show as "Pending" until approved.
+                This space requires admin approval. Your booking will show as &quot;Pending&quot; until approved.
               </div>
             )}
           </div>
@@ -527,6 +679,95 @@ export function ResourceBrowser({
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Booking confirmation — details + QR check-in */}
+      <Dialog open={!!confirmed} onOpenChange={(open) => !open && setConfirmed(null)}>
+        <DialogContent className="sm:max-w-md">
+          {confirmed && (
+            <>
+              <div className="text-center pt-2">
+                <div
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3"
+                  style={{
+                    background:
+                      confirmed.status === "PENDING"
+                        ? "rgba(217,119,6,0.12)"
+                        : "rgba(22,163,74,0.12)",
+                  }}
+                >
+                  {confirmed.status === "PENDING" ? (
+                    <Clock className="w-7 h-7 text-amber-600" />
+                  ) : (
+                    <CalendarCheck className="w-7 h-7 text-emerald-600" />
+                  )}
+                </div>
+                <h2 className="text-lg font-bold text-gray-900">
+                  {confirmed.status === "PENDING" ? "Booking requested" : "Booking confirmed!"}
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  {confirmed.status === "PENDING"
+                    ? "Awaiting admin approval — you'll be notified once it's confirmed."
+                    : "You're all set. Show the QR code below at the front desk to check in."}
+                </p>
+              </div>
+
+              {/* Booking details */}
+              <div className="dashboard-card p-4 mt-2">
+                <dl className="space-y-2.5 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-gray-400">Space</dt>
+                    <dd className="font-medium text-gray-800 text-right">{confirmed.resourceName}</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-gray-400">Date</dt>
+                    <dd className="font-medium text-gray-800 text-right">{formatDate(confirmed.date)}</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-gray-400">Time</dt>
+                    <dd className="font-medium text-gray-800 text-right">
+                      {formatTime(confirmed.start)} – {formatTime(confirmed.end)}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+
+              {/* QR — only meaningful for confirmed bookings */}
+              {confirmed.status !== "PENDING" && confirmed.checkinUrl && (
+                <div className="flex flex-col items-center mt-3">
+                  <div className="rounded-2xl border border-gray-100 bg-white p-3 shadow-sm">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      alt="Check-in QR code"
+                      width={160}
+                      height={160}
+                      className="w-40 h-40"
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=170x170&margin=8&data=${encodeURIComponent(confirmed.checkinUrl)}`}
+                    />
+                  </div>
+                  <p className="text-[11px] text-gray-400 mt-2">Scan at reception to check in</p>
+                </div>
+              )}
+
+              <DialogFooter className="mt-2">
+                <Button
+                  variant="outline"
+                  className="text-sm"
+                  onClick={() => setConfirmed(null)}
+                >
+                  Book another
+                </Button>
+                <Button
+                  className="text-white text-sm"
+                  style={{ background: "linear-gradient(135deg, #16A34A, #15803D)" }}
+                  onClick={() => { setConfirmed(null); router.push("/portal/my-bookings"); }}
+                >
+                  View my bookings
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -612,11 +853,19 @@ export function ResourceBrowser({
                     <h2 className="text-lg font-bold text-gray-900 leading-tight">{detailResource.name}</h2>
                     <p className="text-sm text-gray-400 mt-0.5">{humanizeEnum(detailResource.type)}</p>
                   </div>
-                  {detailResource.requiresApproval && (
-                    <Badge variant="secondary" className="text-[10px] bg-amber-50 text-amber-600 border-amber-100 flex-shrink-0">
-                      Needs approval
-                    </Badge>
-                  )}
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold flex-shrink-0 ${
+                      detailResource.requiresApproval
+                        ? "bg-amber-50 text-amber-700 border border-amber-100"
+                        : "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                    }`}
+                  >
+                    {detailResource.requiresApproval ? (
+                      <><ShieldCheck className="w-3.5 h-3.5" /> Needs approval</>
+                    ) : (
+                      <><Zap className="w-3.5 h-3.5" /> Instant booking</>
+                    )}
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-4 text-sm text-gray-500">
@@ -643,9 +892,15 @@ export function ResourceBrowser({
                     {detailResource.fullDayRate != null && (
                       <span className="text-sm bg-gray-50 text-gray-700 px-2.5 py-1 rounded-lg border border-gray-100">{formatCurrency(detailResource.fullDayRate, currency)}/day</span>
                     )}
-                    {detailResource.hourlyRate == null && detailResource.halfDayRate == null && detailResource.fullDayRate == null && (
-                      <span className="text-sm text-gray-400">Included with membership</span>
+                    {detailResource.monthlyRate != null && (
+                      <span className="text-sm bg-gray-50 text-gray-700 px-2.5 py-1 rounded-lg border border-gray-100">{formatCurrency(detailResource.monthlyRate, currency)}/mo</span>
                     )}
+                    {detailResource.hourlyRate == null &&
+                      detailResource.halfDayRate == null &&
+                      detailResource.fullDayRate == null &&
+                      detailResource.monthlyRate == null && (
+                        <span className="text-sm text-emerald-700">Included with membership</span>
+                      )}
                   </div>
                 </div>
 

@@ -191,6 +191,9 @@ export const loginSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
+// Registration only captures credentials. Org name, jurisdiction, city, phone,
+// resources, plans, and payments are all collected by the onboarding wizard
+// (/onboarding) and submitted via POST /api/onboarding/complete.
 export const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(100),
   email: z.string().email("Please enter a valid email"),
@@ -201,11 +204,6 @@ export const registerSchema = z.object({
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
       "Password must contain uppercase, lowercase, and a number"
     ),
-  orgName: z.string().min(2, "Space name must be at least 2 characters").max(100),
-  orgTimezone: z.string().default("Asia/Dubai"),
-  orgCurrency: z.string().length(3).default("AED"),
-  // GCC jurisdiction — drives VAT rate, currency, license catalogs, gov bodies
-  orgJurisdiction: z.enum(["UAE", "KSA"]).default("UAE"),
 });
 
 export const forgotPasswordSchema = z.object({

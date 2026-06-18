@@ -20,5 +20,5 @@ export default async function SettingsPage() {
   });
   if (!organization) redirect("/onboarding");
 
-  return <SettingsView organization={organization as any} />;
+  return <SettingsView organization={organization as any} role={ctx.role} />;
 }

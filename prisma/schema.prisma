@@ -18,6 +18,18 @@ enum Jurisdiction {
   KSA
 }
 
+// PDPL consent types (UAE PDPL + Saudi Arabia PDPL)
+enum ConsentType {
+  DATA_PROCESSING  // mandatory — processing personal data
+  MARKETING        // optional — marketing communications
+  COOKIES          // optional — non-essential cookies
+}
+
+enum PaymentProvider {
+  TAP      // Tap Payments — primary GCC gateway (UAE + KSA + KW + BH)
+  MOYASAR  // Moyasar — KSA secondary, best Mada / STC Pay coverage
+}
+
 enum Plan {
   STARTER
   GROWTH
@@ -133,6 +145,7 @@ enum WhatsAppMessageType {
   PRO_SERVICE_UPDATE
   MAIL_RECEIVED
   RENEWAL_REMINDER
+  PAYMENT_REMINDER
   ANNOUNCEMENT
   SUPPORT_MESSAGE
   CUSTOM
@@ -355,7 +368,23 @@ model Organization {
   taxRegistrationNumber String?
   // GCC primary jurisdiction — drives VAT rate, license catalogs, gov bodies.
   // Fuller multi-jurisdiction config lives in JurisdictionConfig.
-  jurisdiction  Jurisdiction @default(UAE)
+  jurisdiction      Jurisdiction      @default(UAE)
+  // Payment gateway selection. Defaults to Tap (works UAE + KSA).
+  // Set to MOYASAR for KSA orgs that want Mada / STC Pay as primary.
+  paymentProvider   PaymentProvider   @default(TAP)
+  // Onboarding capture (Step 1 of the setup wizard)
+  businessType      String?  // Coworking Space | Business Center | Serviced Offices | Mixed Use
+  whatsappNumber    String?  // primary WhatsApp contact captured at onboarding
+  // Payment setup (Step 5 of the setup wizard). API keys encrypted at rest via lib/encryption.ts.
+  tapSecretKey        String?  // encrypted Tap secret key (per-org override of env)
+  moyasarApiKey       String?  // encrypted Moyasar key (KSA Mada / STC Pay)
+  bankTransferDetails Json?    // { bankName, iban, accountName }
+  // Wafeq / ZATCA Phase-2 onboarding (Module 10)
+  wafeqAccountId String?  // Wafeq connected account ID (wacc_*)
+  zatcaDeviceId  String?  // ZATCA device ID registered via Fatoorah portal (zdev_*)
+  zatcaCrNumber  String?  // Saudi Commercial Registration number
+  zatcaVatNumber String?  // 15-digit Saudi VAT TIN (overrides taxRegistrationNumber for ZATCA)
+  zatcaAddress   Json?    // { street, buildingNumber, district, city, postalCode }
   // Multi-location (Module 11)
   allowCrossLocationBooking Boolean @default(true)  // members may book at any location
   franchiseParentId         String?                 // master operator org, if franchised
@@ -531,6 +560,7 @@ model Resource {
   hourlyRate          Decimal?     @db.Decimal(10, 2)
   halfDayRate         Decimal?     @db.Decimal(10, 2)
   fullDayRate         Decimal?     @db.Decimal(10, 2)
+  monthlyRate         Decimal?     @db.Decimal(10, 2)
   amenities           String[]
   images              String[]
   isActive            Boolean      @default(true)
@@ -593,11 +623,17 @@ model Member {
   phone            String?
   // GCC fields
   whatsAppNumber   String?        // WhatsApp number for automated messaging
+  // Communication preferences (member portal → Profile)
+  language         String         @default("en")  // Preferred language: en | ar
+  notifyByEmail    Boolean        @default(true)   // Opt-in to email notifications
+  notifyByWhatsApp Boolean        @default(true)   // Opt-in to WhatsApp notifications
   nationality      String?        // ISO country code or name
   passportNumber   String?        // Encrypted at rest via lib/encryption.ts
   emiratesId       String?        // UAE Emirates ID — encrypted at rest
   iqamaNumber      String?        // KSA Iqama number — encrypted at rest
   visaExpiry       DateTime?      // Visa/residency expiry — drives renewal reminders
+  // PDPL right to erasure — set when PII is anonymized
+  erasedAt         DateTime?
   // Soft delete
   deletedAt        DateTime?
   createdAt        DateTime       @default(now())
@@ -679,7 +715,12 @@ model Invoice {
   stripeInvoiceId String?
   // @deprecated — Stripe no longer used for member billing
   stripePaymentLinkId String?
-  tapChargeId     String?       // Tap payment gateway charge ID (GCC primary)
+  tapChargeId       String?   // Tap charge ID
+  moyasarPaymentId  String?   // Moyasar payment ID (KSA / Mada / STC Pay)
+  moyasarCheckoutUrl String?  // Moyasar hosted checkout URL (cached; regenerate after 24h)
+  // Overdue reminder tracking — stops auto-reminders after max attempts.
+  remindersSent     Int       @default(0)
+  lastReminderAt    DateTime?
   // @deprecated — superseded by the subtotal/vatAmount/totalAmount breakdown
   // below. Retained for transition + backfill; kept equal to `totalAmount`.
   // Do not read for new code — use `totalAmount`.
@@ -705,6 +746,7 @@ model Invoice {
   zatcaQrCode     String?       // Phase-1 TLV QR, base64 (ZATCA-compliant)
   zatcaStatus     ZatcaStatus?
   zatcaReportedAt DateTime?
+  wafeqInvoiceId  String?   // Wafeq invoice ID returned after submission (zinv_*)
   // Soft delete
   deletedAt       DateTime?
   createdAt       DateTime      @default(now())
@@ -1343,4 +1385,47 @@ model DocumentRequest {
   @@index([memberId])
   @@index([organizationId, status])
   @@index([memberId, status])
+}
+
+// ─── PDPL COMPLIANCE ──────────────────────────────────────────────────────────
+// UAE Personal Data Protection Law (PDPL) + Saudi Arabia PDPL.
+
+// Append-only consent audit log. The most recent row per (userId, consentType)
+// represents the current consent state. Never delete rows — audit trail.
+model ConsentLog {
+  id             String      @id @default(cuid())
+  userId         String      // Supabase auth user ID
+  organizationId String?     // null for pre-registration / platform-level consent
+  consentType    ConsentType
+  consentGiven   Boolean
+  ipAddress      String?
+  userAgent      String?
+  version        String      @default("1.0") // consent policy version
+
+  // Immutable — createdAt IS the consent timestamp. No updatedAt.
+  createdAt      DateTime    @default(now())
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([userId, consentType])
+  @@index([createdAt])
+}
+
+// Audit trail for right-to-erasure executions (PDPL Art. 17 / UAE PDPL).
+// Records who anonymized whom, what fields were cleared, and how many files
+// were deleted. Never hard-delete these rows — they are the compliance record.
+model DataErasureLog {
+  id               String   @id @default(cuid())
+  organizationId   String
+  memberId         String   // Member.id of the erased record
+  userId           String   // User.id that was anonymized
+  executedBy       String   // Admin userId who triggered the erasure
+  documentsDeleted Int      @default(0)
+  fieldsAnonymized String[] // list of field paths cleared for auditability
+  notes            String?
+  createdAt        DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([memberId])
+  @@index([createdAt])
 }
