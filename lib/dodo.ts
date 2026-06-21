@@ -54,7 +54,7 @@ export async function createCheckoutSession(
     product_cart: [{ product_id: pid, quantity: 1 }],
     customer: { email: customerEmail, name: customerName ?? undefined },
     return_url: `${appUrl}/dashboard/billing?checkout=success`,
-    metadata: { organizationId },
+    metadata: { organizationId, plan: plan as string },
   });
 
   if (!session.checkout_url) {

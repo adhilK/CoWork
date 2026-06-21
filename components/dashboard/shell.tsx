@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -96,11 +96,49 @@ const PLAN_TEXT: Record<Plan, string> = {
   ENTERPRISE: "#F87171",
 };
 
+type NotificationItem = {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  readAt: string | null;
+  createdAt: string;
+};
+
+const NOTIF_ICONS: Record<string, string> = {
+  PLAN_ACTIVATED: "✓",
+  PAYMENT_FAILED: "!",
+  SUBSCRIPTION_CANCELLED: "×",
+  TRIAL_ENDING: "⏱",
+};
+
 export function DashboardShell({ user, organization, role, children }: Props) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const supabase = createClient();
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const res = await fetch("/api/notifications");
+      if (!res.ok) return;
+      const data = await res.json();
+      setNotifications(data.notifications ?? []);
+      setUnreadCount(data.unreadCount ?? 0);
+    } catch {}
+  }, []);
+
+  useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
+
+  async function handleBellOpen(open: boolean) {
+    if (!open || unreadCount === 0) return;
+    // Optimistically clear badge
+    setUnreadCount(0);
+    setNotifications((prev) => prev.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })));
+    try { await fetch("/api/notifications", { method: "PATCH" }); } catch {}
+  }
 
   // Filter navigation to what this role is allowed to see; drop empty sections.
   const visibleSections = NAV_SECTIONS
@@ -271,19 +309,67 @@ export function DashboardShell({ user, organization, role, children }: Props) {
             )}
 
             <div className="flex items-center gap-2">
-              <Popover>
-                <PopoverTrigger className="w-9 h-9 rounded-full flex items-center justify-center bg-white border border-gray-100 hover:bg-gray-50 transition-colors shadow-sm">
+              <Popover onOpenChange={handleBellOpen}>
+                <PopoverTrigger className="relative w-9 h-9 rounded-full flex items-center justify-center bg-white border border-gray-100 hover:bg-gray-50 transition-colors shadow-sm">
                   <Bell className="w-4 h-4 text-gray-500" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center"
+                      style={{ background: "#EF4444", color: "#fff" }}>
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
                 </PopoverTrigger>
-                <PopoverContent align="end" className="w-72 p-0">
-                  <div className="px-4 py-3 border-b border-gray-100">
+                <PopoverContent align="end" className="w-80 p-0">
+                  <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                     <p className="text-sm font-semibold text-gray-900">Notifications</p>
+                    {notifications.length > 0 && (
+                      <span className="text-xs text-gray-400">{notifications.length} total</span>
+                    )}
                   </div>
-                  <div className="px-4 py-8 text-center">
-                    <Bell className="w-6 h-6 text-gray-300 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500 font-medium">You're all caught up</p>
-                    <p className="text-xs text-gray-400 mt-0.5">New bookings and invoices will show here.</p>
-                  </div>
+                  {notifications.length === 0 ? (
+                    <div className="px-4 py-8 text-center">
+                      <Bell className="w-6 h-6 text-gray-300 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500 font-medium">You're all caught up</p>
+                      <p className="text-xs text-gray-400 mt-0.5">Plan changes and payment events will show here.</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-50 max-h-80 overflow-y-auto">
+                      {notifications.map((n) => {
+                        const isUnread = !n.readAt;
+                        const icon = NOTIF_ICONS[n.type] ?? "•";
+                        const isError = n.type === "PAYMENT_FAILED";
+                        const isSuccess = n.type === "PLAN_ACTIVATED";
+                        const iconBg = isError
+                          ? "rgba(239,68,68,0.1)"
+                          : isSuccess
+                          ? "rgba(34,197,94,0.1)"
+                          : "rgba(99,102,241,0.1)";
+                        const iconColor = isError ? "#EF4444" : isSuccess ? "#16A34A" : "#6366F1";
+                        return (
+                          <div key={n.id}
+                            className="flex items-start gap-3 px-4 py-3 transition-colors"
+                            style={{ background: isUnread ? "rgba(34,197,94,0.03)" : "transparent" }}>
+                            <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold"
+                              style={{ background: iconBg, color: iconColor }}>
+                              {icon}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-xs font-semibold leading-tight ${isUnread ? "text-gray-900" : "text-gray-700"}`}>
+                                {n.title}
+                              </p>
+                              <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">{n.body}</p>
+                              <p className="text-[10px] text-gray-400 mt-1">
+                                {new Date(n.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                              </p>
+                            </div>
+                            {isUnread && (
+                              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0 mt-1.5" />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </PopoverContent>
               </Popover>
               <Avatar className="w-9 h-9 cursor-pointer border-2 border-white shadow-sm">

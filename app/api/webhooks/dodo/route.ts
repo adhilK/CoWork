@@ -13,7 +13,23 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyWebhook, isDodoEnabled } from "@/lib/dodo";
 import { sendPaymentFailed } from "@/lib/email";
+import type { Plan } from "@prisma/client";
 import type { Webhooks } from "dodopayments/resources/webhooks/webhooks";
+
+const VALID_PLANS: Plan[] = ["STARTER", "GROWTH", "PRO", "ENTERPRISE"];
+
+const PLAN_LABELS: Record<Plan, string> = {
+  STARTER: "Starter",
+  GROWTH: "Growth",
+  PRO: "Business",
+  ENTERPRISE: "Enterprise",
+};
+
+function parsePlan(s: string | undefined | null): Plan | null {
+  if (!s) return null;
+  const upper = s.toUpperCase() as Plan;
+  return VALID_PLANS.includes(upper) ? upper : null;
+}
 
 export async function POST(request: Request) {
   if (!isDodoEnabled()) {
@@ -67,10 +83,14 @@ async function handleEvent(event: Webhooks.UnwrapWebhookEvent) {
       const orgId = sub.metadata?.organizationId;
       if (!orgId) return;
 
+      // Plan is passed in metadata at checkout creation time
+      const newPlan = parsePlan(sub.metadata?.plan as string | undefined);
+
       await prisma.platformSubscription.updateMany({
         where: { organizationId: orgId },
         data: {
           status: "ACTIVE",
+          ...(newPlan ? { plan: newPlan } : {}),
           dodoCustomerId: sub.customer.customer_id,
           dodoSubscriptionId: sub.subscription_id,
           currentPeriodStart: sub.previous_billing_date
@@ -80,6 +100,23 @@ async function handleEvent(event: Webhooks.UnwrapWebhookEvent) {
             ? new Date(sub.next_billing_date)
             : null,
           cancelledAt: null,
+        },
+      });
+
+      // Keep Organization.plan in sync
+      if (newPlan) {
+        await prisma.organization.update({
+          where: { id: orgId },
+          data: { plan: newPlan },
+        });
+      }
+
+      await prisma.notification.create({
+        data: {
+          organizationId: orgId,
+          type: "PLAN_ACTIVATED",
+          title: "Subscription activated",
+          body: `Your ${newPlan ? PLAN_LABELS[newPlan] : ""} plan is now active. All features are unlocked.`.trim(),
         },
       });
       break;
@@ -114,6 +151,15 @@ async function handleEvent(event: Webhooks.UnwrapWebhookEvent) {
         where: { organizationId: orgId },
         data: { status: "CANCELLED", cancelledAt: new Date() },
       });
+
+      await prisma.notification.create({
+        data: {
+          organizationId: orgId,
+          type: "SUBSCRIPTION_CANCELLED",
+          title: "Subscription cancelled",
+          body: "Your subscription has been cancelled. You can reactivate at any time from Billing.",
+        },
+      });
       break;
     }
 
@@ -126,6 +172,15 @@ async function handleEvent(event: Webhooks.UnwrapWebhookEvent) {
       await prisma.platformSubscription.updateMany({
         where: { organizationId: orgId },
         data: { status: "PAST_DUE" },
+      });
+
+      await prisma.notification.create({
+        data: {
+          organizationId: orgId,
+          type: "PAYMENT_FAILED",
+          title: "Payment failed",
+          body: "We couldn't process your subscription payment. Please update your payment method.",
+        },
       });
 
       await notifyPaymentFailed(orgId);
@@ -148,6 +203,15 @@ async function handleEvent(event: Webhooks.UnwrapWebhookEvent) {
       await prisma.platformSubscription.updateMany({
         where: { organizationId: platformSub.organizationId },
         data: { status: "PAST_DUE" },
+      });
+
+      await prisma.notification.create({
+        data: {
+          organizationId: platformSub.organizationId,
+          type: "PAYMENT_FAILED",
+          title: "Payment failed",
+          body: "We couldn't process your subscription renewal. Please update your payment method to stay active.",
+        },
       });
 
       await notifyPaymentFailed(platformSub.organizationId);

@@ -424,6 +424,7 @@ model Organization {
   proServiceRequests        ProServiceRequest[]
   partners                  Partner[]
   referrals                 Referral[]
+  notifications             Notification[]
 
   @@index([slug])
 }
@@ -485,6 +486,22 @@ model ProcessedWebhook {
   processedAt DateTime @default(now())
 
   @@id([webhookId, source])
+}
+
+// In-app notifications shown in the dashboard bell icon.
+// Created by webhooks (plan activated, payment failed) and system events.
+model Notification {
+  id             String    @id @default(cuid())
+  organizationId String
+  type           String    // "PLAN_ACTIVATED" | "PAYMENT_FAILED" | "TRIAL_ENDING" | etc.
+  title          String
+  body           String
+  readAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, readAt])
 }
 
 // ─── USERS & AUTH ─────────────────────────────────────────────────────────────
