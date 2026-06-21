@@ -972,11 +972,13 @@ model BusinessSetupProposal {
   validUntil     DateTime
   status         ProposalStatus @default(DRAFT)
   notes          String?
-  sentAt         DateTime?
-  acceptedAt     DateTime?
-  pdfUrl         String?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  sentAt               DateTime?
+  acceptedAt           DateTime?
+  pdfUrl               String?
+  publicToken          String?   @unique  // cuid generated when status → SENT
+  publicTokenExpiresAt DateTime?           // mirrors validUntil
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   lead           BusinessSetupLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
@@ -1038,6 +1040,7 @@ model ProServiceRequest {
   organization       Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   member             Member               @relation(fields: [memberId], references: [id])
   activities         ProServiceActivity[]
+  documents          Document[]
 
   @@index([organizationId])
   @@index([organizationId, stage])
@@ -1380,19 +1383,22 @@ model Document {
   notes             String?
   version           Int          @default(1)
   previousVersionId String?      // chain to the prior version of this document
-  uploadedBy        String?      // userId who uploaded (member or operator)
-  uploadedAt        DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-  deletedAt         DateTime?    // soft delete (also used to retire old versions)
+  proServiceRequestId String?                // optional link to a PRO service request
+  uploadedBy          String?                // userId who uploaded (member or operator)
+  uploadedAt          DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  deletedAt           DateTime?              // soft delete (also used to retire old versions)
 
-  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  member            Member       @relation(fields: [memberId], references: [id])
+  organization        Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member              Member            @relation(fields: [memberId], references: [id])
+  proServiceRequest   ProServiceRequest? @relation(fields: [proServiceRequestId], references: [id], onDelete: SetNull)
 
   @@index([organizationId])
   @@index([memberId])
   @@index([organizationId, expiryDate])
   @@index([organizationId, deletedAt])
   @@index([memberId, deletedAt])
+  @@index([proServiceRequestId])
 }
 
 model DocumentRequest {

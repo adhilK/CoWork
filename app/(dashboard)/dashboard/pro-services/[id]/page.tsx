@@ -57,6 +57,7 @@ export default async function ProServiceDetailPage({ params }: { params: { id: s
         cancelReason: req.cancelReason,
         clientNotes: req.clientNotes,
         internalNotes: req.internalNotes,
+        invoiceId: req.invoiceId ?? null,
         createdAt: req.createdAt.toISOString(),
         activities: req.activities.map((a) => ({
           id: a.id, userId: a.userId, note: a.note, stage: a.stage,

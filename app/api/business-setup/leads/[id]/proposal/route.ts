@@ -4,6 +4,7 @@ import { apiError, apiSuccess } from "@/lib/utils";
 import { requireBusinessSetup } from "@/lib/business-setup/access";
 import { dispatchWhatsAppText } from "@/lib/jobs";
 import { formatCurrency } from "@/lib/utils";
+import { nanoid } from "nanoid";
 import { z } from "zod";
 
 const lineItemSchema = z.object({
@@ -80,7 +81,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const { action } = parsed.data;
 
   const data: any = {};
-  if (action === "send") { data.status = "SENT"; data.sentAt = new Date(); }
+  if (action === "send") {
+    data.status = "SENT";
+    data.sentAt = new Date();
+    // Generate a public token if one doesn't already exist.
+    if (!lead.proposal.publicToken) {
+      data.publicToken = nanoid(32);
+      data.publicTokenExpiresAt = lead.proposal.validUntil;
+    }
+  }
   if (action === "accept") { data.status = "ACCEPTED"; data.acceptedAt = new Date(); }
   if (action === "reject") { data.status = "REJECTED"; }
 
@@ -101,15 +110,20 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return p;
   });
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const proposalToken = updated.publicToken ?? lead.proposal.publicToken;
+  const proposalLink = proposalToken ? `${appUrl}/proposals/${proposalToken}` : null;
+
   // Notify the client on send (queued WhatsApp).
   if (action === "send" && lead.clientWhatsapp) {
+    const linkLine = proposalLink ? `\n\nReview and accept your proposal here: ${proposalLink}` : "";
     await dispatchWhatsAppText({
       organizationId: auth.organizationId,
       to: lead.clientWhatsapp,
       messageType: "CUSTOM",
       relatedEntityType: "business_setup_proposal",
       relatedEntityId: lead.id,
-      body: `Hi ${lead.clientName}, your proposal from us is ready — total ${formatCurrency(Number(updated.totalFee), updated.currency)}, valid until ${new Date(updated.validUntil).toLocaleDateString("en-GB")}. We'll be in touch shortly.`,
+      body: `Hi ${lead.clientName}, your business setup proposal is ready — total ${formatCurrency(Number(updated.totalFee), updated.currency)}, valid until ${new Date(updated.validUntil).toLocaleDateString("en-GB")}.${linkLine}`,
     });
   }
 

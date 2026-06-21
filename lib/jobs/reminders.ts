@@ -35,6 +35,7 @@ export type ReminderResult = {
   overdueInvoices: number;
   trialWarnings: number;
   trialExpired: number;
+  businessLicenseRenewal: number;
   total: number;
 };
 
@@ -112,7 +113,7 @@ export async function runDailyReminders(): Promise<ReminderResult> {
   const result: ReminderResult = {
     visaExpiry: 0, documentExpiry: 0, virtualOfficeRenewal: 0,
     licenseExpiry: 0, overdueRequests: 0, overdueInvoices: 0,
-    trialWarnings: 0, trialExpired: 0, total: 0,
+    trialWarnings: 0, trialExpired: 0, businessLicenseRenewal: 0, total: 0,
   };
 
   // ── 1. Visa / residency expiry ────────────────────────────────────────────
@@ -363,9 +364,51 @@ export async function runDailyReminders(): Promise<ReminderResult> {
     }
   }
 
+  // ── 8. Business Setup license renewal reminders ───────────────────────────
+  // Remind clients at 90, 60, 30, 14 and 7 days before their business license expires.
+  const BS_RENEWAL_HORIZON = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+  const bsApplications = await prisma.businessSetupApplication.findMany({
+    where: {
+      licenseExpiry: { not: null, gte: now, lte: BS_RENEWAL_HORIZON },
+      lead: { deletedAt: null },
+    },
+    include: {
+      lead: {
+        select: {
+          organizationId: true,
+          clientName: true,
+          clientWhatsapp: true,
+          companyName: true,
+          licenseType: true,
+        },
+      },
+    },
+  });
+
+  const BS_MILESTONES = [90, 60, 30, 14, 7];
+  for (const app of bsApplications) {
+    const lead = app.lead;
+    if (!lead.clientWhatsapp) continue;
+    const days = daysUntil(app.licenseExpiry!);
+    if (!BS_MILESTONES.includes(days)) continue;
+    if (await alreadyReminded(lead.organizationId, "RENEWAL_REMINDER", "business_license", app.id)) continue;
+
+    const companyLabel = lead.companyName ?? "your company";
+    const expiry = app.licenseExpiry!.toLocaleDateString("en-GB");
+    await dispatchWhatsAppText({
+      organizationId: lead.organizationId,
+      to: lead.clientWhatsapp,
+      messageType: "RENEWAL_REMINDER",
+      relatedEntityType: "business_license",
+      relatedEntityId: app.id,
+      body: `Hi ${lead.clientName}, reminder: the business license for ${companyLabel} expires in ${days} day${days !== 1 ? "s" : ""} (${expiry}). Contact us to start the renewal process.`,
+    });
+    result.businessLicenseRenewal++;
+  }
+
   result.total =
     result.visaExpiry + result.documentExpiry + result.virtualOfficeRenewal +
     result.licenseExpiry + result.overdueRequests + result.overdueInvoices +
-    result.trialWarnings + result.trialExpired;
+    result.trialWarnings + result.trialExpired + result.businessLicenseRenewal;
   return result;
 }

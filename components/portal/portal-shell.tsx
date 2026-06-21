@@ -16,6 +16,7 @@ import {
   Building2,
   Sparkles,
   Package,
+  Briefcase,
 } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -34,6 +35,7 @@ type MemberInfo = {
 type Props = {
   member: MemberInfo;
   showProServices?: boolean;
+  showBusinessSetup?: boolean;
   children: React.ReactNode;
 };
 
@@ -45,16 +47,21 @@ const ALL_NAV_ITEMS: { href: string; label: string; icon: any; exact?: boolean; 
   { href: "/portal/invoices", label: "Invoices", icon: FileText },
   { href: "/portal/documents", label: "Documents", icon: FolderLock },
   { href: "/portal/pro-services", label: "PRO Services", icon: Stamp, key: "proServices" },
+  { href: "/portal/business-setup", label: "Business Setup", icon: Briefcase, key: "businessSetup" },
   { href: "/portal/profile", label: "Profile", icon: User },
 ];
 
-export function PortalShell({ member, showProServices, children }: Props) {
+export function PortalShell({ member, showProServices, showBusinessSetup, children }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const supabase = createClient();
 
-  const NAV_ITEMS = ALL_NAV_ITEMS.filter((i) => i.key !== "proServices" || showProServices);
+  const NAV_ITEMS = ALL_NAV_ITEMS.filter((i) => {
+    if (i.key === "proServices") return showProServices;
+    if (i.key === "businessSetup") return showBusinessSetup;
+    return true;
+  });
 
   useEffect(() => {
     setMobileOpen(false);

@@ -25,10 +25,11 @@ export default async function PortalLayout({
 
   if (!member) redirect("/login");
 
-  // PRO Services is staff-initiated — only show it to members who have requests.
-  const proCount = await prisma.proServiceRequest.count({
-    where: { memberId: member.id, deletedAt: null },
-  });
+  // Feature flags — only show portal sections where there is relevant data for this member.
+  const [proCount, bsCount] = await Promise.all([
+    prisma.proServiceRequest.count({ where: { memberId: member.id, deletedAt: null } }),
+    prisma.businessSetupLead.count({ where: { memberId: member.id, deletedAt: null } }),
+  ]);
 
   return (
     <PortalShell
@@ -42,6 +43,7 @@ export default async function PortalLayout({
         orgName: member.organization.name,
       }}
       showProServices={proCount > 0}
+      showBusinessSetup={bsCount > 0}
     >
       {children}
     </PortalShell>

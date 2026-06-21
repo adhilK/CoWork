@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Calendar, Users, FileText, BarChart3,
   Settings, LogOut, Menu, Building2, Bell,
-  CreditCard, UserCheck, MessageSquare, Search, Tag, X, Mailbox, MessageCircle, FolderLock, MapPin, Zap, Landmark, Stamp, Handshake,
+  CreditCard, UserCheck, MessageSquare, Search, Tag, X, Mailbox, MessageCircle, FolderLock, MapPin, Zap, Landmark, Stamp, Handshake, RefreshCw,
 } from "lucide-react";
 import { LocaleSwitcher } from "@/components/shared/locale-switcher";
 import { MaktabyLogo } from "@/components/ui/maktaby-logo";
@@ -60,6 +60,7 @@ const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
     label: "Business Services",
     items: [
       { href: "/dashboard/business-setup/leads", label: "Business Setup", icon: Landmark, cap: "businessSetup" },
+      { href: "/dashboard/business-setup/renewals", label: "Renewals", icon: RefreshCw, cap: "businessSetup" },
       { href: "/dashboard/pro-services", label: "PRO Services", icon: Stamp, cap: "proServices" },
       { href: "/dashboard/virtual-office", label: "Virtual Office", icon: Mailbox, cap: "virtualOffice" },
       { href: "/dashboard/documents", label: "Documents", icon: FolderLock, cap: "documents" },

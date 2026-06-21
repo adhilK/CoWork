@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeft, Loader2, Plus, Eye, EyeOff, MessageCircle, CheckCircle2, XCircle, Trash2,
+  ArrowLeft, Loader2, Plus, Eye, EyeOff, MessageCircle, CheckCircle2, XCircle, Receipt,
+  Paperclip, Download, FileUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +25,7 @@ type Request = {
   jurisdiction: string; stage: string; urgency: string; governingBody: string | null; referenceNumber: string | null;
   assignedTo: string | null; fee: number | null; currency: string; slaDays: number | null; dueDate: string | null;
   completedAt: string | null; cancelReason: string | null; clientNotes: string | null; internalNotes: string | null;
-  createdAt: string; activities: Activity[];
+  invoiceId: string | null; createdAt: string; activities: Activity[];
 };
 type Props = { request: Request; staff: { userId: string; name: string }[]; staffMap: Record<string, string> };
 
@@ -38,9 +39,63 @@ export function ProServiceDetailView({ request, staff, staffMap }: Props) {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
 
+  const [invoiceId, setInvoiceId] = useState(r.invoiceId);
+  const [invoiceBusy, setInvoiceBusy] = useState(false);
+
+  type DocItem = { id: string; fileName: string; mimeType: string; fileSize: number; documentType: string; label: string | null; uploadedAt: string; downloadUrl: string | null };
+  const [docs, setDocs] = useState<DocItem[]>([]);
+  const [docsLoading, setDocsLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setDocsLoading(true);
+    fetch(`/api/pro-services/${r.id}/documents`)
+      .then((res) => res.json())
+      .then((data) => setDocs(data.data?.documents ?? []))
+      .catch(() => {})
+      .finally(() => setDocsLoading(false));
+  }, [r.id]);
+
+  async function uploadDoc(file: File) {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("metadata", JSON.stringify({
+        memberId: r.memberId,
+        documentType: "OTHER",
+        label: file.name.replace(/\.[^.]+$/, ""),
+        proServiceRequestId: r.id,
+      }));
+      const res = await fetch("/api/documents", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success("Document uploaded");
+      // Re-fetch documents list
+      const docs = await fetch(`/api/pro-services/${r.id}/documents`).then((r) => r.json());
+      setDocs(docs.data?.documents ?? []);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed");
+    } finally { setUploading(false); }
+  }
+
   const stm = PRO_STAGE_META[r.stage as keyof typeof PRO_STAGE_META] ?? PRO_STAGE_META.SUBMITTED;
   const urg = URGENCY_META[r.urgency as keyof typeof URGENCY_META] ?? URGENCY_META.STANDARD;
   const sla = slaStatus(r.dueDate, r.stage);
+
+  async function generateInvoice() {
+    setInvoiceBusy(true);
+    try {
+      const res = await fetch(`/api/pro-services/${r.id}/invoice`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success(`Invoice ${data.invoiceNumber} generated`);
+      setInvoiceId(data.invoiceId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to generate invoice");
+    } finally { setInvoiceBusy(false); }
+  }
 
   async function patch(payload: any, msg?: string) {
     setBusy(true);
@@ -196,6 +251,59 @@ export function ProServiceDetailView({ request, staff, staffMap }: Props) {
           <div className="dashboard-card p-5 space-y-2">
             <h2 className="text-sm font-semibold text-gray-900">Internal notes</h2>
             <Textarea rows={3} defaultValue={r.internalNotes ?? ""} onBlur={(e) => { if (e.target.value !== (r.internalNotes ?? "")) patch({ internalNotes: e.target.value || null }, "Notes saved"); }} />
+          </div>
+
+          <div className="dashboard-card p-5 space-y-3">
+            <h2 className="text-sm font-semibold text-gray-900">Invoice</h2>
+            {invoiceId ? (
+              <Link href={`/dashboard/billing?invoiceId=${invoiceId}`}
+                className="inline-flex items-center gap-1.5 text-sm text-emerald-600 hover:text-emerald-700 font-medium">
+                <Receipt className="w-4 h-4" /> View invoice
+              </Link>
+            ) : (
+              <div className="space-y-2">
+                {r.fee == null && (
+                  <p className="text-[11px] text-gray-400">Set a fee above to enable invoice generation.</p>
+                )}
+                <Button variant="outline" size="sm" className="w-full text-xs" onClick={generateInvoice}
+                  disabled={invoiceBusy || r.fee == null}>
+                  {invoiceBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Receipt className="w-3.5 h-3.5 mr-1" />}
+                  Generate invoice
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="dashboard-card p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+                <Paperclip className="w-3.5 h-3.5 text-gray-400" /> Documents
+                {docs.length > 0 && <span className="text-[11px] text-gray-400 font-normal">({docs.length})</span>}
+              </h2>
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-gray-500" onClick={() => fileRef.current?.click()} disabled={uploading}>
+                {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileUp className="w-3.5 h-3.5" />}
+              </Button>
+              <input ref={fileRef} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) { uploadDoc(f); e.target.value = ""; } }} />
+            </div>
+            {docsLoading ? (
+              <p className="text-[11px] text-gray-400">Loading…</p>
+            ) : docs.length === 0 ? (
+              <p className="text-[11px] text-gray-400">No documents attached. Click the upload icon to attach one.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {docs.map((d) => (
+                  <div key={d.id} className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2">
+                    <span className="text-[11px] text-gray-700 flex-1 truncate">{d.label ?? d.fileName}</span>
+                    {d.downloadUrl && (
+                      <a href={d.downloadUrl} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-600">
+                        <Download className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

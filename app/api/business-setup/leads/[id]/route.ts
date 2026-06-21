@@ -4,7 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { apiError, apiSuccess } from "@/lib/utils";
 import { requireBusinessSetup } from "@/lib/business-setup/access";
 import { stageLabel } from "@/lib/business-setup/meta";
+import { dispatchWhatsAppText } from "@/lib/jobs";
 import { z } from "zod";
+import type { LeadStage } from "@prisma/client";
 
 const serializeMoney = (v: any) => (v == null ? null : Number(v));
 
@@ -61,6 +63,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const lead = await prisma.businessSetupLead.findFirst({
     where: { id: params.id, organizationId: auth.organizationId, deletedAt: null },
+    include: { proposal: { select: { publicToken: true } } },
   });
   if (!lead) return apiError("Lead not found", 404);
 
@@ -155,6 +158,31 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
     return u;
   });
+
+  // ── WhatsApp notification on stage change ─────────────────────────────────
+  if (d.stage && d.stage !== lead.stage && updated.clientWhatsapp) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+    const proposalToken = lead.proposal?.publicToken;
+    const stageMessages: Partial<Record<LeadStage, string>> = {
+      PROPOSAL_SENT: `Hi ${updated.clientName}, your business setup proposal is ready. Review and accept it here: ${appUrl}/proposals/${proposalToken ?? ""}`.trim(),
+      DOCUMENTS_COLLECTION: `Hi ${updated.clientName}, we need your documents to proceed with your business setup application. Our team will reach out shortly.`,
+      SUBMITTED_TO_AUTHORITY: `Hi ${updated.clientName}, your application has been submitted to the authority. We will share the reference number with you soon.`,
+      APPROVED: `Hi ${updated.clientName}, great news — your application has been approved! We are now processing your license issuance.`,
+      COMPLETED: `Hi ${updated.clientName}, your business license has been issued. Welcome to your new business!`,
+      LOST: `Hi ${updated.clientName}, unfortunately we were unable to proceed with your application at this time. Please contact us for more details.`,
+    };
+    const msg = stageMessages[d.stage as LeadStage];
+    if (msg) {
+      void dispatchWhatsAppText({
+        organizationId: auth.organizationId,
+        to: updated.clientWhatsapp,
+        body: msg,
+        messageType: "BUSINESS_SETUP_UPDATE",
+        relatedEntityType: "business_setup_lead",
+        relatedEntityId: updated.id,
+      });
+    }
+  }
 
   return apiSuccess({ ...updated, estimatedFee: serializeMoney(updated.estimatedFee), quotedFee: serializeMoney(updated.quotedFee) });
 }
