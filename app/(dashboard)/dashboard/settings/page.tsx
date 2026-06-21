@@ -15,10 +15,20 @@ export default async function SettingsPage() {
   if (!can(ctx.role, "settings")) redirect(homePathForRole(ctx.role));
 
   // Full organization record (settings needs all editable fields)
-  const organization = await prisma.organization.findUnique({
-    where: { id: ctx.organizationId },
-  });
+  const [organization, platformSub] = await Promise.all([
+    prisma.organization.findUnique({ where: { id: ctx.organizationId } }),
+    prisma.platformSubscription.findUnique({
+      where: { organizationId: ctx.organizationId },
+      select: { status: true },
+    }),
+  ]);
   if (!organization) redirect("/onboarding");
 
-  return <SettingsView organization={organization as any} role={ctx.role} />;
+  return (
+    <SettingsView
+      organization={organization as any}
+      role={ctx.role}
+      subscriptionStatus={platformSub?.status ?? null}
+    />
+  );
 }

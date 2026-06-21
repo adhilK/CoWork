@@ -15,7 +15,7 @@ import { formatDate } from "@/lib/utils";
 import { Controller } from "react-hook-form";
 import type { Organization } from "@prisma/client";
 
-type Props = { organization: Organization; role: string };
+type Props = { organization: Organization; role: string; subscriptionStatus?: string | null };
 
 const TIMEZONES = [
   "Asia/Dubai", "Asia/Riyadh", "Asia/Bahrain", "Asia/Qatar", "Asia/Kuwait",
@@ -30,7 +30,7 @@ const CURRENCIES = [
   { value: "GBP", label: "£ GBP" },
 ];
 
-export function SettingsView({ organization, role }: Props) {
+export function SettingsView({ organization, role, subscriptionStatus }: Props) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [confirmName, setConfirmName] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -163,7 +163,7 @@ export function SettingsView({ organization, role }: Props) {
         <h2 className="text-base font-semibold text-gray-900">Subscription</h2>
         <p className="text-sm text-gray-500 mt-1">
           Current plan: <strong>{organization.plan}</strong>
-          {organization.trialEndsAt && new Date(organization.trialEndsAt) > new Date() && (
+          {subscriptionStatus !== "ACTIVE" && organization.trialEndsAt && new Date(organization.trialEndsAt) > new Date() && (
             <span className="ml-2 text-amber-600">
               (trial ends {formatDate(organization.trialEndsAt)})
             </span>
