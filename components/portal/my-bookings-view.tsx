@@ -12,6 +12,8 @@ import {
   Download,
   CalendarCheck,
 } from "lucide-react";
+import { downloadTicket } from "@/lib/ticket-canvas";
+import { formatDate, formatTime, humanizeEnum } from "@/lib/utils";
 import { ResourceIcon } from "@/components/shared/resource-icon";
 import type { ResourceType } from "@prisma/client";
 import { Button } from "@/components/ui/button";
@@ -23,7 +25,6 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { formatDate, formatTime, humanizeEnum } from "@/lib/utils";
 
 type Booking = {
   id: string;
@@ -75,18 +76,20 @@ function TicketModal({
     ? `https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=20&data=${encodeURIComponent(booking.checkinUrl)}`
     : null;
 
-  async function downloadQR() {
-    if (!qrUrl) return;
+  async function handleDownload() {
+    if (!booking.checkinUrl) return;
     setDownloading(true);
     try {
-      const res = await fetch(qrUrl);
-      const blob = await res.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = objectUrl;
-      a.download = `booking-ticket-${booking.resource?.name?.replace(/\s+/g, "-").toLowerCase() ?? booking.id}.png`;
-      a.click();
-      URL.revokeObjectURL(objectUrl);
+      await downloadTicket(
+        booking.checkinUrl,
+        {
+          spaceName: booking.resource?.name ?? "Space",
+          date: formatDate(start),
+          time: `${formatTime(start)} – ${formatTime(end)}`,
+          status: booking.status,
+        },
+        `ticket-${booking.resource?.name?.replace(/\s+/g, "-").toLowerCase() ?? booking.id}.png`
+      );
     } catch {
       toast.error("Failed to download ticket");
     } finally {
@@ -149,7 +152,7 @@ function TicketModal({
             </div>
             <p className="text-[11px] text-gray-400">Scan at reception to check in</p>
             <button
-              onClick={downloadQR}
+              onClick={handleDownload}
               disabled={downloading}
               className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-emerald-600 transition-colors disabled:opacity-50"
             >
@@ -158,7 +161,7 @@ function TicketModal({
               ) : (
                 <Download className="w-3 h-3" />
               )}
-              Download QR
+              Download ticket
             </button>
           </div>
         ) : (

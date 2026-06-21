@@ -1,23 +1,14 @@
 import { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { requireAdminApi } from "@/lib/auth";
 import { apiError, apiSuccess } from "@/lib/utils";
 
-// Admin-only endpoint: members view their invoices via the portal, not here.
-async function getOrgId(userId: string) {
-  const uo = await prisma.userOrganization.findFirst({ where: { userId }, select: { organizationId: true, role: true } });
-  if (!uo || uo.role === "MEMBER") return null;
-  return uo.organizationId;
-}
-
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return apiError("Unauthorized", 401);
-  const orgId = await getOrgId(user.id);
+  const auth = await requireAdminApi();
+  if (!auth) return apiError("Forbidden", 403);
 
   const invoice = await prisma.invoice.findFirst({
-    where: { id: params.id, organizationId: orgId ?? "", deletedAt: null },
+    where: { id: params.id, organizationId: auth.organizationId, deletedAt: null },
     include: { member: { include: { user: true } } },
   });
   if (!invoice) return apiError("Not found", 404);
@@ -25,12 +16,12 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return apiError("Unauthorized", 401);
-  const orgId = await getOrgId(user.id);
+  const auth = await requireAdminApi();
+  if (!auth) return apiError("Forbidden", 403);
 
-  const invoice = await prisma.invoice.findFirst({ where: { id: params.id, organizationId: orgId ?? "" } });
+  const invoice = await prisma.invoice.findFirst({
+    where: { id: params.id, organizationId: auth.organizationId, deletedAt: null },
+  });
   if (!invoice) return apiError("Not found", 404);
 
   const body = await req.json();
@@ -47,14 +38,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return apiError("Unauthorized", 401);
-  const orgId = await getOrgId(user.id);
+  const auth = await requireAdminApi();
+  if (!auth) return apiError("Forbidden", 403);
 
-  const invoice = await prisma.invoice.findFirst({ where: { id: params.id, organizationId: orgId ?? "" } });
+  const invoice = await prisma.invoice.findFirst({
+    where: { id: params.id, organizationId: auth.organizationId, deletedAt: null },
+  });
   if (!invoice) return apiError("Not found", 404);
 
-  await prisma.invoice.update({ where: { id: params.id }, data: { deletedAt: new Date(), status: "CANCELLED" } });
+  await prisma.invoice.update({
+    where: { id: params.id },
+    data: { deletedAt: new Date(), status: "CANCELLED" },
+  });
   return apiSuccess({ success: true });
 }

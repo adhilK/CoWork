@@ -39,6 +39,8 @@ export async function createPaymentLink(opts: {
   customerEmail: string;
   customerName: string | null;
   paymentProvider: string;
+  tapSecretKey?: string;
+  moyasarApiKey?: string;
 }): Promise<PaymentLinkResult> {
   const base = appUrl();
   const ref = opts.invoiceNumber ?? `INV-${opts.invoiceId.slice(-8).toUpperCase()}`;
@@ -82,7 +84,7 @@ export async function createPaymentLink(opts: {
     redirectUrl: `${base}/portal/invoices?tap_id={id}&tap_status={status}`,
     postUrl: `${base}/api/webhooks/tap`,
     referenceTransaction: `inv_${opts.invoiceId.slice(-8)}`,
-  });
+  }, opts.tapSecretKey);
 
   await prisma.invoice.update({
     where: { id: opts.invoiceId },

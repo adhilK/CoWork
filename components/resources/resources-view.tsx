@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Building2, Users, Clock, MoreVertical, Edit, Trash2, ChevronRight, Search, CheckCircle2 } from "lucide-react";
+import { Plus, Building2, Users, Clock, MoreVertical, Edit, Trash2, ChevronRight, Search, CheckCircle2, Globe, Copy, ExternalLink } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,7 @@ type Props = {
   currency: string;
   organizationId: string;
   availabilityMap?: Record<string, AvailabilityEntry>;
+  publicBookingUrl?: string | null;
 };
 
 function fmtDate(d: Date): string {
@@ -45,7 +46,7 @@ function fmtDate(d: Date): string {
   return format(d, "d MMM, HH:mm");
 }
 
-export function ResourcesView({ resources, locations, currency, organizationId, availabilityMap = {} }: Props) {
+export function ResourcesView({ resources, locations, currency, organizationId, availabilityMap = {}, publicBookingUrl }: Props) {
   const router = useRouter();
   const [items, setItems] = useState(resources);
   const [filter, setFilter] = useState<"all" | "available" | "occupied">("all");
@@ -100,6 +101,47 @@ export function ResourcesView({ resources, locations, currency, organizationId, 
           <Plus className="w-4 h-4 mr-1.5" /> Add resource
         </Button>
       </div>
+
+      {/* Public booking URL banner */}
+      {publicBookingUrl && (
+        <div className="dashboard-card p-4 flex flex-col sm:flex-row sm:items-center gap-3 border-l-4 border-emerald-500">
+          <div className="flex items-center gap-2.5 flex-shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+              <Globe className="w-4 h-4 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Public booking page</p>
+              <p className="text-xs text-gray-400">Share on your website, Google profile, or social media</p>
+            </div>
+          </div>
+          <div className="flex-1 flex items-center gap-2 sm:justify-end flex-wrap">
+            <code className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 font-mono truncate max-w-[260px]">
+              {publicBookingUrl}
+            </code>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs gap-1.5"
+                onClick={() => {
+                  navigator.clipboard.writeText(publicBookingUrl);
+                  toast.success("Link copied");
+                }}
+              >
+                <Copy className="w-3.5 h-3.5" /> Copy link
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs gap-1.5"
+                onClick={() => window.open(publicBookingUrl, "_blank")}
+              >
+                <ExternalLink className="w-3.5 h-3.5" /> Open page
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Live summary bar */}
       {activeItems.length > 0 && (

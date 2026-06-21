@@ -25,11 +25,41 @@ export async function POST(req: NextRequest) {
   }
 
   const metadata = body.metadata as Record<string, string> | undefined;
-  const invoiceId = metadata?.invoiceId;
 
+  // Handle public (guest) booking payments
+  if (metadata?.type === "PUBLIC_BOOKING") {
+    const bookingId = metadata?.bookingId;
+    const organizationId = metadata?.organizationId;
+    if (bookingId && organizationId) {
+      await prisma.booking.updateMany({
+        where: { id: bookingId, organizationId, status: "PENDING" },
+        data: { status: "CONFIRMED" },
+      });
+      console.info("[tap webhook] Public booking confirmed:", bookingId);
+    }
+    return NextResponse.json({ received: true });
+  }
+
+  const invoiceId = metadata?.invoiceId;
+  const metaOrgId = metadata?.organizationId;
+
+  // Always scope invoice lookup by organizationId from metadata when available.
+  // This prevents a webhook payload from marking a different org's invoice as paid.
   const invoice = invoiceId
-    ? await prisma.invoice.findFirst({ where: { id: invoiceId, deletedAt: null } })
-    : await prisma.invoice.findFirst({ where: { tapChargeId: chargeId, deletedAt: null } });
+    ? await prisma.invoice.findFirst({
+        where: {
+          id: invoiceId,
+          ...(metaOrgId ? { organizationId: metaOrgId } : {}),
+          deletedAt: null,
+        },
+      })
+    : await prisma.invoice.findFirst({
+        where: {
+          tapChargeId: chargeId,
+          ...(metaOrgId ? { organizationId: metaOrgId } : {}),
+          deletedAt: null,
+        },
+      });
 
   if (!invoice) {
     console.warn("[tap webhook] Invoice not found — chargeId:", chargeId, "invoiceId:", invoiceId);

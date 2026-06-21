@@ -42,6 +42,8 @@ export default async function EditResourcePage({ params }: { params: { id: strin
     advanceBookingDays: resource.advanceBookingDays,
     minBookingMinutes: resource.minBookingMinutes,
     maxBookingHours: resource.maxBookingHours,
+    externalBookingEnabled: resource.externalBookingEnabled,
+    externalHourlyRate: resource.externalHourlyRate ? Number(resource.externalHourlyRate) : undefined,
   };
 
   return (

@@ -32,20 +32,19 @@ export async function GET(
     select: { id: true, organizationId: true },
   });
 
-  // Build the invoice query filter:
-  // - Admins/Owners: invoice must belong to their org
-  // - Members: invoice must belong to them specifically
-  const isAdmin = userOrg && userOrg.role !== "MEMBER";
+  // Build OR conditions: match if user is an admin of the invoice's org
+  // OR if the invoice belongs to this member directly. Using OR means a user
+  // who is both admin and member (common when testing) always finds the invoice.
+  const accessConditions: object[] = [];
+  if (userOrg) accessConditions.push({ organizationId: userOrg.organizationId });
+  if (memberRecord) accessConditions.push({ memberId: memberRecord.id });
+  if (accessConditions.length === 0) return new Response("Unauthorized", { status: 401 });
 
   const invoice = await prisma.invoice.findFirst({
     where: {
       id: params.id,
       deletedAt: null,
-      ...(isAdmin
-        ? { organizationId: userOrg!.organizationId }
-        : memberRecord
-          ? { memberId: memberRecord.id, organizationId: memberRecord.organizationId }
-          : { id: "" }), // deny if neither admin nor member
+      OR: accessConditions,
     },
     include: {
       organization: {
@@ -113,7 +112,13 @@ export async function GET(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any) as any;
 
-  const pdfBuffer = await renderToBuffer(element);
+  let pdfBuffer: Buffer;
+  try {
+    pdfBuffer = await renderToBuffer(element);
+  } catch (err) {
+    console.error("[invoice/pdf] renderToBuffer failed:", err);
+    return new Response("PDF generation failed. Please try again.", { status: 500 });
+  }
 
   const filename = `${invoice.invoiceNumber ?? `INV-${invoice.id.slice(-8).toUpperCase()}`}.pdf`;
 

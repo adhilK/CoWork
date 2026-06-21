@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -34,24 +36,34 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+  const isRtl = locale === "ar";
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang={locale}
+      dir={isRtl ? "rtl" : "ltr"}
+      suppressHydrationWarning
+    >
       <body className={`${inter.variable} font-sans antialiased`}>
-        <Providers>
-          {children}
-          <Toaster
-            position="top-right"
-            richColors
-            toastOptions={{
-              style: { fontFamily: "var(--font-inter)" },
-            }}
-          />
-        </Providers>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <Providers>
+            {children}
+            <Toaster
+              position={isRtl ? "top-left" : "top-right"}
+              richColors
+              toastOptions={{
+                style: { fontFamily: "var(--font-inter)" },
+              }}
+            />
+          </Providers>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

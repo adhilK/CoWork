@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { getAuthContext, getCurrentUser } from "@/lib/auth";
 import { DashboardShell } from "@/components/dashboard/shell";
 
@@ -19,6 +20,24 @@ export default async function DashboardLayout({
   // data, billing, other members, etc. Send them to their member portal.
   if (ctx.role === "MEMBER") {
     redirect("/portal");
+  }
+
+  // ── TRIAL EXPIRY GATE ────────────────────────────────────────────────────
+  // Block access to all dashboard routes when the trial has expired and the
+  // org has no active subscription. Billing page is always allowed through so
+  // the operator can upgrade.
+  const { trialEndsAt, platformSubscriptionStatus } = ctx.organization;
+  const trialExpired =
+    trialEndsAt !== null &&
+    new Date(trialEndsAt) < new Date() &&
+    platformSubscriptionStatus !== "ACTIVE";
+
+  if (trialExpired) {
+    const headersList = await headers();
+    const currentPath = headersList.get("x-pathname") ?? "/dashboard";
+    if (!currentPath.startsWith("/dashboard/billing")) {
+      redirect("/dashboard/billing?paywall=1");
+    }
   }
 
   return (

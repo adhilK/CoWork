@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   Calendar, Clock, ArrowRight, Pin, Megaphone, CalendarPlus, Sparkles,
   FileText, FolderLock, Stamp, User, Sunrise, Sun, Moon, PartyPopper, BadgeCheck,
+  Package,
 } from "lucide-react";
 import { formatDate, formatDateTime, formatTime, humanizeEnum } from "@/lib/utils";
 import { ResourceIcon } from "@/components/shared/resource-icon";
@@ -110,9 +111,10 @@ export function MemberDashboard({
   const quickActions = [
     { href: "/portal/book", label: "Book a space", desc: "Reserve a desk or room", icon: CalendarPlus, color: "#15803D", bg: "rgba(21,128,61,0.1)", primary: true, show: true },
     { href: "/portal/my-bookings", label: "My bookings", desc: "View & manage reservations", icon: Clock, color: "#2563EB", bg: "rgba(37,99,235,0.1)", show: true },
+    { href: "/portal/plans", label: "Membership plans", desc: planName ? `Current: ${planName}` : "Browse & subscribe to a plan", icon: Package, color: "#7C3AED", bg: "rgba(124,58,237,0.1)", show: true },
     { href: "/portal/invoices", label: "Invoices", desc: "Your bills & payments", icon: FileText, color: "#D97706", bg: "rgba(217,119,6,0.1)", show: true },
-    { href: "/portal/documents", label: "Documents", desc: "Upload & manage your files", icon: FolderLock, color: "#7C3AED", bg: "rgba(124,58,237,0.1)", show: true },
-    { href: "/portal/pro-services", label: "PRO Services", desc: "Visa & government requests", icon: Stamp, color: "#0891B2", bg: "rgba(8,145,178,0.1)", show: !!hasProServices },
+    { href: "/portal/documents", label: "Documents", desc: "Upload & manage your files", icon: FolderLock, color: "#0891B2", bg: "rgba(8,145,178,0.1)", show: true },
+    { href: "/portal/pro-services", label: "PRO Services", desc: "Visa & government requests", icon: Stamp, color: "#DC2626", bg: "rgba(220,38,38,0.1)", show: !!hasProServices },
     { href: "/portal/profile", label: "My profile", desc: "Details & preferences", icon: User, color: "#6B7280", bg: "rgba(107,114,128,0.1)", show: true },
   ].filter((a) => a.show);
 
@@ -260,6 +262,26 @@ export function MemberDashboard({
           </div>
         </div>
       </div>
+
+      {/* No-plan prompt */}
+      {!planName && (
+        <div className="flex items-center gap-4 rounded-2xl border border-violet-100 bg-violet-50/60 px-5 py-4">
+          <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0">
+            <Package className="w-5 h-5 text-violet-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-violet-900">No active membership plan</p>
+            <p className="text-xs text-violet-600 mt-0.5">Subscribe to a plan to get included credits and benefits.</p>
+          </div>
+          <Link
+            href="/portal/plans"
+            className="flex-shrink-0 px-4 py-2 rounded-xl text-xs font-semibold text-white"
+            style={{ background: "linear-gradient(135deg,#7C3AED,#6D28D9)" }}
+          >
+            View plans
+          </Link>
+        </div>
+      )}
 
       {/* Quick actions — clear entry points to everything a member can do */}
       <div>

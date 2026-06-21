@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
-import { Check, Sparkles, Plus } from "lucide-react";
+import { useState } from "react";
+import { Check, Sparkles, Plus, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -11,12 +12,14 @@ import {
   formatPlatformPrice,
   type Jurisdiction,
 } from "@/lib/jurisdiction";
+import { useSearchParams } from "next/navigation";
 
 type Props = {
   currentPlan: Plan;
   trialDaysLeft: number | null;
   hasSubscription: boolean;
   jurisdiction: Jurisdiction;
+  dodoEnabled: boolean;
 };
 
 type TierDef = {
@@ -98,12 +101,49 @@ const ADDONS: AddonDef[] = [
 
 const ORDER: Record<Plan, number> = { STARTER: 0, GROWTH: 1, PRO: 2, ENTERPRISE: 3 };
 
-export function BillingView({ currentPlan, trialDaysLeft, hasSubscription, jurisdiction }: Props) {
+export function BillingView({
+  currentPlan,
+  trialDaysLeft,
+  hasSubscription,
+  jurisdiction,
+  dodoEnabled,
+}: Props) {
   const currency = jurisdiction === "KSA" ? "SAR" : "AED";
+  const [loading, setLoading] = useState<Plan | null>(null);
+  const searchParams = useSearchParams();
+  const checkoutSuccess = searchParams.get("checkout") === "success";
+  const paywalled = searchParams.get("paywall") === "1";
 
-  function handleSelect(tier: Plan) {
+  async function handleSelect(tier: Plan) {
     if (tier === currentPlan) return;
-    toast.info("Online checkout is coming soon — email billing@Maktaby.io and we'll switch your plan.");
+    if (tier === "ENTERPRISE") {
+      window.location.href = "mailto:billing@Maktaby.io?subject=Enterprise%20plan%20enquiry";
+      return;
+    }
+
+    if (!dodoEnabled) {
+      toast.info("Online checkout is coming soon — email billing@Maktaby.io and we'll switch your plan.");
+      return;
+    }
+
+    setLoading(tier);
+    try {
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: tier }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "Checkout failed — please try again.");
+        return;
+      }
+      window.location.href = data.checkoutUrl;
+    } catch {
+      toast.error("Network error — please try again.");
+    } finally {
+      setLoading(null);
+    }
   }
 
   function handleAddon() {
@@ -116,6 +156,32 @@ export function BillingView({ currentPlan, trialDaysLeft, hasSubscription, juris
         <h1 className="text-2xl font-bold text-gray-900">Billing &amp; Plan</h1>
         <p className="text-sm text-gray-500 mt-0.5">Manage your Maktaby subscription.</p>
       </div>
+
+      {/* Paywall notice */}
+      {paywalled && !hasSubscription && (
+        <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50">
+          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-amber-900">Your trial has ended</p>
+            <p className="text-sm text-amber-700 mt-0.5">
+              Choose a plan below to restore access for you and your members.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Checkout success notice */}
+      {checkoutSuccess && (
+        <div className="flex items-start gap-3 p-4 rounded-xl border border-emerald-200 bg-emerald-50">
+          <Check className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-emerald-900">Subscription activated</p>
+            <p className="text-sm text-emerald-700 mt-0.5">
+              Your plan is now active. It may take a moment to reflect below.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Current status banner */}
       <div
@@ -137,13 +203,15 @@ export function BillingView({ currentPlan, trialDaysLeft, hasSubscription, juris
             <p className="text-sm" style={{ color: "rgba(255,255,255,0.7)" }}>
               {hasSubscription
                 ? `Active subscription · billed in ${currency}`
-                : trialDaysLeft !== null
+                : trialDaysLeft !== null && trialDaysLeft > 0
                 ? `Free trial — ${trialDaysLeft} day${trialDaysLeft !== 1 ? "s" : ""} left.`
+                : trialDaysLeft === 0
+                ? "Trial ended — choose a plan to continue."
                 : "No active subscription."}
             </p>
           </div>
         </div>
-        {!hasSubscription && trialDaysLeft !== null && trialDaysLeft <= 14 && (
+        {!hasSubscription && trialDaysLeft !== null && trialDaysLeft <= 14 && trialDaysLeft > 0 && (
           <span
             className="text-xs font-semibold px-3 py-1.5 rounded-full self-start sm:self-auto"
             style={{ background: "rgba(255,255,255,0.15)", color: "white" }}
@@ -163,6 +231,7 @@ export function BillingView({ currentPlan, trialDaysLeft, hasSubscription, juris
             const pricing = PLATFORM_PLAN_PRICES[t.id];
             const displayPrice = pricing ? formatPlatformPrice(pricing, jurisdiction) : "Custom";
             const isCustom = displayPrice === "Custom";
+            const isLoading = loading === t.id;
 
             return (
               <div
@@ -202,7 +271,7 @@ export function BillingView({ currentPlan, trialDaysLeft, hasSubscription, juris
                 </ul>
                 <Button
                   onClick={() => handleSelect(t.id)}
-                  disabled={isCurrent}
+                  disabled={isCurrent || isLoading || loading !== null}
                   className={cn(
                     "mt-5 w-full font-semibold",
                     isCurrent ? "bg-gray-100 text-gray-400" : "text-white"
@@ -217,7 +286,15 @@ export function BillingView({ currentPlan, trialDaysLeft, hasSubscription, juris
                         }
                   }
                 >
-                  {isCurrent ? "Current plan" : isCustom ? "Contact us" : isUpgrade ? "Upgrade" : "Switch"}
+                  {isLoading
+                    ? "Redirecting…"
+                    : isCurrent
+                    ? "Current plan"
+                    : isCustom
+                    ? "Contact us"
+                    : isUpgrade
+                    ? "Upgrade"
+                    : "Switch"}
                 </Button>
               </div>
             );

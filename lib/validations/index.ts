@@ -79,6 +79,8 @@ export const createResourceSchema = z.object({
   advanceBookingDays: z.number().int().min(1).max(365).default(30),
   minBookingMinutes: z.number().int().min(15).max(480).default(30),
   maxBookingHours: z.number().int().min(1).max(24).default(8),
+  externalBookingEnabled: z.boolean().default(false),
+  externalHourlyRate: z.number().min(0).max(100000).optional(),
 });
 
 export const updateResourceSchema = createResourceSchema.partial();

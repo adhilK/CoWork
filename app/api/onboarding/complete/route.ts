@@ -23,6 +23,7 @@ import {
   JURISDICTION_CURRENCY,
   JURISDICTION_TIMEZONE,
 } from "@/lib/jurisdiction";
+import { sendOperatorWelcome } from "@/lib/email";
 
 // ── Slug uniqueness ───────────────────────────────────────────────────────────
 
@@ -227,6 +228,16 @@ export async function POST(request: Request) {
       await prisma.userOrganization.create({
         data: { userId: user.id, organizationId: orgId, role: "OWNER" },
       });
+
+      // Fire-and-forget welcome email — never block onboarding on email failure
+      if (email) {
+        void sendOperatorWelcome({
+          to: email,
+          orgName: d.space.name,
+          ownerName: name,
+          dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/dashboard`,
+        });
+      }
     }
 
     // ── 1. Location ───────────────────────────────────────────────────────────

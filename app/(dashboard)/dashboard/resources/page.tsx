@@ -76,6 +76,11 @@ export default async function ResourcesPage({
     }
   }
 
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+  const publicBookingUrl = appUrl && ctx.organization?.slug
+    ? `${appUrl}/${ctx.organization.slug}/book`
+    : null;
+
   return (
     <ResourcesView
       resources={resources as any}
@@ -83,6 +88,7 @@ export default async function ResourcesPage({
       currency={userOrg.organization.currency}
       organizationId={userOrg.organizationId}
       availabilityMap={availabilityMap}
+      publicBookingUrl={publicBookingUrl}
     />
   );
 }

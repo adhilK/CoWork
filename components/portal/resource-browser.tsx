@@ -31,6 +31,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { formatCurrency, formatDate, formatTime, humanizeEnum } from "@/lib/utils";
+import { downloadTicket } from "@/lib/ticket-canvas";
 import { ResourceIcon, RESOURCE_ICON } from "@/components/shared/resource-icon";
 import type { ResourceType } from "@prisma/client";
 
@@ -638,7 +639,11 @@ export function ResourceBrowser({
                   <p className="text-[11px] text-gray-400 mt-2">Scan at reception to check in</p>
                   <DownloadQRButton
                     url={confirmed.checkinUrl}
-                    filename={`booking-qr-${confirmed.resourceName.replace(/\s+/g, "-").toLowerCase()}.png`}
+                    filename={`ticket-${confirmed.resourceName.replace(/\s+/g, "-").toLowerCase()}.png`}
+                    spaceName={confirmed.resourceName}
+                    start={confirmed.start}
+                    end={confirmed.end}
+                    status={confirmed.status}
                   />
                 </div>
               )}
@@ -986,23 +991,38 @@ function ResourceCard({
 
 // ── QR download helper ────────────────────────────────────────────────────────
 
-function DownloadQRButton({ url, filename }: { url: string; filename: string }) {
+function DownloadQRButton({
+  url,
+  filename,
+  spaceName,
+  start,
+  end,
+  status,
+}: {
+  url: string;
+  filename: string;
+  spaceName: string;
+  start: Date;
+  end: Date;
+  status: string;
+}) {
   const [downloading, setDownloading] = useState(false);
 
   async function handleDownload() {
     setDownloading(true);
     try {
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=20&data=${encodeURIComponent(url)}`;
-      const res = await fetch(qrUrl);
-      const blob = await res.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = objectUrl;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(objectUrl);
+      await downloadTicket(
+        url,
+        {
+          spaceName,
+          date: formatDate(start),
+          time: `${formatTime(start)} – ${formatTime(end)}`,
+          status,
+        },
+        filename
+      );
     } catch {
-      toast.error("Failed to download QR code");
+      toast.error("Failed to download ticket");
     } finally {
       setDownloading(false);
     }
@@ -1021,7 +1041,7 @@ function DownloadQRButton({ url, filename }: { url: string; filename: string }) 
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
         </svg>
       )}
-      Save QR code
+      Download ticket
     </button>
   );
 }

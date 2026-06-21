@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/auth";
 import { apiError, apiSuccess } from "@/lib/utils";
-import { sendWhatsAppText, sendWhatsAppTemplate, renderTemplateBody } from "@/lib/whatsapp";
+import { renderTemplateBody } from "@/lib/whatsapp";
+import { dispatchWhatsAppText, dispatchWhatsAppTemplate } from "@/lib/jobs";
 import { z } from "zod";
 
 const sendSchema = z.object({
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
 
     const params = d.params ?? [];
     const renderedBody = renderTemplateBody(template.body, params);
-    const result = await sendWhatsAppTemplate({
+    await dispatchWhatsAppTemplate({
       organizationId: orgId,
       to: d.to,
       memberId: d.memberId ?? null,
@@ -61,18 +62,16 @@ export async function POST(req: NextRequest) {
       renderedBody,
       messageType: d.messageType ?? "CUSTOM",
     });
-    if (!result.ok) return apiError(result.error ?? "Send failed", 502);
-    return apiSuccess({ id: result.messageId, waMessageId: result.waMessageId }, 201);
+    return apiSuccess({ dispatched: true }, 201);
   }
 
   // Freeform text send
-  const result = await sendWhatsAppText({
+  await dispatchWhatsAppText({
     organizationId: orgId,
     to: d.to,
     memberId: d.memberId ?? null,
     body: d.body!,
     messageType: d.messageType ?? "SUPPORT_MESSAGE",
   });
-  if (!result.ok) return apiError(result.error ?? "Send failed", 502);
-  return apiSuccess({ id: result.messageId, waMessageId: result.waMessageId }, 201);
+  return apiSuccess({ dispatched: true }, 201);
 }

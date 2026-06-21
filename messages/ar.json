@@ -1,0 +1,67 @@
+{
+  "nav": {
+    "dashboard": "لوحة التحكم",
+    "bookings": "الحجوزات",
+    "resources": "المساحات",
+    "members": "الأعضاء",
+    "invoices": "الفواتير",
+    "visitors": "الزوار",
+    "documents": "المستندات",
+    "virtualOffice": "المكتب الافتراضي",
+    "businessSetup": "تأسيس الأعمال",
+    "proServices": "خدمات PRO",
+    "analytics": "التحليلات",
+    "settings": "الإعدادات",
+    "community": "المجتمع",
+    "whatsapp": "واتساب"
+  },
+  "common": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "create": "إنشاء",
+    "loading": "جارٍ التحميل…",
+    "search": "بحث",
+    "filter": "تصفية",
+    "export": "تصدير",
+    "download": "تنزيل",
+    "close": "إغلاق",
+    "confirm": "تأكيد",
+    "back": "رجوع",
+    "next": "التالي",
+    "previous": "السابق",
+    "submit": "إرسال",
+    "noResults": "لا توجد نتائج"
+  },
+  "locale": {
+    "en": "English",
+    "ar": "العربية",
+    "switch": "اللغة"
+  },
+  "invoices": {
+    "title": "الفواتير والمدفوعات",
+    "new": "فاتورة جديدة",
+    "collectedThisMonth": "المحصّل هذا الشهر",
+    "outstanding": "المستحقة",
+    "overdue": "المتأخرة",
+    "unbilledCharges": "رسوم غير مفوترة",
+    "unbilledBookings": "حجوزات غير مفوترة",
+    "markPaid": "تحديد كمدفوع",
+    "sendReminder": "إرسال تذكير",
+    "remindersSent": "{count}/3 تذكير مُرسَل",
+    "noInvoices": "لا توجد فواتير بعد"
+  },
+  "bookings": {
+    "title": "الحجوزات",
+    "new": "حجز جديد",
+    "checkIn": "تسجيل الدخول",
+    "checkOut": "تسجيل الخروج",
+    "noBookings": "لا توجد حجوزات بعد"
+  },
+  "members": {
+    "title": "الأعضاء",
+    "invite": "دعوة عضو",
+    "noMembers": "لا يوجد أعضاء بعد"
+  }
+}

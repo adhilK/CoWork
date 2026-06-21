@@ -44,8 +44,11 @@ export interface TapChargeResponse {
   reference?: { transaction: string; order: string };
 }
 
-export async function createTapCharge(req: TapChargeRequest): Promise<TapChargeResponse> {
-  const secretKey = process.env.TAP_SECRET_KEY;
+export async function createTapCharge(
+  req: TapChargeRequest,
+  secretKeyOverride?: string
+): Promise<TapChargeResponse> {
+  const secretKey = secretKeyOverride ?? process.env.TAP_SECRET_KEY;
   if (!secretKey) throw new Error("TAP_SECRET_KEY is not configured");
 
   const parts = req.customerName.trim().split(" ");

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2, X, Plus } from "lucide-react";
+import { Loader2, X, Plus, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,6 +51,7 @@ export function ResourceForm({ locations, currency, resourceId, defaultValues }:
         advanceBookingDays: 30,
         minBookingMinutes: 30,
         maxBookingHours: 8,
+        externalBookingEnabled: false,
         ...defaultValues,
       },
     });
@@ -242,6 +243,36 @@ export function ResourceForm({ locations, currency, resourceId, defaultValues }:
         <input type="checkbox" {...register("requiresApproval")} className="w-4 h-4 accent-green-600" />
         <span className="text-sm text-gray-700">Requires approval before confirming bookings</span>
       </label>
+
+      {/* Public / external booking */}
+      <div className="pt-2 border-t border-gray-100 space-y-4">
+        <div className="flex items-center gap-2">
+          <Globe className="w-4 h-4 text-gray-400" />
+          <span className="text-sm font-semibold text-gray-700">Public booking</span>
+        </div>
+        <label className="flex items-center gap-2.5 cursor-pointer">
+          <input type="checkbox" {...register("externalBookingEnabled")} className="w-4 h-4 accent-green-600" />
+          <span className="text-sm text-gray-700">Allow public booking from your external booking page</span>
+        </label>
+        {watch("externalBookingEnabled") && (
+          <div className="space-y-1.5 ml-6">
+            <Label className="text-xs text-gray-500">
+              External hourly rate ({currency})
+              <span className="ml-1 font-normal text-gray-400">— leave blank to use the member rate above</span>
+            </Label>
+            <Input
+              type="number"
+              step="0.01"
+              min={0}
+              placeholder="0.00"
+              className="w-36"
+              {...register("externalHourlyRate", {
+                setValueAs: (v) => v === "" || v === undefined ? undefined : Number(v),
+              })}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Actions */}
       <div className="flex gap-3 pt-2 border-t border-gray-100">

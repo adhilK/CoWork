@@ -28,6 +28,8 @@ export default async function PublicBookPage({ params }: Props) {
       address: true,
       currency: true,
       timezone: true,
+      paymentProvider: true,
+      tapSecretKey: true,
     },
   });
 
@@ -38,6 +40,7 @@ export default async function PublicBookPage({ params }: Props) {
       organizationId: org.id,
       isActive: true,
       deletedAt: null,
+      externalBookingEnabled: true,
     },
     select: {
       id: true,
@@ -48,6 +51,7 @@ export default async function PublicBookPage({ params }: Props) {
       hourlyRate: true,
       halfDayRate: true,
       fullDayRate: true,
+      externalHourlyRate: true,
       amenities: true,
       images: true,
       minBookingMinutes: true,
@@ -63,12 +67,16 @@ export default async function PublicBookPage({ params }: Props) {
     hourlyRate: r.hourlyRate ? Number(r.hourlyRate) : null,
     halfDayRate: r.halfDayRate ? Number(r.halfDayRate) : null,
     fullDayRate: r.fullDayRate ? Number(r.fullDayRate) : null,
+    externalHourlyRate: r.externalHourlyRate ? Number(r.externalHourlyRate) : null,
   }));
+
+  const paymentEnabled = !!(org.tapSecretKey || process.env.TAP_SECRET_KEY);
 
   return (
     <PublicBookingPage
-      org={org}
+      org={{ id: org.id, name: org.name, slug: org.slug, logo: org.logo, address: org.address, currency: org.currency, timezone: org.timezone }}
       resources={serialized}
+      paymentEnabled={paymentEnabled}
     />
   );
 }

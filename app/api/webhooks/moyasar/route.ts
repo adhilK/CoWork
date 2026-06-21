@@ -31,13 +31,26 @@ export async function POST(req: NextRequest) {
 
   const metadata = body.metadata as Record<string, string> | undefined;
   const invoiceId = metadata?.invoiceId;
+  const metaOrgId = metadata?.organizationId;
 
-  // Primary lookup: by invoiceId from metadata.
-  // Fallback: by moyasarPaymentId (in case metadata was stripped).
+  // Always scope invoice lookup by organizationId from metadata when available.
+  // This prevents a malformed webhook from marking a different org's invoice as paid.
   const invoice = invoiceId
-    ? await prisma.invoice.findFirst({ where: { id: invoiceId, deletedAt: null } })
+    ? await prisma.invoice.findFirst({
+        where: {
+          id: invoiceId,
+          ...(metaOrgId ? { organizationId: metaOrgId } : {}),
+          deletedAt: null,
+        },
+      })
     : paymentId
-    ? await prisma.invoice.findFirst({ where: { moyasarPaymentId: paymentId, deletedAt: null } })
+    ? await prisma.invoice.findFirst({
+        where: {
+          moyasarPaymentId: paymentId,
+          ...(metaOrgId ? { organizationId: metaOrgId } : {}),
+          deletedAt: null,
+        },
+      })
     : null;
 
   if (!invoice) {

@@ -1,0 +1,67 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "bookings": "Bookings",
+    "resources": "Resources",
+    "members": "Members",
+    "invoices": "Invoices",
+    "visitors": "Visitors",
+    "documents": "Documents",
+    "virtualOffice": "Virtual Office",
+    "businessSetup": "Business Setup",
+    "proServices": "PRO Services",
+    "analytics": "Analytics",
+    "settings": "Settings",
+    "community": "Community",
+    "whatsapp": "WhatsApp"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "loading": "Loading…",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "download": "Download",
+    "close": "Close",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "noResults": "No results found"
+  },
+  "locale": {
+    "en": "English",
+    "ar": "العربية",
+    "switch": "Language"
+  },
+  "invoices": {
+    "title": "Invoices & Billing",
+    "new": "New invoice",
+    "collectedThisMonth": "Collected this month",
+    "outstanding": "Outstanding",
+    "overdue": "Overdue",
+    "unbilledCharges": "Unbilled charges",
+    "unbilledBookings": "Unbilled bookings",
+    "markPaid": "Mark paid",
+    "sendReminder": "Send reminder",
+    "remindersSent": "{count}/3 reminders sent",
+    "noInvoices": "No invoices yet"
+  },
+  "bookings": {
+    "title": "Bookings",
+    "new": "New booking",
+    "checkIn": "Check in",
+    "checkOut": "Check out",
+    "noBookings": "No bookings yet"
+  },
+  "members": {
+    "title": "Members",
+    "invite": "Invite member",
+    "noMembers": "No members yet"
+  }
+}

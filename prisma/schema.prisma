@@ -451,8 +451,8 @@ model JurisdictionConfig {
   organization        Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
-// Tracks the operator's CoWork Pro platform subscription (not member billing).
-// Manual billing only — no payment gateway. Created at TRIAL on org registration.
+// Tracks the operator's CoWork Pro platform subscription (Dodo Payments MoR).
+// Created at TRIAL on org registration; upgraded to ACTIVE via Dodo webhook.
 model PlatformSubscription {
   id                   String                     @id @default(cuid())
   organizationId       String                     @unique
@@ -462,9 +462,12 @@ model PlatformSubscription {
   currency             String                     @default("AED")
   // Monthly fee in local currency — null until operator upgrades from trial.
   monthlyFee           Decimal?                   @db.Decimal(10, 2)
-  // Stripe Atlas fields — reserved for future use
+  // @deprecated — superseded by Dodo fields below
   stripeCustomerId     String?
   stripeSubscriptionId String?
+  // Dodo Payments (Merchant of Record — no UAE trade license required)
+  dodoCustomerId       String?
+  dodoSubscriptionId   String?
   trialEndsAt          DateTime?
   currentPeriodStart   DateTime?
   currentPeriodEnd     DateTime?
@@ -473,6 +476,15 @@ model PlatformSubscription {
   updatedAt            DateTime                   @updatedAt
 
   organization         Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+// Idempotency log for incoming webhook events (prevents double-processing).
+model ProcessedWebhook {
+  webhookId   String
+  source      String   // "dodo" | "tap" | "moyasar"
+  processedAt DateTime @default(now())
+
+  @@id([webhookId, source])
 }
 
 // ─── USERS & AUTH ─────────────────────────────────────────────────────────────
@@ -568,6 +580,9 @@ model Resource {
   advanceBookingDays  Int          @default(30)
   minBookingMinutes   Int          @default(30)
   maxBookingHours     Int          @default(8)
+  // Public / external booking
+  externalBookingEnabled Boolean   @default(false)
+  externalHourlyRate     Decimal?  @db.Decimal(10, 2)
   // Soft delete
   deletedAt           DateTime?
   createdAt           DateTime     @default(now())

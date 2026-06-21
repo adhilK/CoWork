@@ -1,4 +1,7 @@
 import { withSentryConfig } from "@sentry/nextjs";
+import createNextIntlPlugin from "next-intl/plugin";
+
+const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -131,7 +134,7 @@ const nextConfig = {
 // Source maps are uploaded so stack traces in Sentry show real file/line refs.
 // In dev (NODE_ENV !== production) withSentryConfig is still applied but
 // tracing is disabled in the Sentry.init calls above, so nothing is sent.
-export default withSentryConfig(nextConfig, {
+export default withNextIntl(withSentryConfig(nextConfig, {
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
 
@@ -148,4 +151,4 @@ export default withSentryConfig(nextConfig, {
     // Wrap route handlers with Sentry tracing.
     autoInstrumentServerFunctions: true,
   },
-});
+}));

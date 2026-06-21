@@ -8,6 +8,7 @@ import {
   Settings, LogOut, Menu, Building2, Bell,
   CreditCard, UserCheck, MessageSquare, Search, Tag, X, Mailbox, MessageCircle, FolderLock, MapPin, Zap, Landmark, Stamp, Handshake,
 } from "lucide-react";
+import { LocaleSwitcher } from "@/components/shared/locale-switcher";
 import { MaktabyLogo } from "@/components/ui/maktaby-logo";
 import { cn, initials } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -204,6 +205,7 @@ export function DashboardShell({ user, organization, role, children }: Props) {
             <span>Settings</span>
           </Link>
         )}
+        <LocaleSwitcher className="group w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-[13px] font-medium text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors" />
         <button onClick={handleSignOut}
           className="group w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-[13px] font-medium text-white/60 hover:text-red-400 hover:bg-white/[0.06] transition-colors">
           <LogOut className="flex-shrink-0 text-white/45 group-hover:text-red-400" style={{ width: 17, height: 17 }} />

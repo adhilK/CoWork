@@ -10,6 +10,7 @@ import { createCalendarEvent } from "@/lib/google-calendar";
 import { checkinUrl } from "@/lib/checkin-token";
 import { computeInvoiceTotals } from "@/lib/jurisdiction";
 import { createTapCharge } from "@/lib/tap";
+import { decryptField } from "@/lib/encryption";
 import { format } from "date-fns";
 
 async function getMember(userId: string) {
@@ -107,7 +108,7 @@ export async function POST(req: NextRequest) {
     include: {
       location: { select: { openingHours: true, timezone: true } },
       organization: {
-        select: { timezone: true, currency: true, jurisdiction: true, paymentProvider: true },
+        select: { timezone: true, currency: true, jurisdiction: true, paymentProvider: true, tapSecretKey: true },
       },
     },
   });
@@ -278,6 +279,7 @@ export async function POST(req: NextRequest) {
       let checkoutUrl: string | null = null;
 
       if (org.paymentProvider !== "MOYASAR") {
+        const tapKey = decryptField(org.tapSecretKey) ?? undefined;
         const charge = await createTapCharge({
           amount: totals.totalAmount,
           currency: org.currency ?? "AED",
@@ -293,7 +295,7 @@ export async function POST(req: NextRequest) {
           redirectUrl: `${baseUrl}/portal/invoices?tap_id={id}&tap_status={status}`,
           postUrl: `${baseUrl}/api/webhooks/tap`,
           referenceTransaction: `bk_${invoice.id.slice(-8)}`,
-        });
+        }, tapKey);
 
         await prisma.invoice.update({
           where: { id: invoice.id },

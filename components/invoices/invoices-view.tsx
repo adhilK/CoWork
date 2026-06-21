@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, FileText, AlertCircle, ChevronDown, ChevronUp, Zap, Download } from "lucide-react";
+import { Plus, FileText, AlertCircle, ChevronDown, ChevronUp, Zap, Download, Bell } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +30,8 @@ const STATUS_STYLES: Record<InvoiceStatus, string> = {
 type Invoice = {
   id: string; invoiceNumber: string; amount: any; totalAmount: any; status: InvoiceStatus;
   dueDate: Date; createdAt: Date; paidAt: Date | null;
-  member: { user: { name: string | null; email: string } };
+  remindersSent: number; lastReminderAt: Date | null;
+  member: { id: string; whatsAppNumber: string | null; user: { name: string | null; email: string } };
 };
 
 type UnbilledBooking = {
@@ -228,6 +229,18 @@ export function InvoicesView({ invoices, total, page, limit, summary, collectedT
     } catch { toast.error("Failed to update invoice"); }
   }
 
+  async function sendReminder(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    try {
+      const res = await fetch(`/api/invoices/${id}/remind`, { method: "POST" });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.error); }
+      toast.success("Payment reminder sent via WhatsApp");
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to send reminder");
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -359,9 +372,14 @@ export function InvoicesView({ invoices, total, page, limit, summary, collectedT
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-mono text-gray-500">{inv.invoiceNumber}</span>
-                    <Badge className={cn("text-[10px]", STATUS_STYLES[inv.status])}>
-                      {inv.status.charAt(0) + inv.status.slice(1).toLowerCase()}
-                    </Badge>
+                    <div className="flex flex-col items-end gap-0.5">
+                      <Badge className={cn("text-[10px]", STATUS_STYLES[inv.status])}>
+                        {inv.status.charAt(0) + inv.status.slice(1).toLowerCase()}
+                      </Badge>
+                      {inv.status === "OVERDUE" && inv.remindersSent > 0 && (
+                        <span className="text-[10px] text-gray-400">{inv.remindersSent}/3 reminders</span>
+                      )}
+                    </div>
                   </div>
                   <p className="text-sm font-medium text-gray-900 mt-0.5 truncate">
                     {inv.member?.user?.name ?? inv.member?.user?.email}
@@ -372,6 +390,12 @@ export function InvoicesView({ invoices, total, page, limit, summary, collectedT
                   </div>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
+                  {inv.status === "OVERDUE" && inv.member?.whatsAppNumber && inv.remindersSent < 3 && (
+                    <Button variant="outline" size="sm" className="h-7 w-7 p-0 text-orange-600 border-orange-200 hover:bg-orange-50"
+                      title="Send WhatsApp reminder" onClick={(e) => sendReminder(inv.id, e)}>
+                      <Bell className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
                   {(inv.status === "PENDING" || inv.status === "OVERDUE") && (
                     <Button variant="outline" size="sm" className="h-7 text-xs text-green-700 border-green-200 hover:bg-green-50"
                       onClick={(e) => markPaid(inv.id, e)}>
@@ -424,13 +448,30 @@ export function InvoicesView({ invoices, total, page, limit, summary, collectedT
                       <span className="text-sm font-semibold text-gray-900">{formatCurrency(Number(inv.totalAmount), currency)}</span>
                     </TableCell>
                     <TableCell>
-                      <Badge className={cn("text-xs", STATUS_STYLES[inv.status])}>
-                        {inv.status.charAt(0) + inv.status.slice(1).toLowerCase()}
-                      </Badge>
+                      <div className="flex flex-col gap-0.5">
+                        <Badge className={cn("text-xs w-fit", STATUS_STYLES[inv.status])}>
+                          {inv.status.charAt(0) + inv.status.slice(1).toLowerCase()}
+                        </Badge>
+                        {inv.status === "OVERDUE" && inv.remindersSent > 0 && (
+                          <span className="text-[10px] text-gray-400">
+                            {inv.remindersSent}/3 reminders
+                            {inv.lastReminderAt ? ` · ${formatDate(inv.lastReminderAt)}` : ""}
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-sm text-gray-500">{formatDate(inv.dueDate)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
+                        {inv.status === "OVERDUE" && inv.member?.whatsAppNumber && inv.remindersSent < 3 && (
+                          <Button variant="outline" size="sm"
+                            className="h-7 text-xs text-orange-600 border-orange-200 hover:bg-orange-50 gap-1"
+                            onClick={(e) => sendReminder(inv.id, e)}
+                            title={`Send reminder ${inv.remindersSent + 1}/3`}>
+                            <Bell className="w-3 h-3" />
+                            Remind
+                          </Button>
+                        )}
                         {(inv.status === "PENDING" || inv.status === "OVERDUE") && (
                           <Button variant="outline" size="sm" className="h-7 text-xs text-green-700 border-green-200 hover:bg-green-50"
                             onClick={(e) => markPaid(inv.id, e)}>

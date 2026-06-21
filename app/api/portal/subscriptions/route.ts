@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { apiError, apiSuccess, getBaseUrl } from "@/lib/utils";
 import { computeInvoiceTotals } from "@/lib/jurisdiction";
 import { createTapCharge } from "@/lib/tap";
+import { decryptField } from "@/lib/encryption";
 
 const schema = z.object({
   planId: z.string().min(1, "Plan ID is required"),
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
     include: {
       user: { select: { email: true, name: true } },
       organization: {
-        select: { currency: true, jurisdiction: true, paymentProvider: true, name: true },
+        select: { currency: true, jurisdiction: true, paymentProvider: true, name: true, tapSecretKey: true },
       },
     },
   });
@@ -74,6 +75,7 @@ export async function POST(req: NextRequest) {
 
   try {
     if (member.organization.paymentProvider !== "MOYASAR") {
+      const tapKey = decryptField(member.organization.tapSecretKey) ?? undefined;
       const charge = await createTapCharge({
         amount: totals.totalAmount,
         currency: member.organization.currency ?? "AED",
@@ -89,7 +91,7 @@ export async function POST(req: NextRequest) {
         redirectUrl: `${baseUrl}/portal/invoices?tap_id={id}&tap_status={status}`,
         postUrl: `${baseUrl}/api/webhooks/tap`,
         referenceTransaction: `plan_${invoice.id.slice(-8)}`,
-      });
+      }, tapKey);
 
       await prisma.invoice.update({
         where: { id: invoice.id },

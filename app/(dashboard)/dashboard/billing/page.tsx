@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/auth";
 import { canBilling, homePathForRole } from "@/lib/permissions";
 import { BillingView } from "@/components/billing/billing-view";
+import { isDodoEnabled } from "@/lib/dodo";
 
 export const metadata: Metadata = { title: "Billing & Plan — Maktaby" };
 export const dynamic = "force-dynamic";
@@ -27,6 +28,7 @@ export default async function BillingPage() {
         ctx.organization.platformSubscriptionStatus === "PAST_DUE"
       }
       jurisdiction={ctx.organization.jurisdiction}
+      dodoEnabled={isDodoEnabled()}
     />
   );
 }

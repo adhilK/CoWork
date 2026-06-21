@@ -32,7 +32,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: { p
   const [invoices, total, summary, collectedThisMonthAgg, members, unbilledBookings] = await Promise.all([
     prisma.invoice.findMany({
       where,
-      include: { member: { include: { user: { select: { name: true, email: true } } } } },
+      include: { member: { select: { id: true, whatsAppNumber: true, user: { select: { name: true, email: true } } } } },
       orderBy: { createdAt: "desc" },
       skip,
       take: limit,

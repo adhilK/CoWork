@@ -68,6 +68,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Forward the pathname as a response header so server layouts can read it.
+  // The dashboard layout uses this for trial-expiry gating without a DB call.
+  supabaseResponse.headers.set("x-pathname", pathname);
+
   // Let all authenticated requests through — dashboard page handles
   // org setup and onboarding if no org record exists yet
   return supabaseResponse;

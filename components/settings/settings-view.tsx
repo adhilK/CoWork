@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -182,6 +182,20 @@ export function SettingsView({ organization, role }: Props) {
         </p>
         <Button variant="outline" className="mt-4" onClick={() => window.location.href = "/dashboard/settings/team"}>
           Manage team →
+        </Button>
+      </div>
+
+      {/* Payment gateway */}
+      <div className="dashboard-card p-6">
+        <div className="flex items-center gap-2 mb-1">
+          <CreditCard className="w-4 h-4 text-gray-400" />
+          <h2 className="text-base font-semibold text-gray-900">Payment gateway</h2>
+        </div>
+        <p className="text-sm text-gray-500 mt-1">
+          Configure Tap Payments (UAE/KSA primary), Moyasar (KSA Mada/STC Pay), and bank transfer details.
+        </p>
+        <Button variant="outline" className="mt-4" onClick={() => window.location.href = "/dashboard/settings/payments"}>
+          Configure payments →
         </Button>
       </div>
 

@@ -129,6 +129,109 @@ export function sendReminderEmail(o: {
   return safeSend({ to: o.to, subject: `${o.title} — ${o.orgName}`, html: shell(o.orgName, o.title, body) });
 }
 
+// ── Operator lifecycle emails ─────────────────────────────────────────────────
+
+export function sendOperatorWelcome(o: {
+  to: string;
+  orgName: string;
+  ownerName: string | null;
+  dashboardUrl: string;
+}) {
+  const body = `
+    <p style="color:#475569;font-size:14px;margin:0 0 18px;">
+      Hi ${o.ownerName ?? "there"} — welcome to Maktaby! Your coworking space <strong>${o.orgName}</strong> is ready.
+    </p>
+    <p style="color:#475569;font-size:14px;margin:0 0 18px;">
+      You're on a 14-day free trial with full access to all features. No credit card required yet.
+    </p>
+    <a href="${o.dashboardUrl}"
+       style="display:inline-block;background:#15803D;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:14px;margin-bottom:24px;">
+      Go to your dashboard →
+    </a>
+    <p style="color:#94a3b8;font-size:12px;margin:0;">
+      Questions? Reply to this email — we're here to help.
+    </p>`;
+  return safeSend({
+    to: o.to,
+    subject: `Welcome to Maktaby — your trial has started`,
+    html: shell(o.orgName, `Welcome, ${o.ownerName ?? "there"}!`, body),
+  });
+}
+
+export function sendTrialEndingWarning(o: {
+  to: string;
+  orgName: string;
+  ownerName: string | null;
+  daysLeft: number;
+  billingUrl: string;
+}) {
+  const body = `
+    <p style="color:#475569;font-size:14px;margin:0 0 18px;">
+      Hi ${o.ownerName ?? "there"} — your Maktaby trial for <strong>${o.orgName}</strong> ends in
+      <strong>${o.daysLeft} day${o.daysLeft !== 1 ? "s" : ""}</strong>.
+    </p>
+    <p style="color:#475569;font-size:14px;margin:0 0 24px;">
+      Choose a plan now to keep uninterrupted access for you and your members.
+    </p>
+    <a href="${o.billingUrl}"
+       style="display:inline-block;background:#15803D;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:14px;margin-bottom:24px;">
+      Choose a plan →
+    </a>`;
+  return safeSend({
+    to: o.to,
+    subject: `Your Maktaby trial ends in ${o.daysLeft} day${o.daysLeft !== 1 ? "s" : ""}`,
+    html: shell(o.orgName, "Trial ending soon", body),
+  });
+}
+
+export function sendTrialExpired(o: {
+  to: string;
+  orgName: string;
+  ownerName: string | null;
+  billingUrl: string;
+}) {
+  const body = `
+    <p style="color:#475569;font-size:14px;margin:0 0 18px;">
+      Hi ${o.ownerName ?? "there"} — your free trial for <strong>${o.orgName}</strong> has ended.
+    </p>
+    <p style="color:#475569;font-size:14px;margin:0 0 24px;">
+      Your data is safe. Choose a plan to restore access in seconds — your members and bookings are waiting.
+    </p>
+    <a href="${o.billingUrl}"
+       style="display:inline-block;background:#15803D;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:14px;margin-bottom:24px;">
+      Upgrade to continue →
+    </a>`;
+  return safeSend({
+    to: o.to,
+    subject: `Your Maktaby trial has ended — upgrade to continue`,
+    html: shell(o.orgName, "Trial ended", body),
+  });
+}
+
+export function sendPaymentFailed(o: {
+  to: string;
+  orgName: string;
+  ownerName: string | null;
+  billingUrl: string;
+}) {
+  const body = `
+    <p style="color:#475569;font-size:14px;margin:0 0 18px;">
+      Hi ${o.ownerName ?? "there"} — we couldn't process your subscription payment for <strong>${o.orgName}</strong>.
+    </p>
+    <p style="color:#475569;font-size:14px;margin:0 0 24px;">
+      Please update your payment method to keep your account active and avoid any disruption for your members.
+    </p>
+    <a href="${o.billingUrl}"
+       style="display:inline-block;background:#DC2626;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:14px;margin-bottom:24px;">
+      Update payment method →
+    </a>`;
+  return safeSend({
+    to: o.to,
+    subject: `Action required — payment failed for ${o.orgName}`,
+    html: shell(o.orgName, "Payment failed", body),
+  });
+}
+
 export function sendInvoiceEmail(o: {
   to: string; memberName: string | null; orgName: string;
   invoiceNumber: string; amount: number; currency: string; dueDate: Date;

@@ -17,7 +17,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { dispatchWhatsAppText } from "@/lib/jobs";
-import { sendReminderEmail } from "@/lib/email";
+import { sendReminderEmail, sendTrialEndingWarning, sendTrialExpired } from "@/lib/email";
 import { decryptField } from "@/lib/encryption";
 import { documentTypeLabel } from "@/lib/document-meta";
 import { createPaymentLink } from "@/lib/payments";
@@ -33,6 +33,8 @@ export type ReminderResult = {
   licenseExpiry: number;
   overdueRequests: number;
   overdueInvoices: number;
+  trialWarnings: number;
+  trialExpired: number;
   total: number;
 };
 
@@ -109,7 +111,8 @@ export async function runDailyReminders(): Promise<ReminderResult> {
   const horizon = new Date(now.getTime() + REMINDER_DAYS * 24 * 60 * 60 * 1000);
   const result: ReminderResult = {
     visaExpiry: 0, documentExpiry: 0, virtualOfficeRenewal: 0,
-    licenseExpiry: 0, overdueRequests: 0, overdueInvoices: 0, total: 0,
+    licenseExpiry: 0, overdueRequests: 0, overdueInvoices: 0,
+    trialWarnings: 0, trialExpired: 0, total: 0,
   };
 
   // ── 1. Visa / residency expiry ────────────────────────────────────────────
@@ -307,8 +310,62 @@ export async function runDailyReminders(): Promise<ReminderResult> {
     result.overdueInvoices++;
   }
 
+  // ── 7. Trial expiry warnings + expired nudges ────────────────────────────
+  const trialOrgs = await prisma.platformSubscription.findMany({
+    where: {
+      status: "TRIAL",
+      trialEndsAt: { not: null },
+    },
+    select: {
+      organizationId: true,
+      trialEndsAt: true,
+      organization: {
+        select: {
+          name: true,
+          email: true,
+          users: {
+            where: { role: "OWNER" },
+            select: { user: { select: { email: true, name: true } } },
+            take: 1,
+          },
+        },
+      },
+    },
+  });
+
+  const billingBase = `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/dashboard/billing`;
+
+  for (const sub of trialOrgs) {
+    if (!sub.trialEndsAt) continue;
+    const daysLeft = daysUntil(sub.trialEndsAt);
+    const ownerEmail =
+      sub.organization.users[0]?.user.email ?? sub.organization.email;
+    const ownerName = sub.organization.users[0]?.user.name ?? null;
+    if (!ownerEmail) continue;
+
+    if (daysLeft === 3) {
+      void sendTrialEndingWarning({
+        to: ownerEmail,
+        orgName: sub.organization.name,
+        ownerName,
+        daysLeft: 3,
+        billingUrl: billingBase,
+      });
+      result.trialWarnings++;
+    } else if (daysLeft <= 0) {
+      void sendTrialExpired({
+        to: ownerEmail,
+        orgName: sub.organization.name,
+        ownerName,
+        billingUrl: billingBase,
+      });
+      result.trialExpired++;
+    }
+  }
+
   result.total =
     result.visaExpiry + result.documentExpiry + result.virtualOfficeRenewal +
-    result.licenseExpiry + result.overdueRequests + result.overdueInvoices;
+    result.licenseExpiry + result.overdueRequests + result.overdueInvoices +
+    result.trialWarnings + result.trialExpired;
   return result;
 }

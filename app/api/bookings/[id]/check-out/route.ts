@@ -17,7 +17,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
   }
 
   const updated = await prisma.booking.update({
-    where: { id: params.id },
+    where: { id: params.id, organizationId: orgId },
     data: { status: "COMPLETED", checkedOutAt: new Date() },
     include: { resource: { select: { id: true, name: true, type: true } }, member: { include: { user: { select: { name: true, email: true } } } } },
   });
