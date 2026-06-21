@@ -1,17 +1,18 @@
 import DodoPayments from "dodopayments";
 import type { Plan } from "@prisma/client";
 
-// Plan → product env-var suffix (PRO is marketed as "Business")
+// Plan → product env-var name (PRO is marketed as "Business").
+// Products are priced in USD; Dodo Adaptive Currency converts to AED/SAR at checkout.
 const PLAN_ENV: Partial<Record<Plan, string>> = {
   STARTER: "STARTER",
   GROWTH: "GROWTH",
   PRO: "BUSINESS",
 };
 
-function productId(plan: Plan, currency: "AED" | "SAR"): string | null {
+function productId(plan: Plan): string | null {
   const key = PLAN_ENV[plan];
   if (!key) return null;
-  return process.env[`DODO_PRODUCT_${key}_${currency}`] ?? null;
+  return process.env[`DODO_PRODUCT_${key}`] ?? null;
 }
 
 function client(): DodoPayments | null {
@@ -34,17 +35,16 @@ export async function createCheckoutSession(
   plan: Plan,
   organizationId: string,
   customerEmail: string,
-  currency: "AED" | "SAR" = "AED",
   customerName?: string | null
 ): Promise<{ checkoutUrl: string }> {
   const c = client();
   if (!c) throw new Error("Dodo Payments not configured (DODO_API_KEY missing)");
 
-  const pid = productId(plan, currency);
+  const pid = productId(plan);
   if (!pid) {
     throw new Error(
-      `No Dodo product configured for plan ${plan} in ${currency}. ` +
-        `Set DODO_PRODUCT_${PLAN_ENV[plan]}_${currency} in env.`
+      `No Dodo product configured for plan ${plan}. ` +
+        `Set DODO_PRODUCT_${PLAN_ENV[plan]} in env.`
     );
   }
 

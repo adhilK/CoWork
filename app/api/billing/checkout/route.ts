@@ -8,7 +8,6 @@
 import { NextResponse } from "next/server";
 import { requireOwnerApi, getCurrentUser } from "@/lib/auth";
 import { createCheckoutSession, isDodoEnabled } from "@/lib/dodo";
-import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import type { Plan } from "@prisma/client";
 
@@ -48,19 +47,11 @@ export async function POST(request: Request) {
     const email = supabaseUser?.email ?? "";
     const name = supabaseUser?.user_metadata?.name as string | undefined;
 
-    // Get the org's currency to select the right product ID
-    const org = await prisma.organization.findUnique({
-      where: { id: auth.organizationId },
-      select: { currency: true },
-    });
-    const currency: "AED" | "SAR" =
-      org?.currency === "SAR" ? "SAR" : "AED";
-
+    // Products are priced in USD; Dodo Adaptive Currency shows AED/SAR at checkout
     const { checkoutUrl } = await createCheckoutSession(
       parsed.data.plan as Plan,
       auth.organizationId,
       email,
-      currency,
       name
     );
 
