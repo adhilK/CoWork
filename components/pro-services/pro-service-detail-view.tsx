@@ -518,7 +518,7 @@ export function ProServiceDetailView({ request, staff, staffMap }: Props) {
             </div>
             <InfoRow label="Fee" value={r.fee != null ? formatCurrency(r.fee, r.currency) : "—"} />
             <InfoRow label="SLA" value={r.slaDays != null ? `${r.slaDays} days` : "—"} />
-            <InfoRow label="Due" value={r.dueDate ? formatDate(r.dueDate) : "—"} highlight={sla === "overdue" ? "red" : sla === "warning" ? "amber" : undefined} />
+            <InfoRow label="Due" value={r.dueDate ? formatDate(r.dueDate) : "—"} highlight={sla === "overdue" ? "red" : sla === "soon" ? "amber" : undefined} />
             <InfoRow label="Created" value={formatDate(r.createdAt)} />
             {r.completedAt && <InfoRow label="Completed" value={formatDate(r.completedAt)} />}
             {r.cancelReason && <InfoRow label="Cancel reason" value={r.cancelReason} />}
