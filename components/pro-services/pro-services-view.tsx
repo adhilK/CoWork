@@ -16,6 +16,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import {
   SERVICE_TYPE_GROUPS, SERVICE_TYPE_LABELS, serviceTypeLabel, PRO_STAGES, OPEN_STAGES,
   PRO_STAGE_LABELS, PRO_STAGE_META, URGENCIES, URGENCY_META, GOVERNING_BODIES, slaStatus,
+  SERVICE_DEFAULT_GOVERNING_BODY,
 } from "@/lib/pro-services/meta";
 
 type Req = {
@@ -250,7 +251,11 @@ export function ProServicesView({ requests, members, staff, staffMap, currency, 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Service type *</Label>
-                <Select value={form.serviceType} onValueChange={(v) => setForm((f) => ({ ...f, serviceType: v ?? "OTHER" }))}>
+                <Select value={form.serviceType} onValueChange={(v) => {
+                  const type = v ?? "OTHER";
+                  const defaultBody = SERVICE_DEFAULT_GOVERNING_BODY[type] ?? "";
+                  setForm((f) => ({ ...f, serviceType: type, governingBody: f.governingBody || defaultBody }));
+                }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {SERVICE_TYPE_GROUPS.map((g) => (

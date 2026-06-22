@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { apiError, apiSuccess } from "@/lib/utils";
 import { requireProServices } from "@/lib/pro-services/access";
-import { ALL_SERVICE_TYPES } from "@/lib/pro-services/meta";
+import { ALL_SERVICE_TYPES, SERVICE_DEFAULT_GOVERNING_BODY, SERVICE_STEP_TEMPLATES } from "@/lib/pro-services/meta";
 import { z } from "zod";
 
 export async function GET(req: NextRequest) {
@@ -69,6 +69,10 @@ export async function POST(req: NextRequest) {
   const slaDays = d.slaDays ?? URGENCY_SLA[d.urgency] ?? 7;
   const dueDate = d.dueDate ?? new Date(Date.now() + slaDays * 24 * 60 * 60 * 1000);
 
+  // Auto-fill governing body and steps from the service type template if not explicitly provided.
+  const defaultGoverningBody = SERVICE_DEFAULT_GOVERNING_BODY[d.serviceType] ?? null;
+  const seedSteps = SERVICE_STEP_TEMPLATES[d.serviceType] ?? [];
+
   const request = await prisma.proServiceRequest.create({
     data: {
       organizationId: auth.organizationId,
@@ -78,7 +82,7 @@ export async function POST(req: NextRequest) {
       serviceType: d.serviceType as any,
       serviceDescription: d.serviceDescription ?? null,
       urgency: d.urgency,
-      governingBody: d.governingBody ?? null,
+      governingBody: d.governingBody || defaultGoverningBody || null,
       referenceNumber: d.referenceNumber ?? null,
       requestedBy: auth.userId,
       fee: d.fee ?? null,
@@ -87,6 +91,7 @@ export async function POST(req: NextRequest) {
       dueDate,
       clientNotes: d.clientNotes ?? null,
       internalNotes: d.internalNotes ?? null,
+      steps: seedSteps as any,
       activities: {
         create: { userId: auth.userId, stage: "SUBMITTED", note: "Request created", isClientVisible: true },
       },

@@ -81,7 +81,7 @@ export async function generateBookingTicket(
 
   ctx.font = `11px ${FONT}`;
   ctx.fillStyle = "rgba(255,255,255,0.5)";
-  ctx.fillText("CoWork Pro — Member Ticket", 24, 96);
+  ctx.fillText("Maktaby — Member Ticket", 24, 96);
 
   // ── Dashed separator ────────────────────────────────────────────────────
   ctx.setLineDash([5, 5]);

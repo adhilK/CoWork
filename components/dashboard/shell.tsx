@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Calendar, Users, FileText, BarChart3,
   Settings, LogOut, Menu, Building2, Bell,
-  CreditCard, UserCheck, MessageSquare, Search, Tag, X, Mailbox, MessageCircle, FolderLock, MapPin, Zap, Landmark, Stamp, Handshake, RefreshCw,
+  CreditCard, UserCheck, MessageSquare, Search, Tag, Mailbox, MessageCircle, FolderLock, MapPin, Zap, Landmark, Stamp, Handshake, RefreshCw,
 } from "lucide-react";
 import { LocaleSwitcher } from "@/components/shared/locale-switcher";
 import { MaktabyLogo } from "@/components/ui/maktaby-logo";
@@ -28,6 +28,8 @@ type Props = {
     trialEndsAt: Date | null; platformSubscriptionStatus: string | null;
   };
   role: UserRole;
+  /** Coworking Space | Business Center | Mixed Use — gates which nav sections appear */
+  businessType: string | null;
   children: React.ReactNode;
 };
 
@@ -113,7 +115,7 @@ const NOTIF_ICONS: Record<string, string> = {
   TRIAL_ENDING: "⏱",
 };
 
-export function DashboardShell({ user, organization, role, children }: Props) {
+export function DashboardShell({ user, organization, role, businessType, children }: Props) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
@@ -141,9 +143,23 @@ export function DashboardShell({ user, organization, role, children }: Props) {
     try { await fetch("/api/notifications", { method: "PATCH" }); } catch {}
   }
 
-  // Filter navigation to what this role is allowed to see; drop empty sections.
+  // Caps hidden per business type:
+  //   Coworking Space  → hide business-setup / PRO-services workflow
+  //   Business Center  → hide coworking workspace (bookings / resources / visitors)
+  //   Mixed Use or null → show everything
+  const HIDDEN_CAPS: Record<string, Capability[]> = {
+    "Coworking Space": ["businessSetup", "proServices"],
+    "Business Center": ["bookings", "resources", "visitors"],
+  };
+  const hiddenCaps = businessType ? (HIDDEN_CAPS[businessType] ?? []) : [];
+
   const visibleSections = NAV_SECTIONS
-    .map((s) => ({ label: s.label, items: s.items.filter((item) => can(role, item.cap)) }))
+    .map((s) => ({
+      label: s.label,
+      items: s.items.filter(
+        (item) => can(role, item.cap) && !hiddenCaps.includes(item.cap)
+      ),
+    }))
     .filter((s) => s.items.length > 0);
   const canSettings = can(role, "settings");
 
@@ -394,11 +410,18 @@ export function DashboardShell({ user, organization, role, children }: Props) {
         <div className="flex items-center justify-around px-1 py-1.5">
           {([
             { href: "/dashboard", label: "Home", icon: LayoutDashboard, exact: true, cap: "dashboard" as Capability },
-            { href: "/dashboard/bookings", label: "Bookings", icon: Calendar, cap: "bookings" as Capability },
-            { href: "/dashboard/resources", label: "Spaces", icon: Building2, cap: "resources" as Capability },
+            // Coworking Space / Mixed Use shortcuts
+            ...(businessType !== "Business Center" ? [
+              { href: "/dashboard/bookings", label: "Bookings", icon: Calendar, cap: "bookings" as Capability },
+              { href: "/dashboard/resources", label: "Spaces", icon: Building2, cap: "resources" as Capability },
+            ] : []),
+            // Business Center / Mixed Use shortcuts
+            ...(businessType === "Business Center" || businessType === "Mixed Use" ? [
+              { href: "/dashboard/business-setup/leads", label: "Biz Setup", icon: Landmark, cap: "businessSetup" as Capability },
+              { href: "/dashboard/pro-services", label: "PRO", icon: Stamp, cap: "proServices" as Capability },
+            ] : []),
             { href: "/dashboard/members", label: "Members", icon: Users, cap: "members" as Capability },
-            { href: "/dashboard/visitors", label: "Visitors", icon: UserCheck, cap: "visitors" as Capability },
-          ].filter((item) => can(role, item.cap)).slice(0, 4)).map((item) => {
+          ].filter((item) => can(role, item.cap) && !hiddenCaps.includes(item.cap)).slice(0, 4)).map((item) => {
             const active = isActive(item.href, item.exact);
             return (
               <Link key={item.href} href={item.href}

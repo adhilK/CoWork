@@ -22,6 +22,12 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   return apiSuccess({ ...r, fee: r.fee == null ? null : Number(r.fee) });
 }
 
+const stepSchema = z.object({
+  step: z.string().min(1).max(200),
+  status: z.enum(["pending", "in_progress", "done"]).default("pending"),
+  completedAt: z.string().optional().nullable(),
+});
+
 const updateSchema = z.object({
   stage: z.enum([
     "SUBMITTED", "DOCUMENTS_PENDING", "DOCUMENTS_RECEIVED", "IN_PROGRESS", "AT_TYPING_CENTRE",
@@ -38,6 +44,7 @@ const updateSchema = z.object({
   serviceDescription: z.string().max(1000).optional().nullable(),
   clientNotes: z.string().max(2000).optional().nullable(),
   internalNotes: z.string().max(2000).optional().nullable(),
+  steps: z.array(stepSchema).optional(),
   // Notify the client on this stage change (default true).
   notifyClient: z.boolean().default(true),
 });
@@ -68,6 +75,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (d.serviceDescription !== undefined) data.serviceDescription = d.serviceDescription;
   if (d.clientNotes !== undefined) data.clientNotes = d.clientNotes;
   if (d.internalNotes !== undefined) data.internalNotes = d.internalNotes;
+  if (d.steps !== undefined) data.steps = d.steps;
 
   let stageChanged = false;
   if (d.stage && d.stage !== request.stage) {

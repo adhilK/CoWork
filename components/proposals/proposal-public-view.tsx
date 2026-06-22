@@ -161,7 +161,7 @@ export function ProposalPublicView({ publicToken, orgName, clientName, lineItems
           </div>
         )}
 
-        <p className="text-center text-[11px] text-gray-300">Powered by CoWork Pro</p>
+        <p className="text-center text-[11px] text-gray-300">Powered by Maktaby</p>
       </div>
     </div>
   );

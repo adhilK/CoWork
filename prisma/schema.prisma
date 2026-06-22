@@ -788,6 +788,7 @@ model Invoice {
   member                    Member                     @relation(fields: [memberId], references: [id])
   bookings                  Booking[]
   virtualOfficeSubscription VirtualOfficeSubscription? @relation(fields: [virtualOfficeSubscriptionId], references: [id])
+  businessSetupProposal     BusinessSetupProposal?
 
   @@index([organizationId])
   @@index([memberId])
@@ -940,6 +941,7 @@ model BusinessSetupLead {
   activities        LeadActivity[]
   proposal          BusinessSetupProposal?
   application        BusinessSetupApplication?
+  documents          Document[]
 
   @@index([organizationId])
   @@index([organizationId, stage])
@@ -977,10 +979,12 @@ model BusinessSetupProposal {
   pdfUrl               String?
   publicToken          String?   @unique  // cuid generated when status → SENT
   publicTokenExpiresAt DateTime?           // mirrors validUntil
+  invoiceId            String?   @unique     // set once Generate Invoice is clicked
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
   lead           BusinessSetupLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  invoice        Invoice?          @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
 
   @@index([organizationId])
 }
@@ -1033,6 +1037,7 @@ model ProServiceRequest {
   cancelReason       String?
   clientNotes        String?         // client-visible
   internalNotes      String?         // operator only
+  steps              Json            @default("[]")  // [{ step, status }] per-service checklist
   deletedAt          DateTime?
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
@@ -1383,15 +1388,17 @@ model Document {
   notes             String?
   version           Int          @default(1)
   previousVersionId String?      // chain to the prior version of this document
-  proServiceRequestId String?                // optional link to a PRO service request
-  uploadedBy          String?                // userId who uploaded (member or operator)
-  uploadedAt          DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  deletedAt           DateTime?              // soft delete (also used to retire old versions)
+  proServiceRequestId  String?                // optional link to a PRO service request
+  businessSetupLeadId  String?                // optional link to a Business Setup lead
+  uploadedBy           String?                // userId who uploaded (member or operator)
+  uploadedAt           DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  deletedAt            DateTime?              // soft delete (also used to retire old versions)
 
-  organization        Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  member              Member            @relation(fields: [memberId], references: [id])
-  proServiceRequest   ProServiceRequest? @relation(fields: [proServiceRequestId], references: [id], onDelete: SetNull)
+  organization         Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member               Member              @relation(fields: [memberId], references: [id])
+  proServiceRequest    ProServiceRequest?  @relation(fields: [proServiceRequestId], references: [id], onDelete: SetNull)
+  businessSetupLead    BusinessSetupLead?  @relation(fields: [businessSetupLeadId], references: [id], onDelete: SetNull)
 
   @@index([organizationId])
   @@index([memberId])
@@ -1399,6 +1406,7 @@ model Document {
   @@index([organizationId, deletedAt])
   @@index([memberId, deletedAt])
   @@index([proServiceRequestId])
+  @@index([businessSetupLeadId])
 }
 
 model DocumentRequest {

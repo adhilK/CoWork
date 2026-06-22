@@ -34,6 +34,7 @@ export type AuthContext = {
     timezone: string;
     trialEndsAt: Date | null;
     platformSubscriptionStatus: "TRIAL" | "ACTIVE" | "PAST_DUE" | "CANCELLED" | "EXPIRED" | null;
+    businessType: string | null;
   };
 };
 
@@ -68,6 +69,7 @@ export const getAuthContext = cache(async (): Promise<AuthContext | null> => {
           jurisdiction: true,
           timezone: true,
           trialEndsAt: true,
+          businessType: true,
           platformSubscription: { select: { status: true } },
         },
       },
@@ -88,6 +90,7 @@ export const getAuthContext = cache(async (): Promise<AuthContext | null> => {
     organization: {
       ...userOrg.organization,
       platformSubscriptionStatus: userOrg.organization.platformSubscription?.status ?? null,
+      businessType: userOrg.organization.businessType ?? null,
     },
   };
 });

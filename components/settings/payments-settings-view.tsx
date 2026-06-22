@@ -342,7 +342,7 @@ export function PaymentsSettingsView({
                 id="accountName"
                 value={bank.accountName}
                 onChange={(e) => setBank((b) => ({ ...b, accountName: e.target.value }))}
-                placeholder="e.g. CoWork Pro LLC"
+                placeholder="e.g. Maktaby LLC"
                 disabled={!isOwner}
               />
             </div>

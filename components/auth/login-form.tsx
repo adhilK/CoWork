@@ -39,10 +39,9 @@ export function LoginForm() {
       return;
     }
 
-    // Redirect to root — the server routes by role (MEMBER → /portal,
-    // OWNER/ADMIN → /dashboard). Never hardcode /dashboard here or members
-    // would briefly hit the admin shell.
-    window.location.href = "/";
+    // Dashboard layout redirects MEMBER → /portal and no-org users → /onboarding,
+    // so /dashboard is safe for all roles.
+    window.location.href = "/dashboard";
   }
 
   async function signInWithGoogle() {

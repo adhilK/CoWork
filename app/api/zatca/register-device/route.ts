@@ -7,7 +7,7 @@ import { z } from "zod";
 
 const schema = z.object({
   otp: z.string().min(4, "OTP is required"),
-  deviceName: z.string().min(1).max(100).default("CoWork Pro"),
+  deviceName: z.string().min(1).max(100).default("Maktaby"),
 });
 
 export async function POST(req: NextRequest) {

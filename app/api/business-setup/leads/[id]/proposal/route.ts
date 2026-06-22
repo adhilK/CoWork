@@ -93,18 +93,30 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (action === "accept") { data.status = "ACCEPTED"; data.acceptedAt = new Date(); }
   if (action === "reject") { data.status = "REJECTED"; }
 
+  const FORWARD_STAGES = ["NEW_ENQUIRY","QUALIFIED","PROPOSAL_SENT","DOCUMENTS_COLLECTION","SUBMITTED_TO_AUTHORITY","AWAITING_APPROVAL","APPROVED","COMPLETED"];
+  const stageIdx = (s: string) => FORWARD_STAGES.indexOf(s);
+  const canAdvanceTo = (current: string, target: string) => current !== "LOST" && stageIdx(current) >= 0 && stageIdx(current) < stageIdx(target);
+
   const updated = await prisma.$transaction(async (tx) => {
     const p = await tx.businessSetupProposal.update({ where: { leadId: lead.id }, data });
     if (action === "send") {
-      // Advance the pipeline + log
-      if (lead.stage === "NEW_ENQUIRY" || lead.stage === "QUALIFIED") {
+      if (canAdvanceTo(lead.stage, "PROPOSAL_SENT")) {
         await tx.businessSetupLead.update({ where: { id: lead.id }, data: { stage: "PROPOSAL_SENT" } });
+        await tx.leadActivity.create({
+          data: { leadId: lead.id, userId: auth.userId, activityType: "STAGE_CHANGE", note: "Stage → Proposal Sent" },
+        });
       }
       await tx.leadActivity.create({
         data: { leadId: lead.id, userId: auth.userId, activityType: "PROPOSAL_SENT", note: `Proposal sent — ${formatCurrency(Number(p.totalFee), p.currency)}` },
       });
     }
     if (action === "accept") {
+      if (canAdvanceTo(lead.stage, "DOCUMENTS_COLLECTION")) {
+        await tx.businessSetupLead.update({ where: { id: lead.id }, data: { stage: "DOCUMENTS_COLLECTION" } });
+        await tx.leadActivity.create({
+          data: { leadId: lead.id, userId: auth.userId, activityType: "STAGE_CHANGE", note: "Stage → Documents Collection" },
+        });
+      }
       await tx.leadActivity.create({ data: { leadId: lead.id, userId: auth.userId, activityType: "NOTE", note: "Proposal accepted by client" } });
     }
     return p;
@@ -124,6 +136,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       relatedEntityType: "business_setup_proposal",
       relatedEntityId: lead.id,
       body: `Hi ${lead.clientName}, your business setup proposal is ready — total ${formatCurrency(Number(updated.totalFee), updated.currency)}, valid until ${new Date(updated.validUntil).toLocaleDateString("en-GB")}.${linkLine}`,
+    });
+  }
+
+  // Notify the client on accept — prompt them to prepare documents.
+  if (action === "accept" && lead.clientWhatsapp) {
+    await dispatchWhatsAppText({
+      organizationId: auth.organizationId,
+      to: lead.clientWhatsapp,
+      messageType: "CUSTOM",
+      relatedEntityType: "business_setup_proposal",
+      relatedEntityId: lead.id,
+      body: `Hi ${lead.clientName}, we have received your acceptance of the proposal for ${lead.companyName ?? "your business setup"}. We will now begin collecting the required documents to proceed with your application. Our team will be in touch shortly.`,
     });
   }
 

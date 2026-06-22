@@ -75,6 +75,8 @@ const metadataSchema = z.object({
   replaceDocumentId: z.string().cuid().optional().nullable(),
   // Optional link to a PRO service request.
   proServiceRequestId: z.string().cuid().optional().nullable(),
+  // Optional link to a Business Setup lead.
+  businessSetupLeadId: z.string().cuid().optional().nullable(),
 });
 
 export async function POST(req: NextRequest) {
@@ -129,6 +131,15 @@ export async function POST(req: NextRequest) {
     if (!proReq) return apiError("PRO service request not found", 404);
   }
 
+  // If linking to a Business Setup lead, verify it belongs to the same org.
+  if (d.businessSetupLeadId) {
+    const bsLead = await prisma.businessSetupLead.findFirst({
+      where: { id: d.businessSetupLeadId, organizationId: access.organizationId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!bsLead) return apiError("Business Setup lead not found", 404);
+  }
+
   // If replacing, validate the target belongs to the same member/org.
   let replacing = null as null | { id: string; version: number };
   if (d.replaceDocumentId) {
@@ -165,6 +176,7 @@ export async function POST(req: NextRequest) {
           documentNumber: encryptField(d.documentNumber ?? null),
           notes: d.notes ?? null,
           proServiceRequestId: d.proServiceRequestId ?? null,
+          businessSetupLeadId: d.businessSetupLeadId ?? null,
           uploadedBy: access.userId,
           version: replacing ? replacing.version + 1 : 1,
           previousVersionId: replacing ? replacing.id : null,

@@ -59,6 +59,7 @@ export default async function DashboardLayout({
         platformSubscriptionStatus: ctx.organization.platformSubscriptionStatus,
       }}
       role={ctx.role}
+      businessType={ctx.organization.businessType}
     >
       {children}
     </DashboardShell>

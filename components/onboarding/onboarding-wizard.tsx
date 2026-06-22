@@ -18,7 +18,11 @@ import { cn } from "@/lib/utils";
 
 type Jurisdiction = "UAE" | "KSA";
 
-const BUSINESS_TYPES = ["Coworking Space", "Business Center", "Serviced Offices", "Mixed Use"];
+const BUSINESS_TYPES: { value: string; label: string; sub: string }[] = [
+  { value: "Coworking Space", label: "Coworking Space", sub: "Hot desks, offices, meeting rooms & virtual addresses" },
+  { value: "Business Center", label: "Business Center", sub: "Company formation, PRO services & visa processing" },
+  { value: "Mixed Use", label: "Mixed Use", sub: "Full workspace + business services — everything enabled" },
+];
 
 const CITIES: Record<Jurisdiction, string[]> = {
   UAE: ["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Ras Al Khaimah", "Other"],
@@ -514,10 +518,21 @@ function Step1({ state, set, currency, vat, cities }: {
 
         <div className="space-y-2">
           <Label>Business type</Label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2">
             {BUSINESS_TYPES.map((t) => (
-              <ChoiceCard key={t} active={state.businessType === t} onClick={() => set("businessType", t)}>
-                <span className="text-sm font-medium text-gray-800">{t}</span>
+              <ChoiceCard key={t.value} active={state.businessType === t.value} onClick={() => set("businessType", t.value)}>
+                <div className="flex items-start gap-3">
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-900">{t.label}</p>
+                    <p className="text-[11px] text-gray-500 mt-0.5">{t.sub}</p>
+                  </div>
+                  {state.businessType === t.value && (
+                    <span className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5"
+                      style={{ background: "linear-gradient(135deg,#15803D,#22C55E)" }}>
+                      <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4L3.5 6L6.5 2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </span>
+                  )}
+                </div>
               </ChoiceCard>
             ))}
           </div>

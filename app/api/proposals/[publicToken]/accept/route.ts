@@ -24,23 +24,33 @@ export async function POST(_req: NextRequest, { params }: { params: { publicToke
     return NextResponse.json({ error: "Proposal is no longer accepting responses", status: proposal.status });
   }
 
+  const FORWARD_STAGES = ["NEW_ENQUIRY","QUALIFIED","PROPOSAL_SENT","DOCUMENTS_COLLECTION","SUBMITTED_TO_AUTHORITY","AWAITING_APPROVAL","APPROVED","COMPLETED"];
+  const stageIdx = (s: string) => FORWARD_STAGES.indexOf(s);
+  const shouldAdvance = proposal.lead.stage !== "LOST" && stageIdx(proposal.lead.stage) < stageIdx("DOCUMENTS_COLLECTION");
+
   await prisma.$transaction(async (tx) => {
     await tx.businessSetupProposal.update({
       where: { id: proposal.id },
       data: { status: "ACCEPTED", acceptedAt: new Date() },
     });
-    // Advance the lead to APPROVED if still at an earlier stage.
-    const advanceable = ["NEW_ENQUIRY", "QUALIFIED", "PROPOSAL_SENT", "DOCUMENTS_COLLECTION"];
-    if (advanceable.includes(proposal.lead.stage)) {
+    if (shouldAdvance) {
       await tx.businessSetupLead.update({
         where: { id: proposal.lead.id },
-        data: { stage: "AWAITING_APPROVAL" },
+        data: { stage: "DOCUMENTS_COLLECTION" },
+      });
+      await tx.leadActivity.create({
+        data: {
+          leadId: proposal.lead.id,
+          userId: proposal.lead.organizationId,
+          activityType: "STAGE_CHANGE",
+          note: "Stage → Documents Collection",
+        },
       });
     }
     await tx.leadActivity.create({
       data: {
         leadId: proposal.lead.id,
-        userId: proposal.lead.organizationId, // system actor — org id as placeholder
+        userId: proposal.lead.organizationId,
         activityType: "NOTE",
         note: "Client accepted proposal via portal link",
       },

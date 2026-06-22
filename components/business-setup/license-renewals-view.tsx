@@ -33,7 +33,7 @@ export function LicenseRenewalsView() {
   useEffect(() => {
     fetch("/api/business-setup/renewals")
       .then((r) => r.json())
-      .then((d) => setRenewals(d.data?.renewals ?? []))
+      .then((d) => setRenewals(d.renewals ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

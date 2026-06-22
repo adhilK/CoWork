@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft, Phone, Mail, MessageCircle, Loader2, Plus, Trash2, Send, Download,
   Trophy, XCircle, UserPlus, Check, FileText, ClipboardList, Activity as ActivityIcon, Info,
+  Receipt, Paperclip, FileUp, CheckCircle2, Circle, AlertCircle, ShieldCheck, ChevronRight, Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,12 +21,27 @@ import {
   ACTIVITY_META, activityGlyph, activityLabel, stageLabel,
 } from "@/lib/business-setup/meta";
 import { licenseTypeLabel } from "@/lib/license-catalog/uae";
+import { getBsDocumentRequirements } from "@/lib/business-setup/document-requirements";
+
+const DOC_TYPE_LABELS: Record<string, string> = {
+  PASSPORT: "Passport",
+  EMIRATES_ID: "Emirates ID",
+  VISA: "Visa / Residence permit",
+  MOA: "Memorandum of Association",
+  AOA: "Articles of Association",
+  EJARI: "Ejari / Tenancy contract",
+  TENANCY_CONTRACT: "Tenancy / Lease contract",
+  BANK_STATEMENT: "Bank statement / Reference letter",
+  POWER_OF_ATTORNEY: "Power of attorney",
+  POLICE_CLEARANCE: "Police clearance certificate",
+};
 
 type Activity = { id: string; activityType: string; note: string; userId: string; createdAt: string };
 type Proposal = {
   id: string; lineItems: { service: string; description?: string | null; fee: number }[];
   subtotal: number; totalFee: number; currency: string; validUntil: string;
   status: string; notes: string | null; sentAt: string | null; acceptedAt: string | null;
+  invoiceId: string | null; publicToken: string | null;
 } | null;
 type Application = {
   id: string; referenceNumber: string | null; authorityName: string | null; currentStep: string | null;
@@ -151,12 +167,14 @@ export function LeadDetailView({ lead, staff, staffMap }: Props) {
             </Button>
           </>
         )}
-        {!lead.member && (lead.stage === "COMPLETED" || lead.stage === "APPROVED") && (
+        {!lead.member && lead.proposal?.status === "ACCEPTED" && lead.stage !== "LOST" && (
           <Button size="sm" className="h-8 text-xs text-white" style={{ background: "linear-gradient(135deg, #15803D, #22C55E)" }} onClick={convert} disabled={busy}>
             <UserPlus className="w-3.5 h-3.5 mr-1" /> Convert to member
           </Button>
         )}
       </div>
+
+      <NextActionBanner lead={lead} onConvert={convert} onSwitchTab={setTab} />
 
       {/* Tabs */}
       <div className="flex items-center gap-1 border-b border-gray-100">
@@ -242,6 +260,72 @@ function Overview({ lead, staff, staffMap, patchLead, busy }: {
   patchLead: (p: any, m?: string) => Promise<boolean>; busy: boolean;
 }) {
   const [quote, setQuote] = useState(lead.quotedFee?.toString() ?? "");
+
+  type DocItem = { id: string; fileName: string; mimeType: string; fileSize: number; documentType: string; label: string | null; uploadedAt: string; downloadUrl: string | null };
+  const [docs, setDocs] = useState<DocItem[]>([]);
+  const [docsLoading, setDocsLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingDocType, setPendingDocType] = useState("PASSPORT");
+  const [pendingLabel, setPendingLabel] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  // Ref so onChange can read the checklist-triggered label synchronously
+  const itemLabelRef = useRef<string | null>(null);
+
+  // Build type options from this license type's requirements, deduped
+  const typeOptions = (() => {
+    const reqs = getBsDocumentRequirements(lead.licenseType);
+    const seen = new Set<string>();
+    const opts: { type: string; label: string }[] = [];
+    for (const req of reqs) {
+      if (!seen.has(req.documentType)) {
+        seen.add(req.documentType);
+        opts.push({ type: req.documentType, label: req.documentType === "OTHER" ? "Other" : (DOC_TYPE_LABELS[req.documentType] ?? req.documentType) });
+      }
+    }
+    if (!seen.has("OTHER")) opts.push({ type: "OTHER", label: "Other" });
+    return opts;
+  })();
+
+  useEffect(() => {
+    setDocsLoading(true);
+    fetch(`/api/business-setup/leads/${lead.id}/documents`)
+      .then((res) => res.json())
+      .then((data) => setDocs(data.documents ?? []))
+      .catch(() => {})
+      .finally(() => setDocsLoading(false));
+  }, [lead.id]);
+
+  async function uploadDoc(file: File, docType: string) {
+    setUploading(true);
+    try {
+      const memberId = lead.member?.id;
+      if (!memberId) { toast.error("Convert lead to a member first to attach documents"); return; }
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("metadata", JSON.stringify({
+        memberId,
+        documentType: docType,
+        label: pendingLabel ?? file.name.replace(/\.[^.]+$/, ""),
+        businessSetupLeadId: lead.id,
+      }));
+      const res = await fetch("/api/documents", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success("Document attached");
+      setPendingFile(null);
+      setPendingLabel(null);
+      const refreshed = await fetch(`/api/business-setup/leads/${lead.id}/documents`).then((r) => r.json());
+      setDocs(refreshed.documents ?? []);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed");
+    } finally { setUploading(false); }
+  }
+
+  function triggerUploadForItem(label: string) {
+    itemLabelRef.current = label;
+    fileRef.current?.click();
+  }
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div className="lg:col-span-2 space-y-4">
@@ -276,6 +360,8 @@ function Overview({ lead, staff, staffMap, patchLead, busy }: {
             </div>
           )}
         </div>
+
+        <DocumentChecklist licenseType={lead.licenseType} docs={docs} docsLoading={docsLoading} onUploadClick={() => fileRef.current?.click()} onUploadForItem={triggerUploadForItem} canUpload={!!lead.member} />
       </div>
 
       <div className="space-y-4">
@@ -314,7 +400,250 @@ function Overview({ lead, staff, staffMap, patchLead, busy }: {
             </Link>
           </div>
         )}
+
+        <div className="dashboard-card p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+              <Paperclip className="w-3.5 h-3.5 text-gray-400" /> Documents
+              {docs.length > 0 && <span className="text-[11px] text-gray-400 font-normal">({docs.length})</span>}
+            </h2>
+            <button onClick={() => fileRef.current?.click()} disabled={uploading || !lead.member || !!pendingFile}
+              title={!lead.member ? "Convert lead to member first" : "Upload document"}
+              className="h-7 w-7 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 disabled:opacity-40">
+              <FileUp className="w-3.5 h-3.5" />
+            </button>
+            <input ref={fileRef} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) {
+                  const itemLabel = itemLabelRef.current;
+                  itemLabelRef.current = null;
+                  if (itemLabel) {
+                    // Triggered from a checklist item — lock type to OTHER and pre-set label
+                    setPendingDocType("OTHER");
+                    setPendingLabel(itemLabel);
+                    setPendingFile(f);
+                  } else {
+                    const name = f.name.toLowerCase();
+                    let suggested = typeOptions[0]?.type ?? "PASSPORT";
+                    if (name.includes("passport")) suggested = "PASSPORT";
+                    else if (name.includes("visa")) suggested = "VISA";
+                    else if (name.includes("emirates") || name.includes("eid")) suggested = "EMIRATES_ID";
+                    else if (name.includes("moa") || name.includes("memorandum")) suggested = "MOA";
+                    else if (name.includes("ejari") || name.includes("tenancy") || name.includes("lease")) suggested = "EJARI";
+                    else if (name.includes("bank")) suggested = "BANK_STATEMENT";
+                    else if (name.includes("poa") || name.includes("attorney")) suggested = "POWER_OF_ATTORNEY";
+                    setPendingDocType(suggested);
+                    setPendingFile(f);
+                  }
+                }
+                e.target.value = "";
+              }} />
+          </div>
+          {pendingFile && (
+            <div className="rounded-lg border border-emerald-100 bg-emerald-50/40 p-3 space-y-2">
+              <p className="text-[11px] font-medium text-gray-700 truncate">{pendingFile.name}</p>
+              {pendingLabel ? (
+                <p className="text-[11px] text-emerald-700 font-medium">→ {pendingLabel}</p>
+              ) : (
+                <Select value={pendingDocType} onValueChange={setPendingDocType}>
+                  <SelectTrigger className="h-8 text-xs bg-white"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {typeOptions.map((opt) => (
+                      <SelectItem key={opt.type} value={opt.type}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <div className="flex gap-2">
+                <Button size="sm" disabled={uploading} onClick={() => uploadDoc(pendingFile, pendingDocType)}
+                  className="h-7 text-xs flex-1 text-white" style={{ background: "linear-gradient(135deg,#15803D,#22C55E)" }}>
+                  {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null} Upload
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs" disabled={uploading} onClick={() => { setPendingFile(null); setPendingLabel(null); }}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+          {docsLoading ? (
+            <p className="text-[11px] text-gray-400">Loading…</p>
+          ) : docs.length === 0 ? (
+            <p className="text-[11px] text-gray-400">{lead.member ? "No documents attached." : "Convert lead to member to attach documents."}</p>
+          ) : (
+            <div className="space-y-1.5">
+              {docs.map((d) => (
+                <div key={d.id} className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2">
+                  <span className="text-[11px] text-gray-700 flex-1 truncate">{d.label ?? d.fileName}</span>
+                  {d.downloadUrl && (
+                    <a href={d.downloadUrl} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-600">
+                      <Download className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
+    </div>
+  );
+}
+
+// ── Document completeness checklist ───────────────────────────────────────────
+type DocItem = { id: string; documentType: string; label: string | null; fileName: string };
+function DocumentChecklist({ licenseType, docs, docsLoading, onUploadClick, onUploadForItem, canUpload }: {
+  licenseType: string;
+  docs: DocItem[];
+  docsLoading: boolean;
+  onUploadClick: () => void;
+  onUploadForItem: (label: string) => void;
+  canUpload: boolean;
+}) {
+  const requirements = getBsDocumentRequirements(licenseType);
+  if (requirements.length === 0) return null;
+
+  const uploadedTypes = new Set(docs.map((d) => d.documentType));
+  // For OTHER items: match by the exact label stored at upload time
+  const uploadedOtherLabels = new Set(
+    docs.filter((d) => d.documentType === "OTHER").map((d) => d.label ?? "")
+  );
+
+  const rows = requirements.map((req) => {
+    if (req.documentType === "OTHER") {
+      const done = uploadedOtherLabels.has(req.label);
+      return { ...req, status: done ? "done" as const : "review" as const };
+    }
+    return { ...req, status: uploadedTypes.has(req.documentType) ? "done" as const : "missing" as const };
+  });
+
+  const required = rows.filter((r) => !r.optional);
+  const detectedDone = required.filter((r) => r.status === "done").length;
+  const detectable = required.filter((r) => r.documentType !== "OTHER").length;
+  const pct = detectable > 0 ? Math.round((detectedDone / detectable) * 100) : 0;
+  const allDone = detectable > 0 && detectedDone === detectable;
+
+  return (
+    <div className="dashboard-card p-5 space-y-3">
+      <div className="flex items-center gap-2">
+        <ShieldCheck className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+        <h2 className="text-sm font-semibold text-gray-900 flex-1">Document checklist</h2>
+        {allDone ? (
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-700">Complete</span>
+        ) : (
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600">{detectedDone}/{detectable} detected</span>
+        )}
+      </div>
+
+      {/* Progress bar */}
+      {detectable > 0 && (
+        <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
+          <div className="h-full rounded-full transition-all duration-500"
+            style={{ width: `${pct}%`, background: allDone ? "#16A34A" : "#F59E0B" }} />
+        </div>
+      )}
+
+      {docsLoading ? (
+        <p className="text-[11px] text-gray-400">Checking uploaded documents…</p>
+      ) : (
+        <div className="space-y-2">
+          {rows.map((req, i) => (
+            <div key={i} className="flex items-start gap-2">
+              {req.status === "done" ? (
+                <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+              ) : req.status === "review" ? (
+                <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+              ) : (
+                <Circle className="w-4 h-4 text-gray-300 flex-shrink-0 mt-0.5" />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className={cn(
+                  "text-[12px] leading-snug",
+                  req.status === "done" ? "text-gray-400 line-through" : "text-gray-700",
+                )}>
+                  {req.label}
+                  {req.optional && <span className="ml-1 text-gray-400 no-underline">(optional)</span>}
+                </p>
+                {req.status === "review" && canUpload && (
+                  <button onClick={() => onUploadForItem(req.label)}
+                    className="text-[10px] text-amber-500 hover:text-amber-700 mt-0.5 underline underline-offset-2 text-left">
+                    Upload to mark complete
+                  </button>
+                )}
+                {req.status === "review" && !canUpload && (
+                  <p className="text-[10px] text-amber-500 mt-0.5">Upload manually to mark complete</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!canUpload ? (
+        <p className="text-[11px] text-gray-400 pt-1">Convert lead to member to enable document uploads.</p>
+      ) : (
+        <button onClick={onUploadClick}
+          className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 hover:text-emerald-700">
+          <FileUp className="w-3 h-3" /> Upload a document
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ── Next-action banner ────────────────────────────────────────────────────────
+function NextActionBanner({ lead, onConvert, onSwitchTab }: {
+  lead: Lead;
+  onConvert: () => void;
+  onSwitchTab: (tab: "overview" | "activity" | "proposal" | "application") => void;
+}) {
+  if (lead.stage === "LOST" || lead.stage === "COMPLETED") return null;
+
+  type Action = { message: string; cta?: string; onClick?: () => void; waiting?: boolean };
+  let action: Action | null = null;
+
+  if (!lead.proposal) {
+    action = { message: "Build a proposal for this client", cta: "Open Proposal", onClick: () => onSwitchTab("proposal") };
+  } else if (lead.proposal.status === "DRAFT") {
+    action = { message: "Proposal saved as draft — send it to the client when ready", cta: "Open Proposal", onClick: () => onSwitchTab("proposal") };
+  } else if (lead.proposal.status === "SENT") {
+    action = { message: "Proposal sent — waiting for client acceptance", waiting: true };
+  } else if (lead.proposal.status === "REJECTED") {
+    action = { message: "Proposal was rejected — revise and re-send", cta: "Open Proposal", onClick: () => onSwitchTab("proposal") };
+  } else if (lead.proposal.status === "ACCEPTED") {
+    if (!lead.member) {
+      action = { message: "Proposal accepted — convert to member to enable document uploads and invoicing", cta: "Convert now", onClick: onConvert };
+    } else if (!lead.proposal.invoiceId) {
+      action = { message: "Proposal accepted — generate an invoice for this client", cta: "Open Proposal", onClick: () => onSwitchTab("proposal") };
+    } else if (!lead.application) {
+      action = { message: "Invoice issued — start tracking the formation application", cta: "Open Application", onClick: () => onSwitchTab("application") };
+    } else if (!lead.application.referenceNumber) {
+      action = { message: "Submit the application to the authority and record the reference number", cta: "Open Application", onClick: () => onSwitchTab("application") };
+    } else if (!lead.application.licenseNumber) {
+      action = { message: "Application submitted — waiting for authority decision", waiting: true };
+    }
+    // license number set → stage auto-advanced to APPROVED, "Mark won" button is visible above
+  }
+
+  if (!action) return null;
+
+  const isWaiting = !!action.waiting;
+  return (
+    <div className={cn(
+      "flex items-center gap-3 px-4 py-2.5 rounded-xl border text-sm",
+      isWaiting ? "bg-gray-50 border-gray-100 text-gray-600" : "bg-amber-50 border-amber-100 text-amber-900",
+    )}>
+      <Info className={cn("w-4 h-4 flex-shrink-0", isWaiting ? "text-gray-400" : "text-amber-500")} />
+      <span className="flex-1">{action.message}</span>
+      {action.cta && action.onClick && (
+        <button onClick={action.onClick}
+          className={cn(
+            "inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors flex-shrink-0",
+            isWaiting ? "border-gray-200 text-gray-600 hover:bg-gray-100" : "border-amber-200 text-amber-700 hover:bg-amber-100",
+          )}>
+          {action.cta} <ChevronRight className="w-3 h-3" />
+        </button>
+      )}
     </div>
   );
 }
@@ -338,6 +667,18 @@ function ProposalTab({ lead, busy, setBusy }: { lead: Lead; busy: boolean; setBu
   );
   const [validUntil, setValidUntil] = useState(p ? p.validUntil.slice(0, 10) : new Date(Date.now() + 14 * 864e5).toISOString().slice(0, 10));
   const [notes, setNotes] = useState(p?.notes ?? "");
+  const [invoiceId, setInvoiceId] = useState(p?.invoiceId ?? null);
+  const [invoiceBusy, setInvoiceBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  function copyProposalLink() {
+    if (!p?.publicToken) return;
+    const url = `${window.location.origin}/proposals/${p.publicToken}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   const total = items.reduce((s, i) => s + (Number(i.fee) || 0), 0);
 
@@ -368,6 +709,19 @@ function ProposalTab({ lead, busy, setBusy }: { lead: Lead; busy: boolean; setBu
       router.refresh();
     } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
     finally { setBusy(false); }
+  }
+
+  async function generateInvoice() {
+    setInvoiceBusy(true);
+    try {
+      const res = await fetch(`/api/business-setup/leads/${lead.id}/invoice`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success(`Invoice ${data.invoiceNumber} generated`);
+      setInvoiceId(data.invoiceId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to generate invoice");
+    } finally { setInvoiceBusy(false); }
   }
 
   return (
@@ -416,12 +770,32 @@ function ProposalTab({ lead, busy, setBusy }: { lead: Lead; busy: boolean; setBu
             <a href={`/api/business-setup/leads/${lead.id}/proposal/pdf`} target="_blank" rel="noreferrer">
               <Button variant="outline"><Download className="w-4 h-4 mr-1.5" /> PDF</Button>
             </a>
+            {p.publicToken && (
+              <Button variant="outline" onClick={copyProposalLink}>
+                {copied ? <Check className="w-4 h-4 mr-1.5 text-emerald-500" /> : <Link2 className="w-4 h-4 mr-1.5" />}
+                {copied ? "Copied!" : "Copy link"}
+              </Button>
+            )}
             {p.status === "DRAFT" && <Button variant="outline" onClick={() => action("send")} disabled={busy}><Send className="w-4 h-4 mr-1.5" /> Send</Button>}
             {p.status === "SENT" && (
               <>
                 <Button variant="outline" className="text-emerald-600 border-emerald-100" onClick={() => action("accept")} disabled={busy}><Check className="w-4 h-4 mr-1.5" /> Accepted</Button>
                 <Button variant="outline" className="text-red-500 border-red-100" onClick={() => action("reject")} disabled={busy}>Rejected</Button>
               </>
+            )}
+            {p.status === "ACCEPTED" && (
+              invoiceId ? (
+                <Link href={`/dashboard/invoices?id=${invoiceId}`}
+                  className="inline-flex items-center gap-1.5 text-sm text-emerald-600 hover:text-emerald-700 font-medium ml-1">
+                  <Receipt className="w-4 h-4" /> View invoice
+                </Link>
+              ) : (
+                <Button variant="outline" onClick={generateInvoice} disabled={invoiceBusy || !lead.member}
+                  title={!lead.member ? "Convert lead to member first" : undefined}>
+                  {invoiceBusy ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Receipt className="w-4 h-4 mr-1.5" />}
+                  Generate invoice
+                </Button>
+              )
             )}
           </>
         )}

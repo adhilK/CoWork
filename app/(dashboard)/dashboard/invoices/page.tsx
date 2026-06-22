@@ -8,7 +8,7 @@ import { getVatRate } from "@/lib/jurisdiction";
 export const metadata: Metadata = { title: "Invoices — Maktaby" };
 export const dynamic = "force-dynamic";
 
-export default async function InvoicesPage({ searchParams }: { searchParams: { page?: string; status?: string } }) {
+export default async function InvoicesPage({ searchParams }: { searchParams: { page?: string; status?: string; id?: string } }) {
   const ctx = await getAuthContext();
   if (!ctx) redirect("/login");
   const userOrg = { organizationId: ctx.organizationId, organization: ctx.organization };
@@ -90,6 +90,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: { p
       members={members as any}
       organizationId={userOrg.organizationId}
       unbilledBookings={unbilledBookings as any}
+      highlightId={searchParams.id}
     />
   );
 }

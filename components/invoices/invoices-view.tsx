@@ -47,7 +47,7 @@ type Member = { id: string; user: { name: string | null; email: string } };
 type Props = {
   invoices: Invoice[]; total: number; page: number; limit: number;
   summary: Summary[]; collectedThisMonth: number; currency: string; vatRate: number; members: Member[];
-  organizationId: string; unbilledBookings: UnbilledBooking[];
+  organizationId: string; unbilledBookings: UnbilledBooking[]; highlightId?: string;
 };
 
 // Group unbilled bookings by member
@@ -195,13 +195,25 @@ function GenerateInvoiceDialog({
   );
 }
 
-export function InvoicesView({ invoices, total, page, limit, summary, collectedThisMonth, currency, vatRate, members, organizationId, unbilledBookings }: Props) {
+export function InvoicesView({ invoices, total, page, limit, summary, collectedThisMonth, currency, vatRate, members, organizationId, unbilledBookings, highlightId }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [createOpen, setCreateOpen] = useState(false);
   const [generateDialog, setGenerateDialog] = useState<ReturnType<typeof groupByMember>[0] | null>(null);
   const [expandedUnbilled, setExpandedUnbilled] = useState(true);
+
+  useEffect(() => {
+    if (!highlightId) return;
+    const timer = setTimeout(() => {
+      const el = document.querySelector(`[data-invoice-id="${highlightId}"]`);
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        window.scrollTo({ top: window.scrollY + rect.top - 120, behavior: "smooth" });
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [highlightId]);
 
   const totalPages = Math.ceil(total / limit);
   const memberGroups = groupByMember(unbilledBookings);
@@ -368,7 +380,7 @@ export function InvoicesView({ invoices, total, page, limit, summary, collectedT
           {/* Mobile cards */}
           <div className="sm:hidden dashboard-card divide-y divide-gray-50 overflow-hidden">
             {invoices.map((inv) => (
-              <div key={inv.id} className="flex items-center gap-3 px-4 py-3">
+              <div key={inv.id} data-invoice-id={inv.id} className={cn("flex items-center gap-3 px-4 py-3 transition-colors", highlightId === inv.id ? "border-l-4 border-emerald-400 bg-emerald-50 pl-3" : "border-l-4 border-transparent")}>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-mono text-gray-500">{inv.invoiceNumber}</span>
@@ -427,10 +439,10 @@ export function InvoicesView({ invoices, total, page, limit, summary, collectedT
               </TableHeader>
               <TableBody>
                 {invoices.map((inv) => (
-                  <TableRow key={inv.id} className="hover:bg-gray-50/50">
-                    <TableCell>
+                  <TableRow key={inv.id} data-invoice-id={inv.id} className={cn("transition-colors", highlightId === inv.id ? "bg-emerald-50 hover:bg-emerald-50" : "hover:bg-gray-50/50")}>
+                    <TableCell className={cn(highlightId === inv.id && "border-l-4 border-emerald-400 pl-3")}>
                       <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-gray-400" />
+                        <FileText className={cn("w-4 h-4", highlightId === inv.id ? "text-emerald-500" : "text-gray-400")} />
                         <span className="text-sm font-mono font-medium text-gray-700">{inv.invoiceNumber}</span>
                       </div>
                     </TableCell>

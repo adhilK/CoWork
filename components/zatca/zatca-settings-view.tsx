@@ -232,7 +232,7 @@ export function ZatcaSettingsView(props: Props) {
 
   // ── Step 3 state — Register Device ───────────────────────────────────────────
   const [otp, setOtp] = useState("");
-  const [deviceName, setDeviceName] = useState("CoWork Pro");
+  const [deviceName, setDeviceName] = useState("Maktaby");
   const [registering, setRegistering] = useState(false);
   const [deviceRegistered, setDeviceRegistered] = useState(props.deviceRegistered);
   const step3Done = deviceRegistered;
@@ -492,7 +492,7 @@ export function ZatcaSettingsView(props: Props) {
                 label="Device Name"
                 value={deviceName}
                 onChange={setDeviceName}
-                placeholder="CoWork Pro"
+                placeholder="Maktaby"
                 hint="Label shown in the ZATCA portal"
                 disabled={!props.isOwner}
               />

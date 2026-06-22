@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Loader2, TrendingUp, Users, Trophy, GripVertical, Briefcase } from "lucide-react";
@@ -49,6 +49,9 @@ export function PipelineBoard({ leads, staff, catalog, currency, currentUserId }
   const [dragId, setDragId] = useState<string | null>(null);
   const [overStage, setOverStage] = useState<string | null>(null);
   const [localLeads, setLocalLeads] = useState(leads);
+
+  // Sync localLeads when server data refreshes (router.refresh() delivers new props).
+  useEffect(() => { setLocalLeads(leads); }, [leads]);
 
   const staffName = (id: string | null) => (id ? staff.find((s) => s.userId === id)?.name ?? "—" : "—");
 
