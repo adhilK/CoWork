@@ -141,7 +141,7 @@ function initialState(initial: InitialProps): WizardState {
   return {
     step: 1,
     spaceName: initial.spaceName ?? "",
-    businessType: initial.businessType || BUSINESS_TYPES[0]!,
+    businessType: initial.businessType || BUSINESS_TYPES[0]!.value,
     jurisdiction: initial.jurisdiction ?? "UAE",
     city: "",
     phone: initial.phone ?? "",
