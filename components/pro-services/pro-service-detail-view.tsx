@@ -104,7 +104,7 @@ function getNextAction(
       return {
         icon: <ClipboardList className="w-4 h-4" />,
         headline: `${pending.length} step${pending.length !== 1 ? "s" : ""} remaining`,
-        sub: `Next: "${pending[0].step}"`,
+        sub: `Next: "${pending[0]!.step}"`,
         variant: "blue",
       };
     }
