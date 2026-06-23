@@ -26,6 +26,7 @@ async function getDashboardData(orgId: string) {
     revenueThis, revenueLast, activeMembersNow, activeMembersLast,
     todayBookings, allBookingsThisMonth, resources, revenueByDay,
     recentInvoices, unbilledAgg, onSiteNow, pendingApprovals, overdueAgg,
+    bizLeadsActive, proServicesOpen,
   ] = await Promise.all([
     prisma.invoice.aggregate({
       where: { organizationId: orgId, status: "PAID", paidAt: { gte: thisMonthStart } },
@@ -69,6 +70,8 @@ async function getDashboardData(orgId: string) {
       where: { organizationId: orgId, deletedAt: null, status: { in: ["PENDING", "OVERDUE"] }, dueDate: { lt: now } },
       _sum: { amount: true }, _count: true,
     }),
+    prisma.businessSetupLead.count({ where: { organizationId: orgId, deletedAt: null, stage: { notIn: ["COMPLETED", "LOST"] } } }).catch(() => 0),
+    prisma.proServiceRequest.count({ where: { organizationId: orgId, deletedAt: null, stage: { notIn: ["COMPLETED", "CANCELLED"] } } }).catch(() => 0),
   ]);
 
   // Revenue-by-day for chart
@@ -98,6 +101,8 @@ async function getDashboardData(orgId: string) {
       todayBookings: { total: todayBookings.length, pending: todayBookings.filter((b) => b.status === "PENDING").length },
       occupancyRate: avgOccupancy,
       onSiteNow,
+      bizLeadsActive,
+      proServicesOpen,
     },
     attention: {
       pendingApprovals,
@@ -196,26 +201,36 @@ export default async function DashboardPage() {
       )}
 
       {/* Glanceable stats */}
-      <KPICards kpi={data.kpi} currency={currency} />
+      <KPICards kpi={data.kpi} currency={currency} businessType={businessType} />
 
       {/* Needs attention */}
       <NeedsAttention {...data.attention} currency={currency} />
 
-      {/* Today + recent invoices */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        <div className="xl:col-span-2">
-          <TodaySchedule bookings={data.todaySchedule as any} />
+      {businessType === "Business Center" ? (
+        /* Business Center layout — no bookings/occupancy */
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          <div className="xl:col-span-2">
+            <RevenueChart data={data.revenueChartData} currency={currency} />
+          </div>
+          <RecentInvoices invoices={data.recentInvoices as any} currency={currency} />
         </div>
-        <RecentInvoices invoices={data.recentInvoices as any} currency={currency} />
-      </div>
-
-      {/* Trends */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        <div className="xl:col-span-2">
-          <RevenueChart data={data.revenueChartData} currency={currency} />
-        </div>
-        <OccupancyChart data={data.occupancyData} />
-      </div>
+      ) : (
+        /* Coworking / Mixed Use layout */
+        <>
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+            <div className="xl:col-span-2">
+              <TodaySchedule bookings={data.todaySchedule as any} />
+            </div>
+            <RecentInvoices invoices={data.recentInvoices as any} currency={currency} />
+          </div>
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+            <div className="xl:col-span-2">
+              <RevenueChart data={data.revenueChartData} currency={currency} />
+            </div>
+            <OccupancyChart data={data.occupancyData} />
+          </div>
+        </>
+      )}
     </div>
   );
 }
