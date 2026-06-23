@@ -9,53 +9,85 @@ import { ROLE_LABELS, type AppRole } from "@/lib/permissions";
 
 type Guide = { intro: string; points: { label: string; href: string }[] };
 
-const ROLE_GUIDE: Record<string, Guide> = {
-  OWNER: {
-    intro: "You have full access to everything. The checklist on your dashboard walks you through getting set up.",
-    points: [
-      { label: "Add desks & rooms", href: "/dashboard/resources" },
-      { label: "Invite your members", href: "/dashboard/members" },
-      { label: "Invite your team", href: "/dashboard/settings/team" },
-    ],
-  },
-  ADMIN: {
-    intro: "You can run every part of operations — just not platform billing.",
-    points: [
-      { label: "Manage resources", href: "/dashboard/resources" },
-      { label: "Manage members", href: "/dashboard/members" },
-      { label: "Invoices & billing", href: "/dashboard/invoices" },
-    ],
-  },
-  MANAGER: {
-    intro: "You handle day-to-day operations across the space.",
-    points: [
-      { label: "Bookings calendar", href: "/dashboard/bookings" },
-      { label: "Members", href: "/dashboard/members" },
-      { label: "Invoices", href: "/dashboard/invoices" },
-    ],
-  },
-  RECEPTIONIST: {
-    intro: "You run the front desk — checking in visitors and keeping an eye on today's bookings.",
-    points: [
-      { label: "Check in a visitor", href: "/dashboard/visitors" },
-      { label: "See today's bookings", href: "/dashboard/bookings" },
-    ],
-  },
-  PRO_AGENT: {
-    intro: "You handle company formation and government services for clients.",
-    points: [
-      { label: "Business Setup pipeline", href: "/dashboard/business-setup/leads" },
-      { label: "PRO Services queue", href: "/dashboard/pro-services" },
-    ],
-  },
-};
+function getRoleGuide(role: string, businessType: string | null): Guide {
+  const isBizCenter = businessType === "Business Center";
+
+  const guides: Record<string, Guide> = {
+    OWNER: isBizCenter
+      ? {
+          intro: "You have full access to everything. The checklist on your dashboard walks you through getting set up.",
+          points: [
+            { label: "Set up virtual office addresses", href: "/dashboard/virtual-office/addresses" },
+            { label: "Add your first client", href: "/dashboard/members" },
+            { label: "Invite your team", href: "/dashboard/settings/team" },
+          ],
+        }
+      : {
+          intro: "You have full access to everything. The checklist on your dashboard walks you through getting set up.",
+          points: [
+            { label: "Add desks & rooms", href: "/dashboard/resources" },
+            { label: "Invite your members", href: "/dashboard/members" },
+            { label: "Invite your team", href: "/dashboard/settings/team" },
+          ],
+        },
+    ADMIN: isBizCenter
+      ? {
+          intro: "You can run every part of operations — just not platform billing.",
+          points: [
+            { label: "Business Setup pipeline", href: "/dashboard/business-setup/leads" },
+            { label: "Manage clients", href: "/dashboard/members" },
+            { label: "Invoices & billing", href: "/dashboard/invoices" },
+          ],
+        }
+      : {
+          intro: "You can run every part of operations — just not platform billing.",
+          points: [
+            { label: "Manage resources", href: "/dashboard/resources" },
+            { label: "Manage members", href: "/dashboard/members" },
+            { label: "Invoices & billing", href: "/dashboard/invoices" },
+          ],
+        },
+    MANAGER: {
+      intro: isBizCenter
+        ? "You handle day-to-day operations for business services and clients."
+        : "You handle day-to-day operations across the space.",
+      points: isBizCenter
+        ? [
+            { label: "Business Setup pipeline", href: "/dashboard/business-setup/leads" },
+            { label: "Clients", href: "/dashboard/members" },
+            { label: "Invoices", href: "/dashboard/invoices" },
+          ]
+        : [
+            { label: "Bookings calendar", href: "/dashboard/bookings" },
+            { label: "Members", href: "/dashboard/members" },
+            { label: "Invoices", href: "/dashboard/invoices" },
+          ],
+    },
+    RECEPTIONIST: {
+      intro: "You run the front desk — checking in visitors and keeping an eye on today's bookings.",
+      points: [
+        { label: "Check in a visitor", href: "/dashboard/visitors" },
+        { label: "See today's bookings", href: "/dashboard/bookings" },
+      ],
+    },
+    PRO_AGENT: {
+      intro: "You handle company formation and government services for clients.",
+      points: [
+        { label: "Business Setup pipeline", href: "/dashboard/business-setup/leads" },
+        { label: "PRO Services queue", href: "/dashboard/pro-services" },
+      ],
+    },
+  };
+
+  return guides[role] ?? guides.ADMIN!;
+}
 
 /**
  * One-time, role-specific welcome shown the first time a user reaches the
  * dashboard. Dismissal is remembered per user in localStorage, so it never
  * nags on later visits.
  */
-export function RoleWelcome({ role, userId, userName }: { role: AppRole; userId: string; userName: string | null }) {
+export function RoleWelcome({ role, userId, userName, businessType }: { role: AppRole; userId: string; userName: string | null; businessType: string | null }) {
   const [open, setOpen] = useState(false);
   const key = `cw_welcome_seen_${userId}`;
 
@@ -70,7 +102,7 @@ export function RoleWelcome({ role, userId, userName }: { role: AppRole; userId:
     setOpen(false);
   }
 
-  const guide = ROLE_GUIDE[role] ?? ROLE_GUIDE.ADMIN!;
+  const guide = getRoleGuide(role, businessType);
   const firstName = userName?.split(" ")[0] ?? "there";
 
   return (

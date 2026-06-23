@@ -119,8 +119,10 @@ async function getDashboardData(orgId: string) {
   };
 }
 
-async function getSetupSteps(orgId: string): Promise<{ steps: SetupStep[]; essentialsDone: boolean }> {
-  const [locationCount, resourceCount, planCount, memberCount, bookingCount, waConfig, staffCount, org] = await Promise.all([
+async function getSetupSteps(orgId: string, businessType: string | null): Promise<{ steps: SetupStep[]; essentialsDone: boolean }> {
+  const isBizCenter = businessType === "Business Center";
+
+  const [locationCount, resourceCount, planCount, memberCount, bookingCount, waConfig, staffCount, org, bizLeadCount, voAddressCount] = await Promise.all([
     prisma.location.count({ where: { organizationId: orgId, deletedAt: null } }),
     prisma.resource.count({ where: { organizationId: orgId, deletedAt: null } }),
     prisma.membershipPlan.count({ where: { organizationId: orgId, isActive: true } }),
@@ -129,20 +131,34 @@ async function getSetupSteps(orgId: string): Promise<{ steps: SetupStep[]; essen
     prisma.whatsAppConfig.findUnique({ where: { organizationId: orgId }, select: { isActive: true } }),
     prisma.userOrganization.count({ where: { organizationId: orgId, role: { not: "MEMBER" } } }),
     prisma.organization.findUnique({ where: { id: orgId }, select: { tapSecretKey: true, moyasarApiKey: true, bankTransferDetails: true } }),
+    prisma.businessSetupLead.count({ where: { organizationId: orgId, deletedAt: null } }).catch(() => 0),
+    prisma.virtualOfficeAddress.count({ where: { organizationId: orgId, deletedAt: null } }).catch(() => 0),
   ]);
 
   const paymentsDone = !!(org?.tapSecretKey || org?.moyasarApiKey || org?.bankTransferDetails);
 
-  const steps: SetupStep[] = [
-    { title: "Add your first location", desc: "Set where members check in and book.", href: "/dashboard/locations", cta: "Add location", done: locationCount > 0 },
-    { title: "Add desks & meeting rooms", desc: "Create the spaces members can book.", href: "/dashboard/resources", cta: "Add resources", done: resourceCount > 0 },
-    { title: "Create a membership plan", desc: "Set the pricing your members are billed on.", href: "/dashboard/plans", cta: "Create plan", done: planCount > 0 },
-    { title: "Set up payments", desc: "Connect Tap, Moyasar, or bank transfer to get paid.", href: "/dashboard/settings", cta: "Set up", done: paymentsDone },
-    { title: "Add your members", desc: "Invite the people who use your space.", href: "/dashboard/members", cta: "Add members", done: memberCount > 0 },
-    { title: "Take your first booking", desc: "Reserve a space to see the calendar in action.", href: "/dashboard/bookings", cta: "Open calendar", done: bookingCount > 0 },
-    { title: "Connect WhatsApp", desc: "Message members and automate reminders.", href: "/dashboard/whatsapp/settings", cta: "Connect", done: !!waConfig?.isActive, optional: true },
-    { title: "Invite your team", desc: "Add staff with the right level of access.", href: "/dashboard/settings/team", cta: "Invite team", done: staffCount > 1, optional: true },
-  ];
+  const steps: SetupStep[] = isBizCenter
+    ? [
+        { title: "Add your first location", desc: "Set your registered office address.", href: "/dashboard/locations", cta: "Add location", done: locationCount > 0 },
+        { title: "Set up virtual office addresses", desc: "Create the registered addresses clients can subscribe to.", href: "/dashboard/virtual-office/addresses", cta: "Add address", done: voAddressCount > 0 },
+        { title: "Create a service plan", desc: "Set pricing for virtual office subscriptions and services.", href: "/dashboard/plans", cta: "Create plan", done: planCount > 0 },
+        { title: "Set up payments", desc: "Connect Tap, Moyasar, or bank transfer to get paid.", href: "/dashboard/settings", cta: "Set up", done: paymentsDone },
+        { title: "Add your first client", desc: "Invite the people who use your services.", href: "/dashboard/members", cta: "Add client", done: memberCount > 0 },
+        { title: "Open your first business setup lead", desc: "Start tracking a company formation or license application.", href: "/dashboard/business-setup/leads", cta: "Add lead", done: bizLeadCount > 0 },
+        { title: "Connect WhatsApp", desc: "Message clients and automate service reminders.", href: "/dashboard/whatsapp/settings", cta: "Connect", done: !!waConfig?.isActive, optional: true },
+        { title: "Invite your team", desc: "Add staff with the right level of access.", href: "/dashboard/settings/team", cta: "Invite team", done: staffCount > 1, optional: true },
+      ]
+    : [
+        { title: "Add your first location", desc: "Set where members check in and book.", href: "/dashboard/locations", cta: "Add location", done: locationCount > 0 },
+        { title: "Add desks & meeting rooms", desc: "Create the spaces members can book.", href: "/dashboard/resources", cta: "Add resources", done: resourceCount > 0 },
+        { title: "Create a membership plan", desc: "Set the pricing your members are billed on.", href: "/dashboard/plans", cta: "Create plan", done: planCount > 0 },
+        { title: "Set up payments", desc: "Connect Tap, Moyasar, or bank transfer to get paid.", href: "/dashboard/settings", cta: "Set up", done: paymentsDone },
+        { title: "Add your members", desc: "Invite the people who use your space.", href: "/dashboard/members", cta: "Add members", done: memberCount > 0 },
+        { title: "Take your first booking", desc: "Reserve a space to see the calendar in action.", href: "/dashboard/bookings", cta: "Open calendar", done: bookingCount > 0 },
+        { title: "Connect WhatsApp", desc: "Message members and automate reminders.", href: "/dashboard/whatsapp/settings", cta: "Connect", done: !!waConfig?.isActive, optional: true },
+        { title: "Invite your team", desc: "Add staff with the right level of access.", href: "/dashboard/settings/team", cta: "Invite team", done: staffCount > 1, optional: true },
+      ];
+
   const essentialsDone = steps.filter((s) => !s.optional).every((s) => s.done);
   return { steps, essentialsDone };
 }
@@ -156,8 +172,9 @@ export default async function DashboardPage() {
   if (!isAdminRole(ctx.role)) redirect(homePathForRole(ctx.role));
 
   const data = await getDashboardData(ctx.organizationId);
+  const businessType = ctx.organization.businessType;
   // Show the guided setup checklist to operators while setup is incomplete.
-  const setup = isAdminRole(ctx.role) ? await getSetupSteps(ctx.organizationId) : null;
+  const setup = isAdminRole(ctx.role) ? await getSetupSteps(ctx.organizationId, businessType) : null;
   const currency = ctx.organization.currency;
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";

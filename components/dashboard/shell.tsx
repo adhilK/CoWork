@@ -291,7 +291,7 @@ export function DashboardShell({ user, organization, role, businessType, childre
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <RoleWelcome role={role} userId={user.id} userName={user.name} />
+      <RoleWelcome role={role} userId={user.id} userName={user.name} businessType={businessType} />
       {/* Desktop Sidebar — full height */}
       <aside className="hidden lg:flex flex-col flex-shrink-0" style={{ width: 252, background: "#0A0F0A" }}>
         {sidebar()}
