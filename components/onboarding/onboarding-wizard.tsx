@@ -95,6 +95,12 @@ const PLAN_PRESETS: { label: string; row: PlanRow }[] = [
   { label: "Private Office", row: { name: "Private Office", type: "PRIVATE_OFFICE", price: "2500", billingCycle: "MONTHLY", includedCredits: "20" } },
 ];
 
+const BC_PLAN_PRESETS: { label: string; row: PlanRow }[] = [
+  { label: "Virtual Office Basic", row: { name: "Virtual Office Basic", type: "VIRTUAL_OFFICE", price: "300", billingCycle: "MONTHLY", includedCredits: "0" } },
+  { label: "Virtual Office Premium", row: { name: "Virtual Office Premium", type: "VIRTUAL_OFFICE", price: "600", billingCycle: "MONTHLY", includedCredits: "0" } },
+  { label: "PRO Services Package", row: { name: "PRO Services Package", type: "CUSTOM", price: "1500", billingCycle: "MONTHLY", includedCredits: "0" } },
+];
+
 const STEPS = [
   { n: 1, label: "Your space", icon: Building2 },
   { n: 2, label: "Location", icon: MapPin },
@@ -341,7 +347,10 @@ export function OnboardingWizard({ initial }: { initial: InitialProps }) {
     );
   }
 
-  const enabledResourceCount = RESOURCE_OPTIONS.filter((o) => state.resources[o.key].enabled).length;
+  const visibleResourceOptions = state.businessType === "Business Center"
+    ? RESOURCE_OPTIONS.filter((o) => o.key === "VIRTUAL_OFFICE")
+    : RESOURCE_OPTIONS;
+  const enabledResourceCount = visibleResourceOptions.filter((o) => state.resources[o.key].enabled).length;
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "linear-gradient(160deg, #0D1712, #14241a)" }}>
@@ -382,7 +391,9 @@ export function OnboardingWizard({ initial }: { initial: InitialProps }) {
 
           {state.step === 3 && enabledResourceCount === 0 && (
             <p className="text-center text-xs text-white/50 mt-3">
-              Nothing selected — that&apos;s fine. You can add desks and rooms anytime from the dashboard.
+              {state.businessType === "Business Center"
+                ? "Nothing selected — that's fine. You can set up virtual office addresses anytime from the dashboard."
+                : "Nothing selected — that's fine. You can add desks and rooms anytime from the dashboard."}
             </p>
           )}
         </div>
@@ -659,14 +670,24 @@ function Step2({ state, set }: {
 function Step3({ state, setState, currency }: {
   state: WizardState; setState: React.Dispatch<React.SetStateAction<WizardState>>; currency: string;
 }) {
+  const isBizCenter = state.businessType === "Business Center";
+  const visibleOptions = isBizCenter
+    ? RESOURCE_OPTIONS.filter((o) => o.key === "VIRTUAL_OFFICE")
+    : RESOURCE_OPTIONS;
+
   const update = (key: ResourceTypeKey, patch: Partial<ResourceEntry>) =>
     setState((s) => ({ ...s, resources: { ...s.resources, [key]: { ...s.resources[key], ...patch } } }));
 
+  const title = isBizCenter ? "Virtual office addresses" : "What do you offer?";
+  const subtitle = isBizCenter
+    ? "Set up your registered address service. Members can subscribe for a business mailing address."
+    : "Pick everything you rent or provide. We'll create these so members can start booking.";
+
   return (
     <div>
-      <StepHeading title="What do you offer?" subtitle="Pick everything you rent or provide. We'll create these so members can start booking." />
+      <StepHeading title={title} subtitle={subtitle} />
       <div className="space-y-2.5">
-        {RESOURCE_OPTIONS.map((o) => {
+        {visibleOptions.map((o) => {
           const r = state.resources[o.key];
           const Icon = o.icon;
           return (
@@ -719,6 +740,13 @@ function Step3({ state, setState, currency }: {
 function Step4({ state, setState, currency }: {
   state: WizardState; setState: React.Dispatch<React.SetStateAction<WizardState>>; currency: string;
 }) {
+  const isBizCenter = state.businessType === "Business Center";
+  const presets = isBizCenter ? BC_PLAN_PRESETS : PLAN_PRESETS;
+  const title = isBizCenter ? "Service subscriptions" : "Membership plans";
+  const subtitle = isBizCenter
+    ? "Recurring packages for virtual offices and services. Optional — you can build these later."
+    : "Recurring plans you bill members on. Optional — you can build these later.";
+
   const setPlans = (plans: PlanRow[]) => setState((s) => ({ ...s, plans }));
   const addPlan = (row?: PlanRow) => {
     if (state.plans.length >= 3) { toast.error("You can add up to 3 plans during setup."); return; }
@@ -730,7 +758,7 @@ function Step4({ state, setState, currency }: {
 
   return (
     <div>
-      <StepHeading title="Membership plans" subtitle="Recurring plans you bill members on. Optional — you can build these later." />
+      <StepHeading title={title} subtitle={subtitle} />
 
       <div className="grid grid-cols-3 gap-2 mb-5">
         {([["yes", "Yes, set up now"], ["no", "No plans"], ["later", "Set up later"]] as const).map(([v, lbl]) => (
@@ -745,7 +773,7 @@ function Step4({ state, setState, currency }: {
           {/* Presets */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Quick add:</span>
-            {PLAN_PRESETS.map((p) => (
+            {presets.map((p) => (
               <button key={p.label} type="button" onClick={() => addPlan({ ...p.row })}
                 className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition-colors">
                 + {p.label}
@@ -755,22 +783,27 @@ function Step4({ state, setState, currency }: {
 
           {state.plans.length === 0 && (
             <div className="rounded-xl border-2 border-dashed border-gray-200 px-4 py-8 text-center">
-              <p className="text-sm text-gray-400">No plans yet — use a quick-add above or build one from scratch.</p>
+              <p className="text-sm text-gray-400">
+                {isBizCenter
+                  ? "No packages yet — use a quick-add above or build one from scratch."
+                  : "No plans yet — use a quick-add above or build one from scratch."}
+              </p>
             </div>
           )}
 
           {state.plans.map((p, i) => (
             <div key={i} className="rounded-xl border border-gray-200 p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-gray-400">Plan {i + 1}</span>
+                <span className="text-xs font-semibold text-gray-400">{isBizCenter ? "Package" : "Plan"} {i + 1}</span>
                 <button type="button" onClick={() => removePlan(i)} className="text-gray-300 hover:text-red-500">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-[11px] text-gray-500">Plan name</Label>
-                  <Input className="h-10 text-sm" placeholder="e.g. Hot Desk Monthly"
+                  <Label className="text-[11px] text-gray-500">{isBizCenter ? "Package name" : "Plan name"}</Label>
+                  <Input className="h-10 text-sm"
+                    placeholder={isBizCenter ? "e.g. Virtual Office Premium" : "e.g. Hot Desk Monthly"}
                     value={p.name} onChange={(e) => updatePlan(i, { name: e.target.value })} />
                 </div>
                 <div className="space-y-1.5">
@@ -788,11 +821,13 @@ function Step4({ state, setState, currency }: {
                     <option value="YEARLY">Yearly</option>
                   </select>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[11px] text-gray-500">Booking credits / month</Label>
-                  <Input type="number" min={0} className="h-10 text-sm" placeholder="0"
-                    value={p.includedCredits} onChange={(e) => updatePlan(i, { includedCredits: e.target.value })} />
-                </div>
+                {!isBizCenter && (
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] text-gray-500">Booking credits / month</Label>
+                    <Input type="number" min={0} className="h-10 text-sm" placeholder="0"
+                      value={p.includedCredits} onChange={(e) => updatePlan(i, { includedCredits: e.target.value })} />
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -800,7 +835,7 @@ function Step4({ state, setState, currency }: {
           {state.plans.length < 3 && (
             <button type="button" onClick={() => addPlan()}
               className="w-full rounded-xl border-2 border-dashed border-gray-200 py-3 text-sm font-medium text-gray-500 hover:border-emerald-300 hover:text-emerald-600 transition-colors flex items-center justify-center gap-1.5">
-              <Plus className="w-4 h-4" /> Add a plan
+              <Plus className="w-4 h-4" /> {isBizCenter ? "Add a package" : "Add a plan"}
             </button>
           )}
         </div>
@@ -808,7 +843,9 @@ function Step4({ state, setState, currency }: {
 
       {state.offerPlans !== "yes" && (
         <p className="text-sm text-gray-400 text-center py-4">
-          {state.offerPlans === "no" ? "No problem — you can bill members per booking instead." : "You can create plans anytime from Plans in the dashboard."}
+          {state.offerPlans === "no"
+            ? (isBizCenter ? "No problem — you can bill clients per service instead." : "No problem — you can bill members per booking instead.")
+            : (isBizCenter ? "You can create service packages anytime from Plans in the dashboard." : "You can create plans anytime from Plans in the dashboard.")}
         </p>
       )}
     </div>
